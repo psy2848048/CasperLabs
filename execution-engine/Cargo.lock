@@ -430,6 +430,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "client-api-proxy"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract-ffi 0.22.0",
+]
+
+[[package]]
 name = "cloudabi"
 version = "0.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1756,6 +1763,7 @@ name = "pos-install"
 version = "0.1.0"
 dependencies = [
  "casperlabs-contract-ffi 0.22.0",
+ "client-api-proxy 0.1.0",
  "pos 0.1.0",
 ]
 

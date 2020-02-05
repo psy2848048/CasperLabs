@@ -17,3 +17,4 @@ std = ["contract-ffi/std"]
 [dependencies]
 contract-ffi = { path = "../../../contract-ffi", package = "casperlabs-contract-ffi" }
 pos = { path = "../pos", default-features = false, features = ["lib"] }
+client-api-proxy = { path = "../client-api-proxy", default-features = false, features = ["lib"] }
