@@ -1,0 +1,24 @@
+language: rust
+rust: nightly
+cache: cargo
+before_cache:
+  - rm -rf "$TRAVIS_HOME/.cargo/registry/src"
+
+jobs:
+  include:
+    - os: linux
+      dist: xenial
+    - os: osx
+      osx_image: xcode11.3
+
+env:
+  global:
+    - PATH="$PATH:$HOME/protoc/bin"
+    - RUST_BACKTRACE=1
+install:
+  - ./scripts/install_protoc.sh
+script:
+  - mkdir -p integration-testing/resources
+  - cd execution-engine
+  - make setup
+  - make test-rs && make test-contracts-rs
