@@ -18,5 +18,6 @@ pub use self::{
 
 pub const MINT_NAME: &str = "mint";
 pub const POS_NAME: &str = "pos";
+pub const CLIENT_API_PROXY_NAME: &str = "client_api_proxy";
 
 pub(crate) const FN_STORE_ID_INITIAL: u32 = 0;

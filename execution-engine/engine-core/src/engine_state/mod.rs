@@ -65,7 +65,7 @@ use crate::{
         query::{QueryRequest, QueryResult},
         upgrade::{UpgradeConfig, UpgradeResult},
     },
-    execution::{self, AddressGenerator, Executor, MINT_NAME, POS_NAME},
+    execution::{self, AddressGenerator, Executor, CLIENT_API_PROXY_NAME, MINT_NAME, POS_NAME},
     tracking_copy::{TrackingCopy, TrackingCopyExt},
     KnownKeys,
 };
@@ -312,11 +312,24 @@ where
             ret
         };
 
+        let client_api_proxy_hash = tracking_copy
+            .borrow_mut()
+            .get_account(correlation_id, SYSTEM_ACCOUNT_ADDR)?
+            .named_keys()
+            .get(CLIENT_API_PROXY_NAME)
+            .expect("System Account should have client_api_proxy hash")
+            .as_hash()
+            .expect("should be hash");
+
         // Create known keys for system account
         let system_account_named_keys = {
             let mut ret = BTreeMap::new();
             ret.insert(MINT_NAME.to_string(), Key::URef(mint_reference));
             ret.insert(POS_NAME.to_string(), Key::URef(proof_of_stake_reference));
+            ret.insert(
+                CLIENT_API_PROXY_NAME.to_string(),
+                Key::Hash(client_api_proxy_hash),
+            );
             ret
         };
 
