@@ -74,18 +74,15 @@ impl Api {
                 system::transfer_from_purse_to_purse(source_purse, bonding_purse, amount)
                     .unwrap_or_revert();
 
-                runtime::call_contract::<_, ()>(
-                    pos_ref.clone(),
+                runtime::call_contract(
+                    pos_ref,
                     (internal_method_names::BOND, amount, bonding_purse),
-                );
+                )
             }
             Self::Unbond(amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 let amount: Option<U512> = amount.map(Into::into);
-                runtime::call_contract::<_, ()>(
-                    pos_ref.clone(),
-                    (internal_method_names::UNBOND, amount),
-                );
+                runtime::call_contract(pos_ref.clone(), (internal_method_names::UNBOND, amount))
             }
             Self::TransferToAccount(public_key, amount) => {
                 system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
