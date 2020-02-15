@@ -11,22 +11,22 @@ use contract_ffi::{
 use error::Error;
 
 mod proxy_method_names {
-    pub const BOND: &str = "bond";
-    pub const UNBOND: &str = "unbond";
+    use super::internal_method_names;
+
+    pub const BOND: &str = internal_method_names::BOND;
+    pub const UNBOND: &str = internal_method_names::UNBOND;
     pub const TRANSFER_TO_ACCOUNT: &str = "transfer_to_account";
 }
 
 mod internal_method_names {
-    use super::proxy_method_names;
-
-    pub const BOND: &str = proxy_method_names::BOND;
-    pub const UNBOND: &str = proxy_method_names::UNBOND;
+    pub const BOND: &str = "bond";
+    pub const UNBOND: &str = "unbond";
 }
 
 pub enum Api {
     Bond(u64),
     Unbond(Option<u64>),
-    TransferToAccount(PublicKey, U512),
+    TransferToAccount(PublicKey, u64),
 }
 
 impl Api {
@@ -56,7 +56,7 @@ impl Api {
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
 
-                Api::TransferToAccount(public_key, transfer_amount.into())
+                Api::TransferToAccount(public_key, transfer_amount)
             }
             _ => runtime::revert(Error::UnknownProxyApi),
         }
@@ -82,10 +82,10 @@ impl Api {
             Self::Unbond(amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 let amount: Option<U512> = amount.map(Into::into);
-                runtime::call_contract(pos_ref.clone(), (internal_method_names::UNBOND, amount))
+                runtime::call_contract(pos_ref, (internal_method_names::UNBOND, amount))
             }
             Self::TransferToAccount(public_key, amount) => {
-                system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
+                system::transfer_to_account(*public_key, (*amount).into()).unwrap_or_revert();
             }
         }
     }
