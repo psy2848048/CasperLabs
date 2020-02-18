@@ -1,4 +1,6 @@
 #[cfg(test)]
+pub mod client_api_proxy;
+#[cfg(test)]
 pub mod genesis;
 #[cfg(test)]
 mod mint_install;

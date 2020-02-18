@@ -1,0 +1,18 @@
+[package]
+name = "client-api-proxy"
+version = "0.1.0"
+authors = ["joonho <jhyeom26@gmail.com>"]
+edition = "2018"
+
+[lib]
+crate-type = ["lib", "cdylib"]
+bench = false
+doctest = false
+
+[features]
+default = []
+std = ["contract-ffi/std"]
+lib = []
+
+[dependencies]
+contract-ffi = { path = "../../../contract-ffi", package = "casperlabs-contract-ffi" }

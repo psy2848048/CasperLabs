@@ -87,6 +87,9 @@ pub extern "C" fn call() {
         .unwrap_or_revert_with(Error::UnexpectedContractRefVariant);
     let return_value = CLValue::from_t(uref).unwrap_or_revert();
 
+    // store a contract which serves as proxy for commonly used client apis.
+    client_api_proxy::deploy_client_api_proxy();
+
     runtime::ret(return_value);
 }
 
