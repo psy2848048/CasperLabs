@@ -6,19 +6,31 @@ before_cache:
 
 jobs:
   include:
-    - os: linux
+    - stage: unit test
+      os: linux
       dist: xenial
-    - os: osx
+      script:
+        - make test-rs && make test-contracts-rs
+    - stage: unit test
+      os: osx
       osx_image: xcode11.3
-
+      script:
+        - make test-rs && make test-contracts-rs
+    - stage: lint
+      os: linux
+      dist: bionic
+      before_script:
+        - rustup component add rustfmt clippy --toolchain $(cat rust-toolchain)
+      script:
+        - make build && make check-format && make lint
 env:
   global:
     - PATH="$PATH:$HOME/protoc/bin"
     - RUST_BACKTRACE=1
 install:
-  - ./scripts/install_protoc.sh
-script:
   - mkdir -p integration-testing/resources
+  - ./scripts/install_protoc.sh
+  - nvm install --lts
+  - npm install -g assemblyscript@0.9.1
   - cd execution-engine
   - make setup
-  - make test-rs && make test-contracts-rs
