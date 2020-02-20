@@ -4,7 +4,7 @@ extern crate alloc;
 
 mod client_api;
 
-use contract_ffi::contract_api::{runtime, storage};
+use contract::contract_api::{runtime, storage};
 
 use client_api::Api;
 
