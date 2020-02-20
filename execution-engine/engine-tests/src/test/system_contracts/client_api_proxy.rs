@@ -1,15 +1,21 @@
 use base16;
+use std::convert::TryInto;
 
 use contract_ffi::{
     key::Key,
     value::{account::PublicKey, U512},
 };
-use engine_core::engine_state::{genesis::GenesisAccount, SYSTEM_ACCOUNT_ADDR};
-use engine_shared::{motes::Motes, stored_value::StoredValue, transform::Transform};
+use engine_core::engine_state::{genesis::GenesisAccount, CONV_RATE, SYSTEM_ACCOUNT_ADDR};
+use engine_shared::{gas::Gas, motes::Motes, stored_value::StoredValue, transform::Transform};
 
 use crate::{
-    support::test_support::{self, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
-    test::{DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE, DEFAULT_GENESIS_CONFIG},
+    support::test_support::{
+        self, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
+    },
+    test::{
+        DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE, DEFAULT_ACCOUNT_KEY,
+        DEFAULT_GENESIS_CONFIG,
+    },
 };
 
 const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
@@ -66,6 +72,74 @@ fn should_invoke_successful_transfer_to_account() {
         .get_purse_balance(account_1.purse_id());
 
     assert_eq!(balance, U512::from(TRANSFER_AMOUNT));
+}
+
+#[ignore]
+#[test]
+fn should_invoke_successful_standard_payment() {
+    // run genesis
+    let mut builder = InMemoryWasmTestBuilder::default();
+    builder.run_genesis(&*DEFAULT_GENESIS_CONFIG).commit();
+
+    let client_api_proxy_hash = get_client_api_proxy_hash(&builder);
+
+    // transfer 1 from DEFAULT_ACCOUNT to ACCOUNT_1
+    let payment_amount = 10_000_000;
+    let transferred_amount = 1;
+    let exec_request = {
+        let deploy = DeployItemBuilder::new()
+            .with_address(DEFAULT_ACCOUNT_ADDR)
+            .with_deploy_hash([1; 32])
+            .with_session_code(
+                "transfer_purse_to_account.wasm",
+                (
+                    PublicKey::new(ACCOUNT_1_ADDR),
+                    U512::from(transferred_amount),
+                ),
+            )
+            .with_stored_payment_hash(
+                client_api_proxy_hash.to_vec(),
+                ("standard_payment", payment_amount as u32),
+            )
+            .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
+            .build();
+
+        ExecuteRequestBuilder::new().push_deploy(deploy).build()
+    };
+    let transfer_result = builder.exec_commit_finish(exec_request);
+    let default_account = transfer_result
+        .builder()
+        .get_account(DEFAULT_ACCOUNT_ADDR)
+        .expect("should get genesis account");
+    let modified_balance: U512 = transfer_result
+        .builder()
+        .get_purse_balance(default_account.purse_id());
+    let initial_balance: U512 = U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE);
+
+    assert_ne!(
+        modified_balance, initial_balance,
+        "balance should be less than initial balance"
+    );
+
+    let response = transfer_result
+        .builder()
+        .get_exec_response(0)
+        .expect("there should be a response")
+        .clone();
+
+    let mut success_result = test_support::get_success_result(&response);
+    let cost = success_result
+        .take_cost()
+        .try_into()
+        .expect("should map to U512");
+    let fee_in_motes = Motes::from_gas(Gas::new(cost), CONV_RATE).expect("should have motes");
+    let total_consumed = fee_in_motes.value() + U512::from(transferred_amount);
+    let tally = total_consumed + modified_balance;
+
+    assert_eq!(
+        initial_balance, tally,
+        "no net resources should be gained or lost post-distribution"
+    );
 }
 
 #[ignore]
