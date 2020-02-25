@@ -111,7 +111,7 @@ fn should_run_purse_to_purse_transfer_with_error() {
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_TRANSFER_PURSE_TO_PURSE,
-        (source, target, U512::from(999_999_999_999i64)),
+        (source, target, U512::max_value()),
     )
     .build();
     let mut builder = InMemoryWasmTestBuilder::default();

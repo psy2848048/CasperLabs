@@ -29,5 +29,5 @@ pub extern "C" fn call() {
         "get_phase did not return known_phase"
     );
 
-    standard_payment(U512::from(10_000_000));
+    standard_payment(U512::from(1_000_000_000_000_000u64));
 }

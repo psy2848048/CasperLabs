@@ -160,7 +160,7 @@ fn should_invoke_successful_bond_and_unbond() {
         (
             TRANSFER_TO_ACCOUNT_METHOD,
             ACCOUNT_1_ADDR,
-            U512::from(1_000_000_000),
+            *DEFAULT_PAYMENT * 5,
         ),
     )
     .build();

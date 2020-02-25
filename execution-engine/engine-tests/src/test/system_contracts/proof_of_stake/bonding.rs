@@ -16,7 +16,6 @@ use types::{
 
 const CONTRACT_POS_BONDING: &str = "pos_bonding.wasm";
 const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-const ACCOUNT_1_SEED_AMOUNT: u64 = 100_000_000 * 2;
 const ACCOUNT_1_STAKE: u64 = 42_000;
 const ACCOUNT_1_UNBOND_1: u64 = 22_000;
 const ACCOUNT_1_UNBOND_2: u64 = 20_000;
@@ -53,6 +52,7 @@ fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
 #[ignore]
 #[test]
 fn should_run_successful_bond_and_unbond() {
+    let account_1_seed_amount = *DEFAULT_PAYMENT * 10 * 2;
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -118,7 +118,7 @@ fn should_run_successful_bond_and_unbond() {
         (
             String::from(TEST_SEED_NEW_ACCOUNT),
             PublicKey::new(ACCOUNT_1_ADDR),
-            U512::from(ACCOUNT_1_SEED_AMOUNT),
+            account_1_seed_amount,
         ),
     )
     .build();
@@ -260,15 +260,12 @@ fn should_run_successful_bond_and_unbond() {
 
     assert_eq!(
         builder.get_purse_balance(default_account.purse_id()),
-        U512::from(
-            DEFAULT_ACCOUNT_INITIAL_BALANCE
-                - Motes::from_gas(genesis_gas_cost, CONV_RATE)
-                    .expect("should convert")
-                    .value()
-                    .as_u64()
-                - ACCOUNT_1_SEED_AMOUNT
-                - GENESIS_ACCOUNT_UNBOND_2
-        ),
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
+            - Motes::from_gas(genesis_gas_cost, CONV_RATE)
+                .expect("should convert")
+                .value()
+            - account_1_seed_amount
+            - GENESIS_ACCOUNT_UNBOND_2,
     );
 
     // POS bonding purse is further decreased
@@ -357,14 +354,11 @@ fn should_run_successful_bond_and_unbond() {
         result
             .builder()
             .get_purse_balance(default_account.purse_id()),
-        U512::from(
-            DEFAULT_ACCOUNT_INITIAL_BALANCE
-                - Motes::from_gas(genesis_gas_cost, CONV_RATE)
-                    .expect("should convert")
-                    .value()
-                    .as_u64()
-                - ACCOUNT_1_SEED_AMOUNT
-        )
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
+            - Motes::from_gas(genesis_gas_cost, CONV_RATE)
+                .expect("should convert")
+                .value()
+            - account_1_seed_amount
     );
 
     // Final balance after two full unbonds is the initial bond valuee

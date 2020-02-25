@@ -171,11 +171,9 @@ fn should_run_purse_to_account_transfer() {
     let balance_uref = genesis_transforms
         .iter()
         .find_map(|(k, t)| match (k, t) {
-            (uref @ Key::URef(_), Transform::Write(StoredValue::CLValue(cl_value))) =>
-            // 100_000_000_000i64 is the initial balance of genesis
-            {
+            (uref @ Key::URef(_), Transform::Write(StoredValue::CLValue(cl_value))) => {
                 if cl_value.to_owned().into_t::<U512>().unwrap_or_default()
-                    == U512::from(100_000_000_000i64)
+                    == U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
                 {
                     Some(*uref)
                 } else {
@@ -229,7 +227,7 @@ fn should_fail_when_sending_too_much_from_purse_to_account() {
     // When trying to send too much coins the balance is left unchanged
     assert_eq!(
         final_balance,
-        U512::from(100_000_000_000u64) - *DEFAULT_PAYMENT,
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE) - *DEFAULT_PAYMENT,
         "final balance incorrect"
     );
 

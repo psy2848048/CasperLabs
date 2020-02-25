@@ -3,7 +3,7 @@ use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -52,7 +52,6 @@ fn should_transfer_to_account_stored() {
     let modified_balance_alpha: U512 = builder.get_purse_balance(default_account.purse_id());
 
     let transferred_amount: u64 = 1;
-    let payment_purse_amount = 10_000_000;
 
     // next make another deploy that USES stored payment logic
     let exec_request = {
@@ -64,7 +63,7 @@ fn should_transfer_to_account_stored() {
             )
             .with_payment_code(
                 &format!("{}.wasm", STANDARD_PAYMENT_CONTRACT_NAME),
-                (U512::from(payment_purse_amount),),
+                (*DEFAULT_PAYMENT,),
             )
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .with_deploy_hash([2; 32])

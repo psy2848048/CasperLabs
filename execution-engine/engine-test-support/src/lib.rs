@@ -77,6 +77,8 @@ pub use session::{Session, SessionBuilder};
 pub use test_context::{TestContext, TestContextBuilder};
 pub use value::Value;
 
+use engine_core::engine_state::CONV_RATE;
+
 /// An address of an entity (e.g. an account or key) on the network.
 pub type Address = [u8; 32];
 
@@ -90,4 +92,4 @@ pub type Hash = [u8; 32];
 pub const DEFAULT_ACCOUNT_ADDR: [u8; 32] = [6u8; 32];
 
 /// Default initial balance of a test account in motes.
-pub const DEFAULT_ACCOUNT_INITIAL_BALANCE: u64 = 100_000_000_000;
+pub const DEFAULT_ACCOUNT_INITIAL_BALANCE: u64 = 10_000_000_000 * CONV_RATE;
