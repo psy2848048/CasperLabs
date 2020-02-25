@@ -5,7 +5,7 @@ use types::{account::PublicKey, Key, U512};
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -37,18 +37,22 @@ fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
 #[ignore]
 #[test]
 fn should_invoke_successful_transfer_to_account() {
-    const TRANSFER_AMOUNT: u64 = 1000;
+    let transferred_amount = U512::from(1000);
 
     let mut builder = InMemoryWasmTestBuilder::default();
     builder.run_genesis(&*DEFAULT_GENESIS_CONFIG).commit();
 
     let client_api_proxy_hash = get_client_api_proxy_hash(&builder);
 
-    // transfer to ACCOUNT_1_ADDR with TRANSFER_AMOUNT
+    // transfer to ACCOUNT_1_ADDR with transferred_amount
     let exec_request = ExecuteRequestBuilder::contract_call_by_hash(
         DEFAULT_ACCOUNT_ADDR,
         client_api_proxy_hash,
-        (TRANSFER_TO_ACCOUNT_METHOD, ACCOUNT_1_ADDR, TRANSFER_AMOUNT),
+        (
+            TRANSFER_TO_ACCOUNT_METHOD,
+            ACCOUNT_1_ADDR,
+            transferred_amount,
+        ),
     )
     .build();
 
@@ -63,7 +67,7 @@ fn should_invoke_successful_transfer_to_account() {
         .builder()
         .get_purse_balance(account_1.purse_id());
 
-    assert_eq!(balance, U512::from(TRANSFER_AMOUNT));
+    assert_eq!(balance, transferred_amount);
 }
 
 #[ignore]
@@ -76,7 +80,6 @@ fn should_invoke_successful_standard_payment() {
     let client_api_proxy_hash = get_client_api_proxy_hash(&builder);
 
     // transfer 1 from DEFAULT_ACCOUNT to ACCOUNT_1
-    let payment_amount = 10_000_000;
     let transferred_amount = 1;
     let exec_request = {
         let deploy = DeployItemBuilder::new()
@@ -91,7 +94,7 @@ fn should_invoke_successful_standard_payment() {
             )
             .with_stored_payment_hash(
                 client_api_proxy_hash.to_vec(),
-                ("standard_payment", payment_amount as u32),
+                ("standard_payment", *DEFAULT_PAYMENT),
             )
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .build();
@@ -103,10 +106,10 @@ fn should_invoke_successful_standard_payment() {
         .builder()
         .get_account(DEFAULT_ACCOUNT_ADDR)
         .expect("should get genesis account");
-    let modified_balance: U512 = transfer_result
+    let modified_balance = transfer_result
         .builder()
         .get_purse_balance(default_account.purse_id());
-    let initial_balance: U512 = U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE);
+    let initial_balance = U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE);
 
     assert_ne!(
         modified_balance, initial_balance,
@@ -157,7 +160,7 @@ fn should_invoke_successful_bond_and_unbond() {
         (
             TRANSFER_TO_ACCOUNT_METHOD,
             ACCOUNT_1_ADDR,
-            1_000_000_000 as u64,
+            U512::from(1_000_000_000),
         ),
     )
     .build();
@@ -165,7 +168,7 @@ fn should_invoke_successful_bond_and_unbond() {
     let exec_request_bonding = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_1_ADDR,
         client_api_proxy_hash,
-        (BOND_METHOD, BOND_AMOUNT),
+        (BOND_METHOD, U512::from(BOND_AMOUNT)),
     )
     .build();
     let bonding_result = InMemoryWasmTestBuilder::from_result(result)
@@ -203,7 +206,7 @@ fn should_invoke_successful_bond_and_unbond() {
     let exec_request_unbonding = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_1_ADDR,
         client_api_proxy_hash,
-        (UNBOND_METHOD, None as Option<u64>), // None means unbond all the amount
+        (UNBOND_METHOD, None as Option<U512>), // None means unbond all the amount
     )
     .build();
     let unbonding_result = InMemoryWasmTestBuilder::from_result(bonding_result)
