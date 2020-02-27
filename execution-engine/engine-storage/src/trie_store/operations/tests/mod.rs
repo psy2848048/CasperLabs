@@ -7,12 +7,11 @@ mod write;
 
 use std::{collections::HashMap, convert};
 
-use failure;
 use lmdb::DatabaseFlags;
 use tempfile::{tempdir, TempDir};
 
-use contract_ffi::bytesrepr::{self, FromBytes, ToBytes};
 use engine_shared::newtypes::{Blake2bHash, CorrelationId};
+use types::bytesrepr::{self, FromBytes, ToBytes};
 
 use crate::{
     error::{self, in_memory},
@@ -483,7 +482,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     if tries.is_empty() {
         return Ok(());
@@ -571,7 +570,7 @@ where
     T: Readable<Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<T::Error>,
-    E: From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<S::Error> + From<types::bytesrepr::Error>,
 {
     let mut ret = Vec::new();
 
@@ -600,7 +599,7 @@ where
     T: Readable<Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<T::Error>,
-    E: From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<S::Error> + From<types::bytesrepr::Error>,
 {
     let expected = {
         let mut tmp = leaves
@@ -633,7 +632,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     let txn: R::ReadTransaction = environment.create_read_txn()?;
 
@@ -674,7 +673,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     let mut results = Vec::new();
     if leaves.is_empty() {
@@ -716,7 +715,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     let txn = environment.create_read_txn()?;
     for (index, root_hash) in root_hashes.iter().enumerate() {
@@ -761,7 +760,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     let mut results = Vec::new();
     if pairs.is_empty() {
@@ -797,7 +796,7 @@ where
     R: TransactionSource<'a, Handle = S::Handle>,
     S: TrieStore<K, V>,
     S::Error: From<R::Error>,
-    E: From<R::Error> + From<S::Error> + From<contract_ffi::bytesrepr::Error>,
+    E: From<R::Error> + From<S::Error> + From<types::bytesrepr::Error>,
 {
     let mut states = states.to_vec();
 

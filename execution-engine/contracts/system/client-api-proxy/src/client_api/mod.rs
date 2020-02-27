@@ -2,13 +2,13 @@ mod error;
 
 use alloc::string::String;
 
-use contract_ffi::{
-    contract_api::{account, runtime, system, Error as ApiError},
+use contract::{
+    contract_api::{account, runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
-    value::{
-        account::{PublicKey, PurseId},
-        U512,
-    },
+};
+use types::{
+    account::{PublicKey, PurseId},
+    ApiError, U512,
 };
 
 use error::Error;
