@@ -1,21 +1,13 @@
-use base16;
-use std::convert::TryInto;
-
-use contract_ffi::{
-    key::Key,
-    value::{account::PublicKey, U512},
-};
 use engine_core::engine_state::{genesis::GenesisAccount, CONV_RATE, SYSTEM_ACCOUNT_ADDR};
-use engine_shared::{gas::Gas, motes::Motes, stored_value::StoredValue, transform::Transform};
+use engine_shared::{motes::Motes, stored_value::StoredValue, transform::Transform};
+use types::{account::PublicKey, Key, U512};
 
-use crate::{
-    support::test_support::{
-        self, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
+use engine_test_support::{
+    internal::{
+        utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG,
     },
-    test::{
-        DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE, DEFAULT_ACCOUNT_KEY,
-        DEFAULT_GENESIS_CONFIG,
-    },
+    DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 
 const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
@@ -38,7 +30,7 @@ fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
         .named_keys()
         .get("client_api_proxy")
         .expect("should get client_api_proxy key")
-        .as_hash()
+        .into_hash()
         .expect("should be hash")
 }
 
@@ -127,12 +119,9 @@ fn should_invoke_successful_standard_payment() {
         .expect("there should be a response")
         .clone();
 
-    let mut success_result = test_support::get_success_result(&response);
-    let cost = success_result
-        .take_cost()
-        .try_into()
-        .expect("should map to U512");
-    let fee_in_motes = Motes::from_gas(Gas::new(cost), CONV_RATE).expect("should have motes");
+    let success_result = utils::get_success_result(&response);
+    let fee_in_motes =
+        Motes::from_gas(success_result.cost(), CONV_RATE).expect("should have motes");
     let total_consumed = fee_in_motes.value() + U512::from(transferred_amount);
     let tally = total_consumed + modified_balance;
 
@@ -153,7 +142,7 @@ fn should_invoke_successful_bond_and_unbond() {
         Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
         Motes::new(BOND_AMOUNT.into()),
     )];
-    let genesis_config = test_support::create_genesis_config(accounts);
+    let genesis_config = utils::create_genesis_config(accounts);
     let result = InMemoryWasmTestBuilder::default()
         .run_genesis(&genesis_config)
         .commit()
