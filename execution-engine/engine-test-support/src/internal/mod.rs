@@ -9,7 +9,10 @@ mod wasm_test_builder;
 use lazy_static::lazy_static;
 use num_traits::identities::Zero;
 
-use engine_core::engine_state::genesis::{GenesisAccount, GenesisConfig};
+use engine_core::engine_state::{
+    genesis::{GenesisAccount, GenesisConfig},
+    CONV_RATE,
+};
 use engine_shared::{motes::Motes, test_utils};
 use engine_wasm_prep::wasm_costs::WasmCosts;
 use types::{account::PublicKey, ProtocolVersion, U512};
@@ -45,7 +48,7 @@ lazy_static! {
         ret
     };
     pub static ref DEFAULT_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V1_0_0;
-    pub static ref DEFAULT_PAYMENT: U512 = 100_000_000.into();
+    pub static ref DEFAULT_PAYMENT: U512 = U512::from(10_000_000) * CONV_RATE;
     pub static ref DEFAULT_WASM_COSTS: WasmCosts = test_utils::wasm_costs_mock();
     pub static ref DEFAULT_GENESIS_CONFIG: GenesisConfig = {
         let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL_CONTRACT);

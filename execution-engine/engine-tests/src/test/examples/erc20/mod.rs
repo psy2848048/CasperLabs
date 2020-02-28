@@ -1,6 +1,8 @@
 mod erc20_test;
 
-use engine_test_support::{DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE};
+use engine_test_support::{
+    internal::DEFAULT_PAYMENT, DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
+};
 use types::U512;
 
 use erc20_test::ERC20Test;
@@ -118,7 +120,7 @@ fn test_erc20_transfer_from() {
     let initial_supply = U512::from(10);
     let allowance = U512::from(5);
     let transfered = U512::from(2);
-    let clx_balance = U512::from(500_000_000);
+    let clx_balance = *DEFAULT_PAYMENT * 50;
     ERC20Test::new(ACCOUNT_1, initial_supply)
         .call_clx_transfer_with_success(ACCOUNT_1, ACCOUNT_2, clx_balance)
         .call_erc20_approve(ACCOUNT_1, ACCOUNT_2, allowance)
@@ -136,7 +138,7 @@ fn test_erc20_transfer_from_more_than_allowance() {
     let initial_supply = U512::from(10);
     let allowance = U512::from(5);
     let too_much = U512::from(6);
-    let clx_balance = U512::from(500_000_000);
+    let clx_balance = *DEFAULT_PAYMENT * 50;
     ERC20Test::new(ACCOUNT_1, initial_supply)
         .call_clx_transfer_with_success(ACCOUNT_1, ACCOUNT_2, clx_balance)
         .call_erc20_approve(ACCOUNT_1, ACCOUNT_2, allowance)
@@ -151,7 +153,7 @@ fn test_erc20_transfer_from_too_much() {
     let initial_supply = U512::from(10);
     let allowance = U512::from(50);
     let too_much = U512::from(11);
-    let clx_balance = U512::from(500_000_000);
+    let clx_balance = *DEFAULT_PAYMENT * 50;
     ERC20Test::new(ACCOUNT_1, initial_supply)
         .call_clx_transfer_with_success(ACCOUNT_1, ACCOUNT_2, clx_balance)
         .call_erc20_approve(ACCOUNT_1, ACCOUNT_2, allowance)

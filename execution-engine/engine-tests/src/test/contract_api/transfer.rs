@@ -15,7 +15,7 @@ const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_purse_to_account.wasm
 const CONTRACT_TRANSFER_TO_ACCOUNT: &str = "transfer_to_account_u512.wasm";
 
 lazy_static! {
-    static ref TRANSFER_1_AMOUNT: U512 = U512::from(250_000_000) + 1000;
+    static ref TRANSFER_1_AMOUNT: U512 = (U512::from(25_000_000) + 100) * CONV_RATE;
     static ref TRANSFER_2_AMOUNT: U512 = U512::from(750);
     static ref TRANSFER_2_AMOUNT_WITH_ADV: U512 = *DEFAULT_PAYMENT + *TRANSFER_2_AMOUNT;
     static ref TRANSFER_TOO_MUCH: U512 = U512::from(u64::max_value());

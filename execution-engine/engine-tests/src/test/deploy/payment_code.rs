@@ -5,7 +5,7 @@ use engine_shared::{motes::Motes, transform::Transform};
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -355,14 +355,14 @@ fn should_forward_payment_execution_gas_limit_error() {
 #[test]
 fn should_run_out_of_gas_when_session_code_exceeds_gas_limit() {
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
     let transferred_amount = 1;
 
     let exec_request = {
         let deploy = DeployItemBuilder::new()
             .with_address(DEFAULT_ACCOUNT_ADDR)
             .with_deploy_hash([1; 32])
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_session_code(
                 "endless_loop.wasm",
                 (account_1_public_key, U512::from(transferred_amount)),
@@ -399,13 +399,13 @@ fn should_run_out_of_gas_when_session_code_exceeds_gas_limit() {
 #[ignore]
 #[test]
 fn should_correctly_charge_when_session_code_runs_out_of_gas() {
-    let payment_purse_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
 
     let exec_request = {
         let deploy = DeployItemBuilder::new()
             .with_address(DEFAULT_ACCOUNT_ADDR)
             .with_deploy_hash([1; 32])
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_session_code("endless_loop.wasm", ())
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .build();
@@ -457,14 +457,14 @@ fn should_correctly_charge_when_session_code_runs_out_of_gas() {
 #[test]
 fn should_correctly_charge_when_session_code_fails() {
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
     let transferred_amount = 1;
 
     let exec_request = {
         let deploy = DeployItemBuilder::new()
             .with_address(DEFAULT_ACCOUNT_ADDR)
             .with_deploy_hash([1; 32])
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_session_code(
                 "revert.wasm",
                 (account_1_public_key, U512::from(transferred_amount)),
@@ -514,7 +514,7 @@ fn should_correctly_charge_when_session_code_fails() {
 #[test]
 fn should_correctly_charge_when_session_code_succeeds() {
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
     let transferred_amount = 1;
 
     let exec_request = {
@@ -525,7 +525,7 @@ fn should_correctly_charge_when_session_code_succeeds() {
                 "transfer_purse_to_account.wasm",
                 (account_1_public_key, U512::from(transferred_amount)),
             )
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .build();
 
@@ -596,7 +596,7 @@ fn get_pos_rewards_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
 #[test]
 fn should_finalize_to_rewards_purse() {
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
     let transferred_amount = 1;
 
     let exec_request = {
@@ -606,7 +606,7 @@ fn should_finalize_to_rewards_purse() {
                 "transfer_purse_to_account.wasm",
                 (account_1_public_key, U512::from(transferred_amount)),
             )
-            .with_payment_code("standard_payment.wasm", (U512::from(payment_purse_amount),))
+            .with_payment_code("standard_payment.wasm", (payment_purse_amount,))
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .with_deploy_hash([1; 32])
             .build();
@@ -631,8 +631,8 @@ fn should_finalize_to_rewards_purse() {
 #[test]
 fn independent_standard_payments_should_not_write_the_same_keys() {
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = 10_000_000;
-    let transfer_amount = 10_000_000;
+    let payment_purse_amount = *DEFAULT_PAYMENT;
+    let transfer_amount = *DEFAULT_PAYMENT;
 
     let mut builder = InMemoryWasmTestBuilder::default();
 
@@ -641,9 +641,9 @@ fn independent_standard_payments_should_not_write_the_same_keys() {
             .with_address(DEFAULT_ACCOUNT_ADDR)
             .with_session_code(
                 "transfer_purse_to_account.wasm",
-                (account_1_public_key, U512::from(transfer_amount)),
+                (account_1_public_key, transfer_amount),
             )
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .with_deploy_hash([1; 32])
             .build();
@@ -662,7 +662,7 @@ fn independent_standard_payments_should_not_write_the_same_keys() {
         let deploy = DeployItemBuilder::new()
             .with_address(DEFAULT_ACCOUNT_ADDR)
             .with_session_code(DO_NOTHING_WASM, ())
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
             .with_deploy_hash([2; 32])
             .build();
@@ -674,7 +674,7 @@ fn independent_standard_payments_should_not_write_the_same_keys() {
         let deploy = DeployItemBuilder::new()
             .with_address(ACCOUNT_1_ADDR)
             .with_session_code(DO_NOTHING_WASM, ())
-            .with_payment_code(STANDARD_PAYMENT_WASM, (U512::from(payment_purse_amount),))
+            .with_payment_code(STANDARD_PAYMENT_WASM, (payment_purse_amount,))
             .with_authorization_keys(&[account_1_public_key])
             .with_deploy_hash([1; 32])
             .build();
@@ -717,9 +717,9 @@ fn should_charge_non_main_purse() {
     const TEST_PURSE_NAME: &str = "test-purse";
 
     let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
-    let payment_purse_amount = U512::from(10_000_000);
-    let account_1_funding_amount = U512::from(100_000_000);
-    let account_1_purse_funding_amount = U512::from(50_000_000);
+    let payment_purse_amount = *DEFAULT_PAYMENT;
+    let account_1_funding_amount = *DEFAULT_PAYMENT * 10;
+    let account_1_purse_funding_amount = *DEFAULT_PAYMENT * 5;
 
     let mut builder = InMemoryWasmTestBuilder::default();
 

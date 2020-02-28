@@ -1,6 +1,8 @@
 mod vesting_test;
 
-use engine_test_support::{DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE};
+use engine_test_support::{
+    internal::DEFAULT_PAYMENT, DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
+};
 use types::U512;
 
 use vesting_test::{VestingConfig, VestingTest};
@@ -34,7 +36,7 @@ fn test_vesting_deployment() {
 #[test]
 fn test_pause_by_admin() {
     let config: VestingConfig = Default::default();
-    let init_balance = U512::from(500_000_000);
+    let init_balance = *DEFAULT_PAYMENT * 50;
     VestingTest::new(FAUCET, ADMIN, RECIPIENT, &config)
         .call_clx_transfer_with_success(FAUCET, ADMIN, init_balance)
         .with_block_timestamp(10)
@@ -48,7 +50,7 @@ fn test_pause_by_admin() {
 #[test]
 fn test_pause_by_non_admin_error() {
     let config: VestingConfig = Default::default();
-    let init_balance = U512::from(500_000_000);
+    let init_balance = *DEFAULT_PAYMENT * 50;
     VestingTest::new(FAUCET, ADMIN, RECIPIENT, &config)
         .call_clx_transfer_with_success(FAUCET, RECIPIENT, init_balance)
         .call_vesting_pause(RECIPIENT)
@@ -59,7 +61,7 @@ fn test_pause_by_non_admin_error() {
 #[test]
 fn test_unpause_by_admin() {
     let config: VestingConfig = Default::default();
-    let init_balance = U512::from(500_000_000);
+    let init_balance = *DEFAULT_PAYMENT * 50;
     VestingTest::new(FAUCET, ADMIN, RECIPIENT, &config)
         .call_clx_transfer_with_success(FAUCET, ADMIN, init_balance)
         .call_vesting_pause(ADMIN)
@@ -73,7 +75,7 @@ fn test_unpause_by_admin() {
 #[test]
 fn test_unpause_by_non_admin_error() {
     let config: VestingConfig = Default::default();
-    let init_balance = U512::from(500_000_000);
+    let init_balance = *DEFAULT_PAYMENT * 50;
     VestingTest::new(FAUCET, ADMIN, RECIPIENT, &config)
         .call_clx_transfer_with_success(FAUCET, ADMIN, init_balance)
         .call_clx_transfer_with_success(FAUCET, RECIPIENT, init_balance)
