@@ -64,7 +64,7 @@ fn should_run_successful_bond_and_unbond() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let genesis_config = utils::create_casper_genesis_config(accounts);
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder.run_genesis(&genesis_config).finish();
@@ -429,7 +429,7 @@ fn should_fail_bonding_with_insufficient_funds() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let genesis_config = utils::create_casper_genesis_config(accounts);
 
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
@@ -484,7 +484,7 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let genesis_config = utils::create_casper_genesis_config(accounts);
 
     let exec_request = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,

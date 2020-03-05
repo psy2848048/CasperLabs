@@ -1,6 +1,8 @@
 use engine_shared::{stored_value::StoredValue, transform::Transform};
 use engine_test_support::{
-    internal::{exec_with_return, WasmTestBuilder, DEFAULT_BLOCK_TIME, DEFAULT_GENESIS_CONFIG},
+    internal::{
+        exec_with_return, WasmTestBuilder, DEFAULT_BLOCK_TIME, DEFAULT_CASPER_GENESIS_CONFIG,
+    },
     DEFAULT_ACCOUNT_ADDR,
 };
 use types::{Key, URef};
@@ -12,7 +14,7 @@ const DEPLOY_HASH_1: [u8; 32] = [1u8; 32];
 fn should_run_mint_install_contract() {
     let mut builder = WasmTestBuilder::default();
 
-    builder.run_genesis(&DEFAULT_GENESIS_CONFIG);
+    builder.run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG);
 
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
         &mut builder,

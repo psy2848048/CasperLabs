@@ -28,6 +28,8 @@ pub use wasm_test_builder::{
 
 pub const MINT_INSTALL_CONTRACT: &str = "hdac_mint_install.wasm";
 pub const POS_INSTALL_CONTRACT: &str = "hdac_pos_install.wasm";
+pub const CASPER_MINT_INSTALL_CONTRACT: &str = "mint_install.wasm";
+pub const CASPER_POS_INSTALL_CONTRACT: &str = "pos_install.wasm";
 pub const STANDARD_PAYMENT_CONTRACT: &str = "standard_payment.wasm";
 
 pub const DEFAULT_CHAIN_NAME: &str = "gerald";
@@ -53,6 +55,19 @@ lazy_static! {
     pub static ref DEFAULT_GENESIS_CONFIG: GenesisConfig = {
         let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL_CONTRACT);
         let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL_CONTRACT);
+        GenesisConfig::new(
+            DEFAULT_CHAIN_NAME.to_string(),
+            DEFAULT_GENESIS_TIMESTAMP,
+            *DEFAULT_PROTOCOL_VERSION,
+            mint_installer_bytes,
+            pos_installer_bytes,
+            DEFAULT_ACCOUNTS.clone(),
+            *DEFAULT_WASM_COSTS,
+        )
+    };
+    pub static ref DEFAULT_CASPER_GENESIS_CONFIG: GenesisConfig = {
+        let mint_installer_bytes = utils::read_wasm_file_bytes(CASPER_MINT_INSTALL_CONTRACT);
+        let pos_installer_bytes = utils::read_wasm_file_bytes(CASPER_POS_INSTALL_CONTRACT);
         GenesisConfig::new(
             DEFAULT_CHAIN_NAME.to_string(),
             DEFAULT_GENESIS_TIMESTAMP,

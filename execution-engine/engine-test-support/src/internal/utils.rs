@@ -17,8 +17,9 @@ use engine_shared::{
 use types::Key;
 
 use crate::internal::{
-    DEFAULT_CHAIN_NAME, DEFAULT_GENESIS_TIMESTAMP, DEFAULT_PROTOCOL_VERSION, DEFAULT_WASM_COSTS,
-    MINT_INSTALL_CONTRACT, POS_INSTALL_CONTRACT,
+    CASPER_MINT_INSTALL_CONTRACT, CASPER_POS_INSTALL_CONTRACT, DEFAULT_CHAIN_NAME,
+    DEFAULT_GENESIS_TIMESTAMP, DEFAULT_PROTOCOL_VERSION, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
+    POS_INSTALL_CONTRACT,
 };
 
 lazy_static! {
@@ -116,6 +117,21 @@ pub fn create_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisConfig {
         proof_of_stake_installer_bytes,
         accounts,
         wasm_costs,
+    )
+}
+
+pub fn create_casper_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisConfig {
+    let mint_installer_bytes = read_wasm_file_bytes(CASPER_MINT_INSTALL_CONTRACT);
+    let proof_of_stake_installer_bytes = read_wasm_file_bytes(CASPER_POS_INSTALL_CONTRACT);
+    let default = create_genesis_config(accounts);
+    GenesisConfig::new(
+        default.name().to_string(),
+        default.timestamp(),
+        default.protocol_version(),
+        mint_installer_bytes,
+        proof_of_stake_installer_bytes,
+        default.accounts().to_vec(),
+        default.wasm_costs(),
     )
 }
 

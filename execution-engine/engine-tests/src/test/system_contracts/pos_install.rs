@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use engine_test_support::{
     internal::{
         exec_with_return, ExecuteRequestBuilder, WasmTestBuilder, DEFAULT_BLOCK_TIME,
-        DEFAULT_GENESIS_CONFIG,
+        DEFAULT_CASPER_GENESIS_CONFIG,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -37,7 +37,7 @@ fn should_run_pos_install_contract() {
     )
     .build();
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .expect_success();

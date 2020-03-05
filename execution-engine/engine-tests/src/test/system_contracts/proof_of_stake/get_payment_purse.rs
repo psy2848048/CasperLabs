@@ -1,7 +1,8 @@
 use engine_core::engine_state::CONV_RATE;
 use engine_test_support::{
     internal::{
-        ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
+        ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_CASPER_GENESIS_CONFIG,
+        DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -21,7 +22,7 @@ fn should_run_get_payment_purse_contract_default_account() {
     )
     .build();
     InMemoryWasmTestBuilder::default()
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .expect_success()
         .commit();
@@ -45,7 +46,7 @@ fn should_run_get_payment_purse_contract_account_1() {
     )
     .build();
     InMemoryWasmTestBuilder::default()
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request_1)
         .expect_success()
         .commit()

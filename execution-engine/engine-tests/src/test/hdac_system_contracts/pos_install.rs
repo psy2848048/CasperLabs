@@ -52,7 +52,7 @@ fn should_run_pos_install_contract() {
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
         &mut builder,
         SYSTEM_ADDR,
-        "pos_install.wasm",
+        "hdac_pos_install.wasm",
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
         (mint_uref, genesis_validators),

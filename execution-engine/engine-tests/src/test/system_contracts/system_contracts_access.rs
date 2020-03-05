@@ -4,7 +4,8 @@ use engine_core::execution;
 use engine_shared::TypeMismatch;
 use engine_test_support::{
     internal::{
-        ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
+        ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_CASPER_GENESIS_CONFIG,
+        DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -42,7 +43,7 @@ fn should_verify_system_contracts_access_rights_default() {
     .build();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request_1)
         .expect_success()
         .commit();
@@ -81,7 +82,7 @@ fn should_not_overwrite_system_contract_uref_as_user() {
     )
     .build();
 
-    builder.run_genesis(&DEFAULT_GENESIS_CONFIG);
+    builder.run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG);
 
     let mint_uref = builder.get_pos_contract_uref().into_read();
     let pos_uref = builder.get_pos_contract_uref().into_read();
@@ -113,7 +114,7 @@ fn should_overwrite_system_contract_uref_as_system() {
     .build();
 
     let result = InMemoryWasmTestBuilder::default()
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request_1)
         .expect_success()
         .commit()
