@@ -26,8 +26,8 @@ pub use wasm_test_builder::{
     InMemoryWasmTestBuilder, LmdbWasmTestBuilder, WasmTestBuilder, WasmTestResult,
 };
 
-pub const MINT_INSTALL_CONTRACT: &str = "mint_install.wasm";
-pub const POS_INSTALL_CONTRACT: &str = "pos_install.wasm";
+pub const MINT_INSTALL_CONTRACT: &str = "hdac_mint_install.wasm";
+pub const POS_INSTALL_CONTRACT: &str = "hdac_pos_install.wasm";
 pub const STANDARD_PAYMENT_CONTRACT: &str = "standard_payment.wasm";
 
 pub const DEFAULT_CHAIN_NAME: &str = "gerald";

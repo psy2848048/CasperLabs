@@ -1,3 +1,4 @@
+mod client_api_proxy;
 mod genesis;
 mod mint_install;
 mod pos_install;

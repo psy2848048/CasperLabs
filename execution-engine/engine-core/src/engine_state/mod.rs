@@ -309,24 +309,32 @@ where
             ret
         };
 
-        let client_api_proxy_hash = tracking_copy
-            .borrow_mut()
-            .get_account(correlation_id, SYSTEM_ACCOUNT_ADDR)?
-            .named_keys()
-            .get(CLIENT_API_PROXY_NAME)
-            .expect("System Account should have client_api_proxy hash")
-            .into_hash()
-            .expect("should be hash");
+        let client_api_proxy_key: Option<Key> = {
+            tracking_copy
+                .borrow_mut()
+                .get_account(correlation_id, SYSTEM_ACCOUNT_ADDR)?
+                .named_keys()
+                .get(CLIENT_API_PROXY_NAME)
+                .cloned()
+        };
 
         // Create known keys for system account
         let system_account_named_keys = {
             let mut ret = BTreeMap::new();
             ret.insert(MINT_NAME.to_string(), Key::URef(mint_reference));
             ret.insert(POS_NAME.to_string(), Key::URef(proof_of_stake_reference));
-            ret.insert(
-                CLIENT_API_PROXY_NAME.to_string(),
-                Key::Hash(client_api_proxy_hash),
-            );
+
+            // if client_api_proxy exists after genesis, store it under named_keys.
+            if let Some(key) = client_api_proxy_key {
+                match key {
+                    Key::Hash(_) => {
+                        ret.insert(CLIENT_API_PROXY_NAME.to_string(), key);
+                    }
+                    _ => {
+                        panic!("client_api_proxy_key must be a hash!");
+                    }
+                }
+            }
             ret
         };
 

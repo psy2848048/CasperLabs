@@ -1,19 +1,19 @@
 [package]
-name = "pos-install"
+name = "hdac-mint-token"
 version = "0.1.0"
 authors = ["Michael Birch <birchmd@casperlabs.io>"]
 edition = "2018"
 
 [lib]
-crate-type = ["cdylib"]
+crate-type = ["lib", "cdylib"]
 bench = false
 doctest = false
-test = false
 
 [features]
 std = ["contract/std", "types/std"]
+lib = []
 
 [dependencies]
 contract = { path = "../../../contract", package = "casperlabs-contract" }
+mint = { path = "../../../mint", package = "casperlabs-mint" }
 types = { path = "../../../types", package = "casperlabs-types" }
-pos = { path = "../pos", default-features = false, features = ["lib"] }

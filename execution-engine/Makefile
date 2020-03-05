@@ -36,15 +36,17 @@ PROFILING_CONTRACTS   = $(shell find ./contracts/profiling   -mindepth 1 -maxdep
 SRE_CONTRACTS         = $(shell find ./contracts/SRE         -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 SYSTEM_CONTRACTS      = $(shell find ./contracts/system      -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 TEST_CONTRACTS        = $(shell find ./contracts/test        -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+HDAC_SYSTEM_CONTRACTS = $(shell find ./contracts/hdac-system -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 
-BENCH_CONTRACTS     := $(patsubst %, build-contract-rs/%, $(BENCH_CONTRACTS))
-CLIENT_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(CLIENT_CONTRACTS))
-EXAMPLE_CONTRACTS   := $(patsubst %, build-contract-rs/%, $(EXAMPLE_CONTRACTS))
-EXPLORER_CONTRACTS  := $(patsubst %, build-contract-rs/%, $(EXPLORER_CONTRACTS))
-PROFILING_CONTRACTS := $(patsubst %, build-contract-rs/%, $(PROFILING_CONTRACTS))
-SRE_CONTRACTS       := $(patsubst %, build-contract-rs/%, $(SRE_CONTRACTS))
-SYSTEM_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(SYSTEM_CONTRACTS))
-TEST_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(TEST_CONTRACTS))
+BENCH_CONTRACTS       := $(patsubst %, build-contract-rs/%, $(BENCH_CONTRACTS))
+CLIENT_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(CLIENT_CONTRACTS))
+EXAMPLE_CONTRACTS     := $(patsubst %, build-contract-rs/%, $(EXAMPLE_CONTRACTS))
+EXPLORER_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(EXPLORER_CONTRACTS))
+PROFILING_CONTRACTS   := $(patsubst %, build-contract-rs/%, $(PROFILING_CONTRACTS))
+SRE_CONTRACTS         := $(patsubst %, build-contract-rs/%, $(SRE_CONTRACTS))
+SYSTEM_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(SYSTEM_CONTRACTS))
+TEST_CONTRACTS        := $(patsubst %, build-contract-rs/%, $(TEST_CONTRACTS))
+HDAC_SYSTEM_CONTRACTS := $(patsubst %, build-contract-rs/%, $(HDAC_SYSTEM_CONTRACTS))
 
 # AssemblyScript Contracts
 CLIENT_CONTRACTS_AS  = $(shell find ./contracts-as/client   -mindepth 1 -maxdepth 1 -type d)
@@ -111,7 +113,8 @@ build-contracts-rs: \
 	$(PROFILING_CONTRACTS) \
 	$(SRE_CONTRACTS) \
 	$(SYSTEM_CONTRACTS) \
-	$(TEST_CONTRACTS)
+	$(TEST_CONTRACTS) \
+	$(HDAC_SYSTEM_CONTRACTS)
 
 .PHONY: build-example-contracts
 build-example-contracts: $(EXAMPLE_CONTRACTS)

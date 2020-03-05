@@ -94,6 +94,19 @@ fn should_run_pos_install_contract() {
 
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
     assert_eq!(rewards_purse_balance, U512::zero());
+
+    // system account should have a client_api_proxy contract in named_keys as Key::Hash
+    let query_result = builder
+        .query(None, Key::Account(SYSTEM_ADDR), &[])
+        .expect("should query system account");
+    let system_account = query_result
+        .as_account()
+        .expect("query result should be an account");
+
+    assert!(
+        system_account.named_keys().contains_key("client_api_proxy"),
+        "client_api_proxy should be present"
+    );
 }
 
 fn get_purse(named_keys: &BTreeMap<String, Key>, name: &str) -> Option<PurseId> {

@@ -29,7 +29,7 @@ enum Args {
 
 #[no_mangle]
 pub extern "C" fn pos_ext() {
-    pos::delegate();
+    hdac_pos::delegate();
 }
 
 #[no_mangle]
@@ -84,6 +84,9 @@ pub extern "C" fn call() {
         .into_uref()
         .unwrap_or_revert_with(ApiError::UnexpectedContractRefVariant);
     let return_value = CLValue::from_t(uref).unwrap_or_revert();
+
+    // store a contract which serves as proxy for commonly used client apis.
+    client_api_proxy::deploy_client_api_proxy();
 
     runtime::ret(return_value);
 }
