@@ -30,7 +30,5 @@ env:
 install:
   - mkdir -p integration-testing/resources
   - ./scripts/install_protoc.sh
-  - nvm install --lts
-  - npm install -g assemblyscript@0.9.1
   - cd execution-engine
-  - make setup
+  - make setup-rs
