@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use engine_test_support::{
     internal::{
         exec_with_return, ExecuteRequestBuilder, WasmTestBuilder, DEFAULT_BLOCK_TIME,
-        DEFAULT_CASPER_GENESIS_CONFIG,
+        DEFAULT_GENESIS_CONFIG,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -37,7 +37,7 @@ fn should_run_pos_install_contract() {
     )
     .build();
     builder
-        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .expect_success();
@@ -52,7 +52,7 @@ fn should_run_pos_install_contract() {
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
         &mut builder,
         SYSTEM_ADDR,
-        "pos_install.wasm",
+        "hdac_pos_install.wasm",
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
         (mint_uref, genesis_validators),
@@ -94,6 +94,19 @@ fn should_run_pos_install_contract() {
 
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
     assert_eq!(rewards_purse_balance, U512::zero());
+
+    // system account should have a client_api_proxy contract in named_keys as Key::Hash
+    let query_result = builder
+        .query(None, Key::Account(SYSTEM_ADDR), &[])
+        .expect("should query system account");
+    let system_account = query_result
+        .as_account()
+        .expect("query result should be an account");
+
+    assert!(
+        system_account.named_keys().contains_key("client_api_proxy"),
+        "client_api_proxy should be present"
+    );
 }
 
 fn get_purse(named_keys: &BTreeMap<String, Key>, name: &str) -> Option<PurseId> {

@@ -38,7 +38,7 @@ fn should_return_bonded_validators() {
         tmp
     };
 
-    let genesis_config = utils::create_casper_genesis_config(accounts.clone());
+    let genesis_config = utils::create_genesis_config(accounts.clone());
 
     let exec_request =
         ExecuteRequestBuilder::standard(DEFAULT_ACCOUNT_ADDR, CONTRACT_LOCAL_STATE, ()).build();

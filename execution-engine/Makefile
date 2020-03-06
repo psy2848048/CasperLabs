@@ -5,20 +5,20 @@ CARGO  = $(or $(shell which cargo),  $(HOME)/.cargo/bin/cargo)
 RUSTUP = $(or $(shell which rustup), $(HOME)/.cargo/bin/rustup)
 NPM    = $(or $(shell which npm),    /usr/bin/npm)
 
-# AssemblyScript Compiler
-ASC_VERSION := 0.9.1
+# # AssemblyScript Compiler
+# ASC_VERSION := 0.9.1
 
-# Checks if AssemblyScript compiler is found in $PATH
-ifeq (,$(shell which asc))
-    $(error "No asc in $(PATH). Please run npm install -g assemblyscript@$(ASC_VERSION) first")
-endif
+# # Checks if AssemblyScript compiler is found in $PATH
+# ifeq (,$(shell which asc))
+#     $(error "No asc in $(PATH). Please run npm install -g assemblyscript@$(ASC_VERSION) first")
+# endif
 
-# Checks if AssemblyScript compiler is at correct version
-ASC_VERSION_OUTPUT:=$(shell asc --version | cut -d' ' -f2)
-ifeq (,$(findstring $(ASC_VERSION),$(ASC_VERSION_OUTPUT)))
-    $(error "Found asc version $(ASC_VERSION_OUTPUT) but version $(ASC_VERSION) is required.\
-             Please run npm install -g assemblyscript@$(ASC_VERSION) first")
-endif
+# # Checks if AssemblyScript compiler is at correct version
+# ASC_VERSION_OUTPUT:=$(shell asc --version | cut -d' ' -f2)
+# ifeq (,$(findstring $(ASC_VERSION),$(ASC_VERSION_OUTPUT)))
+#     $(error "Found asc version $(ASC_VERSION_OUTPUT) but version $(ASC_VERSION) is required.\
+#              Please run npm install -g assemblyscript@$(ASC_VERSION) first")
+# endif
 
 RUST_TOOLCHAIN := $(shell cat rust-toolchain)
 
@@ -36,15 +36,17 @@ PROFILING_CONTRACTS   = $(shell find ./contracts/profiling   -mindepth 1 -maxdep
 SRE_CONTRACTS         = $(shell find ./contracts/SRE         -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 SYSTEM_CONTRACTS      = $(shell find ./contracts/system      -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 TEST_CONTRACTS        = $(shell find ./contracts/test        -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
+HDAC_SYSTEM_CONTRACTS = $(shell find ./contracts/hdac-system -mindepth 1 -maxdepth 1 -type d -exec basename {} \;)
 
-BENCH_CONTRACTS     := $(patsubst %, build-contract-rs/%, $(BENCH_CONTRACTS))
-CLIENT_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(CLIENT_CONTRACTS))
-EXAMPLE_CONTRACTS   := $(patsubst %, build-contract-rs/%, $(EXAMPLE_CONTRACTS))
-EXPLORER_CONTRACTS  := $(patsubst %, build-contract-rs/%, $(EXPLORER_CONTRACTS))
-PROFILING_CONTRACTS := $(patsubst %, build-contract-rs/%, $(PROFILING_CONTRACTS))
-SRE_CONTRACTS       := $(patsubst %, build-contract-rs/%, $(SRE_CONTRACTS))
-SYSTEM_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(SYSTEM_CONTRACTS))
-TEST_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(TEST_CONTRACTS))
+BENCH_CONTRACTS       := $(patsubst %, build-contract-rs/%, $(BENCH_CONTRACTS))
+CLIENT_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(CLIENT_CONTRACTS))
+EXAMPLE_CONTRACTS     := $(patsubst %, build-contract-rs/%, $(EXAMPLE_CONTRACTS))
+EXPLORER_CONTRACTS    := $(patsubst %, build-contract-rs/%, $(EXPLORER_CONTRACTS))
+PROFILING_CONTRACTS   := $(patsubst %, build-contract-rs/%, $(PROFILING_CONTRACTS))
+SRE_CONTRACTS         := $(patsubst %, build-contract-rs/%, $(SRE_CONTRACTS))
+SYSTEM_CONTRACTS      := $(patsubst %, build-contract-rs/%, $(SYSTEM_CONTRACTS))
+TEST_CONTRACTS        := $(patsubst %, build-contract-rs/%, $(TEST_CONTRACTS))
+HDAC_SYSTEM_CONTRACTS := $(patsubst %, build-contract-rs/%, $(HDAC_SYSTEM_CONTRACTS))
 
 # AssemblyScript Contracts
 CLIENT_CONTRACTS_AS  = $(shell find ./contracts-as/client   -mindepth 1 -maxdepth 1 -type d)
@@ -111,7 +113,8 @@ build-contracts-rs: \
 	$(PROFILING_CONTRACTS) \
 	$(SRE_CONTRACTS) \
 	$(SYSTEM_CONTRACTS) \
-	$(TEST_CONTRACTS)
+	$(TEST_CONTRACTS) \
+	$(HDAC_SYSTEM_CONTRACTS)
 
 .PHONY: build-example-contracts
 build-example-contracts: $(EXAMPLE_CONTRACTS)

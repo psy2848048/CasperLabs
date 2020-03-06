@@ -1,5 +1,5 @@
 [package]
-name = "pos-install"
+name = "hdac-mint-install"
 version = "0.1.0"
 authors = ["Michael Birch <birchmd@casperlabs.io>"]
 edition = "2018"
@@ -16,4 +16,4 @@ std = ["contract/std", "types/std"]
 [dependencies]
 contract = { path = "../../../contract", package = "casperlabs-contract" }
 types = { path = "../../../types", package = "casperlabs-types" }
-pos = { path = "../pos", default-features = false, features = ["lib"] }
+hdac-mint-token = { path = "../hdac-mint-token", default-features = false, features = ["lib"] }
