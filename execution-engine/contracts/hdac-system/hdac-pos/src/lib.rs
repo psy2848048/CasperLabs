@@ -6,6 +6,7 @@ mod contract_mint;
 mod contract_queue;
 mod contract_runtime;
 mod contract_stakes;
+mod hdac_pos_contract;
 
 use alloc::string::String;
 
@@ -16,10 +17,7 @@ use types::{
     ApiError, CLValue, URef, U512,
 };
 
-use crate::{
-    contract_mint::ContractMint, contract_queue::ContractQueue, contract_runtime::ContractRuntime,
-    contract_stakes::ContractStakes,
-};
+pub use crate::hdac_pos_contract::DelegatedProofOfStakeContract;
 
 const METHOD_BOND: &str = "bond";
 const METHOD_UNBOND: &str = "unbond";
@@ -29,15 +27,12 @@ const METHOD_SET_REFUND_PURSE: &str = "set_refund_purse";
 const METHOD_GET_REFUND_PURSE: &str = "get_refund_purse";
 const METHOD_FINALIZE_PAYMENT: &str = "finalize_payment";
 
-pub struct ProofOfStakeContract;
-
-impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
-    for ProofOfStakeContract
-{
-}
+const METHOD_DELEGATE: &str = "delegate";
+const METHOD_UNDELEGATE: &str = "undelegate";
+const METHOD_REDELEGATE: &str = "redelegate";
 
 pub fn delegate() {
-    let pos_contract = ProofOfStakeContract;
+    let pos_contract = DelegatedProofOfStakeContract;
 
     let method_name: String = runtime::get_arg(0)
         .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -104,6 +99,51 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
                 .finalize_payment(amount_spent, account)
+                .unwrap_or_revert();
+        }
+        METHOD_DELEGATE => {
+            let delegator: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let validator: PublicKey = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(3)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pos_contract
+                .delegate(delegator, validator, amount)
+                .unwrap_or_revert();
+        }
+        METHOD_UNDELEGATE => {
+            let delegator: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let validator: PublicKey = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let shares: U512 = runtime::get_arg(3)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pos_contract
+                .undelegate(delegator, validator, shares)
+                .unwrap_or_revert();
+        }
+        METHOD_REDELEGATE => {
+            let delegator: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let src_validator: PublicKey = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let dest_validator: PublicKey = runtime::get_arg(3)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let shares: U512 = runtime::get_arg(4)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pos_contract
+                .redelegate(delegator, src_validator, dest_validator, shares)
                 .unwrap_or_revert();
         }
         _ => {}
