@@ -1,8 +1,7 @@
 use contract::contract_api::storage;
 use proof_of_stake::{Queue, QueueProvider};
 
-const BONDING_KEY: u8 = 1;
-const UNBONDING_KEY: u8 = 2;
+use crate::constants::local_keys::{BONDING_KEY, UNBONDING_KEY};
 
 /// A `QueueProvider` that reads and writes the queue to/from the contract's local state.
 pub struct ContractQueue;
