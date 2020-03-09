@@ -40,7 +40,7 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
-                .bond(validator, amount, source_uref)
+                .delegate(validator, validator, amount, source_uref)
                 .unwrap_or_revert();
         }
         // Type of this method: `fn unbond(amount: Option<U512>)`
@@ -93,17 +93,18 @@ pub fn delegate() {
                 .unwrap_or_revert();
         }
         methods::METHOD_DELEGATE => {
-            let delegator: PublicKey = runtime::get_arg(1)
+            let delegator = runtime::get_caller();
+            let validator: PublicKey = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let validator: PublicKey = runtime::get_arg(2)
+            let amount: U512 = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let amount: U512 = runtime::get_arg(3)
+            let source_uref: URef = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
-                .delegate(delegator, validator, amount)
+                .delegate(delegator, validator, amount, source_uref)
                 .unwrap_or_revert();
         }
         methods::METHOD_UNDELEGATE => {

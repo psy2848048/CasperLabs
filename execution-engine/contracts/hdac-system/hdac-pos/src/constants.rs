@@ -4,6 +4,10 @@ pub(crate) mod local_keys {
     pub const DELEGATION_MAP_KEY: u8 = 3;
 }
 
+pub(crate) mod uref_names {
+    pub const POS_BONDING_PURSE: &str = "pos_bonding_purse";
+}
+
 pub(crate) mod methods {
     pub const METHOD_BOND: &str = "bond";
     pub const METHOD_UNBOND: &str = "unbond";

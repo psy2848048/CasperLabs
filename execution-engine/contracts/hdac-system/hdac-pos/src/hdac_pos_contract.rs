@@ -2,17 +2,19 @@ use alloc::{collections::BTreeMap, vec::Vec};
 use core::result;
 
 use contract::contract_api::storage;
-use proof_of_stake::ProofOfStake;
+use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
-    account::PublicKey,
+    account::{PublicKey, PurseId},
     bytesrepr::{self, FromBytes, ToBytes},
-    system_contract_errors::pos::Result,
-    CLType, CLTyped, U512,
+    system_contract_errors::pos::{Error, PurseLookupError, Result},
+    CLType, CLTyped, Key, URef, U512,
 };
 
 use crate::{
-    constants::local_keys::DELEGATION_MAP_KEY, contract_mint::ContractMint,
-    contract_queue::ContractQueue, contract_runtime::ContractRuntime,
+    constants::{local_keys, uref_names},
+    contract_mint::ContractMint,
+    contract_queue::ContractQueue,
+    contract_runtime::ContractRuntime,
     contract_stakes::ContractStakes,
 };
 
@@ -21,32 +23,49 @@ pub struct DelegatedProofOfStakeContract;
 impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
     for DelegatedProofOfStakeContract
 {
-    // fn bond(&self, validator: PublicKey, amount: U512, source_uref: URef) -> Result<()>;
-    // fn unbond(&self, validator: PublicKey, maybe_amount: Option<U512>) -> Result<()>;
-    // fn step(&self) -> Result<()>;
-    // fn get_payment_purse(&self) -> Result<PurseId>;
-    // fn set_refund_purse(&self, purse_id: PurseId) -> Result<()>;
-    // fn get_refund_purse(&self) -> Result<Option<PurseId>>;
-    // fn finalize_payment(&self, amount_spent: U512, account: PublicKey) -> Result<()>;
 }
 
 impl DelegatedProofOfStakeContract {
     pub fn delegate(
         &self,
-        _delegator: PublicKey,
-        _validator: PublicKey,
-        _amount: U512,
+        delegator: PublicKey,
+        validator: PublicKey,
+        amount: U512,
+        source_purse: URef,
     ) -> Result<()> {
-        // Get or Create Delegation
-        let _delegations =
-            storage::read_local::<_, BTreeMap<DelegationKey, U512>>(&DELEGATION_MAP_KEY)
+        // transfer amount to pos_bonding_purse
+        if amount.is_zero() {
+            return Err(Error::BondTooSmall);
+        }
+        let source = PurseId::new(source_purse);
+        let pos_purse = get_purse_id::<ContractRuntime>(uref_names::POS_BONDING_PURSE)
+            .map_err(PurseLookupError::bonding)?;
+
+        ContractMint::transfer_from_purse_to_purse(source, pos_purse, amount)
+            .map_err(|_| Error::BondTransferFailed)?;
+
+        // increase validator's staked token amount
+        let mut stakes: Stakes = ContractStakes::read()?;
+        stakes.bond(&validator, amount);
+        ContractStakes::write(&stakes);
+
+        // update delegation table
+        let del_key = DelegationKey {
+            delegator,
+            validator,
+        };
+        let mut delegations: BTreeMap<DelegationKey, U512> =
+            storage::read_local::<_, _>(&local_keys::DELEGATION_MAP_KEY)
                 .unwrap_or_default()
                 .unwrap_or_default();
-        // transfer amount to pos_bonding_purse
-        // Get Stakes of validators
-        // increase validator's staked token amount and calculate shares.
-        // update delegation's share.
-        // write_local DELEGATION_MAP with updated delegation.
+
+        delegations
+            .entry(del_key)
+            .and_modify(|x| *x += amount)
+            .or_insert(amount);
+
+        // write updated delegation.
+        storage::write_local::<_, _>(del_key, delegations);
         Ok(())
     }
     pub fn undelegate(
@@ -98,4 +117,13 @@ impl CLTyped for DelegationKey {
     fn cl_type() -> CLType {
         CLType::Any
     }
+}
+
+fn get_purse_id<R: RuntimeProvider>(name: &str) -> core::result::Result<PurseId, PurseLookupError> {
+    R::get_key(name)
+        .ok_or(PurseLookupError::KeyNotFound)
+        .and_then(|key| match key {
+            Key::URef(uref) => Ok(PurseId::new(uref)),
+            _ => Err(PurseLookupError::KeyUnexpectedType),
+        })
 }
