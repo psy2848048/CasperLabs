@@ -63,6 +63,26 @@ pub extern "C" fn call() {
         .map(|key| (key, PLACEHOLDER_KEY))
         .collect();
 
+    // Insert genesis validator's delegations.
+    // We also store delegations in the form key:
+    // "d_{delegator_pk}_{validator_pk}_{delegation_amount}", value: doesn't matter
+    genesis_validators
+        .iter()
+        .map(|(pub_key, balance)| {
+            let key_bytes = pub_key.value();
+            let mut hex_key = String::with_capacity(64);
+            for byte in &key_bytes[..32] {
+                write!(hex_key, "{:02x}", byte).unwrap();
+            }
+            let mut uref = String::new();
+            uref.write_fmt(format_args!("d_{}_{}_{}", hex_key, hex_key, balance))
+                .unwrap();
+            uref
+        })
+        .for_each(|key| {
+            named_keys.insert(key, PLACEHOLDER_KEY);
+        });
+
     let total_bonds: U512 = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
     let bonding_purse = mint_purse(&mint, total_bonds);

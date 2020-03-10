@@ -1,6 +1,3 @@
-use alloc::collections::BTreeMap;
-
-use contract::contract_api::storage;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
@@ -9,11 +6,8 @@ use types::{
 };
 
 use crate::{
-    constants::{local_keys, uref_names},
-    contract_delegations::DelegationKey,
-    contract_mint::ContractMint,
-    contract_queue::ContractQueue,
-    contract_runtime::ContractRuntime,
+    constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
+    contract_queue::ContractQueue, contract_runtime::ContractRuntime,
     contract_stakes::ContractStakes,
 };
 
@@ -43,28 +37,18 @@ impl DelegatedProofOfStakeContract {
         ContractMint::transfer_from_purse_to_purse(source, pos_purse, amount)
             .map_err(|_| Error::BondTransferFailed)?;
 
+        // TODO: Enqueue bonding requests and execute bonding from bonding_queue.
+
         // increase validator's staked token amount
         let mut stakes: Stakes = ContractStakes::read()?;
         stakes.bond(&validator, amount);
         ContractStakes::write(&stakes);
 
-        // update delegation table
-        let del_key = DelegationKey {
-            delegator,
-            validator,
-        };
-        let mut delegations: BTreeMap<DelegationKey, U512> =
-            storage::read_local::<_, _>(&local_keys::DELEGATION_MAP_KEY)
-                .unwrap_or_default()
-                .unwrap_or_default();
+        // update delegation table.
+        let mut delegations = ContractDelegations::read()?;
+        delegations.delegate(delegator, validator, amount);
+        ContractDelegations::write(&delegations);
 
-        delegations
-            .entry(del_key)
-            .and_modify(|x| *x += amount)
-            .or_insert(amount);
-
-        // write updated delegation.
-        storage::write_local::<_, _>(del_key, delegations);
         Ok(())
     }
 

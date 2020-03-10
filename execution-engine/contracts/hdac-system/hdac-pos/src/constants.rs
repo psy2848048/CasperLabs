@@ -1,7 +1,6 @@
 pub(crate) mod local_keys {
     pub const BONDING_KEY: u8 = 1;
     pub const UNBONDING_KEY: u8 = 2;
-    pub const DELEGATION_MAP_KEY: u8 = 3;
 }
 
 pub(crate) mod uref_names {
