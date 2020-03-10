@@ -1,17 +1,16 @@
-use alloc::{collections::BTreeMap, vec::Vec};
-use core::result;
+use alloc::collections::BTreeMap;
 
 use contract::contract_api::storage;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
-    bytesrepr::{self, FromBytes, ToBytes},
     system_contract_errors::pos::{Error, PurseLookupError, Result},
-    CLType, CLTyped, Key, URef, U512,
+    Key, URef, U512,
 };
 
 use crate::{
     constants::{local_keys, uref_names},
+    contract_delegations::DelegationKey,
     contract_mint::ContractMint,
     contract_queue::ContractQueue,
     contract_runtime::ContractRuntime,
@@ -68,6 +67,7 @@ impl DelegatedProofOfStakeContract {
         storage::write_local::<_, _>(del_key, delegations);
         Ok(())
     }
+
     pub fn undelegate(
         &self,
         _delegator: PublicKey,
@@ -76,6 +76,7 @@ impl DelegatedProofOfStakeContract {
     ) -> Result<()> {
         Ok(())
     }
+
     pub fn redelegate(
         &self,
         _delegator: PublicKey,
@@ -84,38 +85,6 @@ impl DelegatedProofOfStakeContract {
         _shares: U512,
     ) -> Result<()> {
         Ok(())
-    }
-}
-
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
-struct DelegationKey {
-    delegator: PublicKey,
-    validator: PublicKey,
-}
-
-impl FromBytes for DelegationKey {
-    fn from_bytes(bytes: &[u8]) -> result::Result<(Self, &[u8]), bytesrepr::Error> {
-        let (delegator, bytes) = PublicKey::from_bytes(bytes)?;
-        let (validator, bytes) = PublicKey::from_bytes(bytes)?;
-        let entry = DelegationKey {
-            delegator,
-            validator,
-        };
-        Ok((entry, bytes))
-    }
-}
-
-impl ToBytes for DelegationKey {
-    fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
-        Ok((self.delegator.to_bytes()?.into_iter())
-            .chain(self.validator.to_bytes()?)
-            .collect())
-    }
-}
-
-impl CLTyped for DelegationKey {
-    fn cl_type() -> CLType {
-        CLType::Any
     }
 }
 

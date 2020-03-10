@@ -3,6 +3,7 @@
 extern crate alloc;
 
 mod constants;
+mod contract_delegations;
 mod contract_mint;
 mod contract_queue;
 mod contract_runtime;
