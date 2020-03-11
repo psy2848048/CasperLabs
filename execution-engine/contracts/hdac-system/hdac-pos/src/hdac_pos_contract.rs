@@ -37,7 +37,7 @@ impl DelegatedProofOfStakeContract {
         ContractMint::transfer_from_purse_to_purse(source, pos_purse, amount)
             .map_err(|_| Error::BondTransferFailed)?;
 
-        // TODO: Enqueue bonding requests and execute bonding from bonding_queue.
+        // TODO: enqueue a new item and dequeue items to process
 
         // increase validator's staked token amount
         let mut stakes: Stakes = ContractStakes::read()?;
@@ -46,7 +46,7 @@ impl DelegatedProofOfStakeContract {
 
         // update delegation table.
         let mut delegations = ContractDelegations::read()?;
-        delegations.delegate(delegator, validator, amount);
+        delegations.delegate(&delegator, &validator, amount);
         ContractDelegations::write(&delegations);
 
         Ok(())
@@ -54,10 +54,24 @@ impl DelegatedProofOfStakeContract {
 
     pub fn undelegate(
         &self,
-        _delegator: PublicKey,
-        _validator: PublicKey,
-        _shares: U512,
+        delegator: PublicKey,
+        validator: PublicKey,
+        maybe_amount: Option<U512>,
     ) -> Result<()> {
+        // TODO: enqueue a new item and dequeue items to process
+        let mut delegations = ContractDelegations::read()?;
+        let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
+        ContractDelegations::write(&delegations);
+
+        let mut stakes = ContractStakes::read()?;
+        let payout = stakes.unbond(&validator, Some(amount))?;
+        ContractStakes::write(&stakes);
+
+        let pos_purse = get_purse_id::<ContractRuntime>(uref_names::POS_BONDING_PURSE)
+            .map_err(PurseLookupError::bonding)?;
+
+        ContractMint::transfer_from_purse_to_account(pos_purse, delegator, payout)
+            .map_err(|_| Error::UnbondTransferFailed)?;
         Ok(())
     }
 
@@ -66,7 +80,7 @@ impl DelegatedProofOfStakeContract {
         _delegator: PublicKey,
         _src: PublicKey,
         _dest: PublicKey,
-        _shares: U512,
+        _amount: U512,
     ) -> Result<()> {
         Ok(())
     }

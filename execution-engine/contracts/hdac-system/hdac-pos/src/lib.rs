@@ -51,7 +51,7 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
-                .unbond(validator, maybe_amount)
+                .undelegate(validator, validator, maybe_amount)
                 .unwrap_or_revert();
         }
         // Type of this method: `fn step()`
@@ -115,7 +115,7 @@ pub fn delegate() {
             let validator: PublicKey = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let shares: U512 = runtime::get_arg(3)
+            let shares: Option<U512> = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
