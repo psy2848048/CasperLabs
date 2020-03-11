@@ -77,11 +77,26 @@ impl DelegatedProofOfStakeContract {
 
     pub fn redelegate(
         &self,
-        _delegator: PublicKey,
-        _src: PublicKey,
-        _dest: PublicKey,
-        _amount: U512,
+        delegator: PublicKey,
+        src: PublicKey,
+        dest: PublicKey,
+        amount: U512,
     ) -> Result<()> {
+        if src == dest {
+            // TODO: Error::SelfRedelegation
+            return Err(Error::NotBonded);
+        }
+
+        let mut delegations = ContractDelegations::read()?;
+        let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
+        delegations.delegate(&delegator, &dest, amount);
+        ContractDelegations::write(&delegations);
+
+        let mut stakes = ContractStakes::read()?;
+        let payout = stakes.unbond(&src, Some(amount))?;
+        stakes.bond(&dest, payout);
+        ContractStakes::write(&stakes);
+
         Ok(())
     }
 }
