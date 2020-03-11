@@ -30,24 +30,24 @@ impl ContractDelegations {
             }
             let hex_key = split_name
                 .next()
-                .ok_or(Error::StakesKeyDeserializationFailed)?;
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
             if hex_key.len() != 64 {
-                return Err(Error::StakesKeyDeserializationFailed);
+                return Err(Error::DelegationsKeyDeserializationFailed);
             }
             let delegator = Self::to_publickey(hex_key)?;
 
             let hex_key = split_name
                 .next()
-                .ok_or(Error::StakesKeyDeserializationFailed)?;
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
             if hex_key.len() != 64 {
-                return Err(Error::StakesKeyDeserializationFailed);
+                return Err(Error::DelegationsKeyDeserializationFailed);
             }
             let validator = Self::to_publickey(hex_key)?;
 
             let balance = split_name
                 .next()
                 .and_then(|b| U512::from_dec_str(b).ok())
-                .ok_or(Error::StakesDeserializationFailed)?;
+                .ok_or(Error::DelegationsDeserializationFailed)?;
 
             delegations.insert(
                 DelegationKey {
@@ -58,7 +58,7 @@ impl ContractDelegations {
             );
         }
         if delegations.is_empty() {
-            return Err(Error::StakesNotFound);
+            return Err(Error::DelegationsNotFound);
         }
         Ok(Delegations(delegations))
     }
@@ -101,7 +101,7 @@ impl ContractDelegations {
     fn to_publickey(hex_str: &str) -> Result<PublicKey> {
         let mut key_bytes = [0u8; 32];
         let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
-            .map_err(|_| Error::StakesKeyDeserializationFailed)?;
+            .map_err(|_| Error::DelegationsKeyDeserializationFailed)?;
         debug_assert!(_bytes_written == key_bytes.len());
         Ok(PublicKey::from(key_bytes))
     }
@@ -132,19 +132,17 @@ impl Delegations {
 
         match maybe_amount {
             Some(amount) => {
-                // TODO: Error::NotDelegated
-                let delegation = self.0.get_mut(&key).ok_or(Error::NotBonded)?;
+                let delegation = self.0.get_mut(&key).ok_or(Error::NotDelegated)?;
                 if *delegation > amount {
                     *delegation -= amount;
                     Ok(amount)
                 } else if *delegation == amount {
-                    self.0.remove(&key).ok_or(Error::NotBonded)
+                    self.0.remove(&key).ok_or(Error::DelegationsNotFound)
                 } else {
-                    // TODO: Error::UndelegateTooLarge
-                    Err(Error::UnbondTooLarge)
+                    Err(Error::UndelegateTooLarge)
                 }
             }
-            None => self.0.remove(&key).ok_or(Error::NotBonded),
+            None => self.0.remove(&key).ok_or(Error::NotDelegated),
         }
     }
 }

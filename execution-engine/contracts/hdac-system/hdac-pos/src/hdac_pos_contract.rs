@@ -16,6 +16,17 @@ pub struct DelegatedProofOfStakeContract;
 impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
     for DelegatedProofOfStakeContract
 {
+    fn bond(&self, _: PublicKey, _: U512, _: URef) -> Result<()> {
+        Err(Error::NotSupportedFunc)
+    }
+
+    fn unbond(&self, _: PublicKey, _: Option<U512>) -> Result<()> {
+        Err(Error::NotSupportedFunc)
+    }
+
+    fn step(&self) -> Result<()> {
+        Err(Error::NotSupportedFunc)
+    }
 }
 
 impl DelegatedProofOfStakeContract {
@@ -83,8 +94,7 @@ impl DelegatedProofOfStakeContract {
         amount: U512,
     ) -> Result<()> {
         if src == dest {
-            // TODO: Error::SelfRedelegation
-            return Err(Error::NotBonded);
+            return Err(Error::SelfRedelegation);
         }
 
         let mut delegations = ContractDelegations::read()?;

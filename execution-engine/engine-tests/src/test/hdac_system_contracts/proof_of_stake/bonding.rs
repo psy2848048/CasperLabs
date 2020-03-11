@@ -506,6 +506,9 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         .to_owned();
 
     let error_message = utils::get_error_message(response);
-    // pos::Error::NotBonded => 0
-    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(0)))));
+    // pos::Error::NotDelegated => 27
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(27))
+    )));
 }

@@ -71,6 +71,23 @@ pub enum Error {
     /// PoS contract's "set_refund_purse" method can only be called by the payment code of a
     /// deploy, but was called by the session code.
     SetRefundPurseCalledOutsidePayment,
+
+    // ===== HDAC PoS errors =====
+    /// The given delegation relation(delgator-validator) does not exist.
+    NotDelegated, // = 27
+    /// Attempted to undelegate an amount which was too large.
+    UndelegateTooLarge, // = 28
+    /// Attempted to self-redelegate.
+    SelfRedelegation, // = 29
+
+    /// Internal error: delegations are unexpectedly empty.
+    DelegationsNotFound, // = 30
+    /// Internal error: attempted to use unsupported function.
+    NotSupportedFunc, // = 31
+    /// Internal error: failed to deserialize the delegation's key
+    DelegationsKeyDeserializationFailed, // = 32
+    /// Internal error: failed to deserialize the delegation's amount
+    DelegationsDeserializationFailed, // = 33
 }
 
 /// An alias for `Result<T, pos::Error>`.
