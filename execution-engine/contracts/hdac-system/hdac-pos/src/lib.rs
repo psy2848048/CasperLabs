@@ -109,13 +109,11 @@ pub fn delegate() {
                 .unwrap_or_revert();
         }
         methods::METHOD_UNDELEGATE => {
-            let delegator: PublicKey = runtime::get_arg(1)
+            let delegator: PublicKey = runtime::get_caller();
+            let validator: PublicKey = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let validator: PublicKey = runtime::get_arg(2)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let shares: Option<U512> = runtime::get_arg(3)
+            let shares: Option<U512> = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
@@ -123,16 +121,14 @@ pub fn delegate() {
                 .unwrap_or_revert();
         }
         methods::METHOD_REDELEGATE => {
-            let delegator: PublicKey = runtime::get_arg(1)
+            let delegator: PublicKey = runtime::get_caller();
+            let src_validator: PublicKey = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let src_validator: PublicKey = runtime::get_arg(2)
+            let dest_validator: PublicKey = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let dest_validator: PublicKey = runtime::get_arg(3)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let shares: U512 = runtime::get_arg(4)
+            let shares: U512 = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pos_contract
