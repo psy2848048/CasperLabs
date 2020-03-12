@@ -1982,6 +1982,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "pos-delegation"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.2.0",
+ "casperlabs-types 0.2.0",
+]
+
+[[package]]
 name = "pos-finalize-payment"
 version = "0.1.0"
 dependencies = [
