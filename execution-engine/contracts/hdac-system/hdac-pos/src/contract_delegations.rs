@@ -28,21 +28,27 @@ impl ContractDelegations {
             if Some("d") != split_name.next() {
                 continue;
             }
-            let hex_key = split_name
-                .next()
-                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
-            if hex_key.len() != 64 {
-                return Err(Error::DelegationsKeyDeserializationFailed);
-            }
-            let delegator = Self::to_publickey(hex_key)?;
+
+            let to_publickey = |hex_str: &str| -> Result<PublicKey> {
+                if hex_str.len() != 64 {
+                    return Err(Error::DelegationsKeyDeserializationFailed);
+                }
+                let mut key_bytes = [0u8; 32];
+                let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
+                    .map_err(|_| Error::DelegationsKeyDeserializationFailed)?;
+                debug_assert!(_bytes_written == key_bytes.len());
+                Ok(PublicKey::from(key_bytes))
+            };
 
             let hex_key = split_name
                 .next()
                 .ok_or(Error::DelegationsKeyDeserializationFailed)?;
-            if hex_key.len() != 64 {
-                return Err(Error::DelegationsKeyDeserializationFailed);
-            }
-            let validator = Self::to_publickey(hex_key)?;
+            let delegator = to_publickey(hex_key)?;
+
+            let hex_key = split_name
+                .next()
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
+            let validator = to_publickey(hex_key)?;
 
             let balance = split_name
                 .next()
@@ -70,8 +76,16 @@ impl ContractDelegations {
             .0
             .iter()
             .map(|(delegation_key, balance)| {
-                let delegator = Self::to_hex_string(delegation_key.delegator);
-                let validator = Self::to_hex_string(delegation_key.validator);
+                let to_hex_string = |address: PublicKey| -> String {
+                    let bytes = address.value();
+                    let mut ret = String::with_capacity(64);
+                    for byte in &bytes[..32] {
+                        write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
+                    }
+                    ret
+                };
+                let delegator = to_hex_string(delegation_key.delegator);
+                let validator = to_hex_string(delegation_key.validator);
                 let mut uref = String::new();
                 uref.write_fmt(format_args!("d_{}_{}_{}", delegator, validator, balance))
                     .expect("Writing to a string cannot fail");
@@ -87,23 +101,6 @@ impl ContractDelegations {
         for name in new_urefs {
             runtime::put_key(&name, Key::Hash([0; 32]));
         }
-    }
-
-    fn to_hex_string(address: PublicKey) -> String {
-        let bytes = address.value();
-        let mut ret = String::with_capacity(64);
-        for byte in &bytes[..32] {
-            write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
-        }
-        ret
-    }
-
-    fn to_publickey(hex_str: &str) -> Result<PublicKey> {
-        let mut key_bytes = [0u8; 32];
-        let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
-            .map_err(|_| Error::DelegationsKeyDeserializationFailed)?;
-        debug_assert!(_bytes_written == key_bytes.len());
-        Ok(PublicKey::from(key_bytes))
     }
 }
 
@@ -131,18 +128,22 @@ impl Delegations {
         };
 
         match maybe_amount {
+            // undelegate all
+            None => self.0.remove(&key).ok_or(Error::NotDelegated),
             Some(amount) => {
-                let delegation = self.0.get_mut(&key).ok_or(Error::NotDelegated)?;
-                if *delegation > amount {
-                    *delegation -= amount;
-                    Ok(amount)
-                } else if *delegation == amount {
-                    self.0.remove(&key).ok_or(Error::DelegationsNotFound)
-                } else {
-                    Err(Error::UndelegateTooLarge)
+                let delegation = self.0.get_mut(&key);
+                match delegation {
+                    Some(delegation) if *delegation > amount => {
+                        *delegation -= amount;
+                        Ok(amount)
+                    }
+                    Some(delegation) if *delegation == amount => {
+                        self.0.remove(&key).ok_or(Error::DelegationsNotFound)
+                    }
+                    Some(_) => Err(Error::UndelegateTooLarge),
+                    None => Err(Error::NotDelegated),
                 }
             }
-            None => self.0.remove(&key).ok_or(Error::NotDelegated),
         }
     }
 }
