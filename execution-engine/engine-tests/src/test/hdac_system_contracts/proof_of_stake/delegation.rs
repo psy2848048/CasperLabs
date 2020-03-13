@@ -594,7 +594,7 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         .to_owned();
 
     let error_message = utils::get_error_message(response);
-    println!("{:?}", error_message);
+
     // pos::Error::UndelegateTooLarge => 28
     assert!(error_message.contains(&format!(
         "Revert({})",
@@ -652,14 +652,69 @@ fn should_fail_to_delegate_to_unbonded_validator() {
         .to_owned();
 
     let error_message = utils::get_error_message(response);
-    println!("{:?}", error_message);
+
     // pos::Error::NotBonded => 0
     assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(0)))));
 }
 
 #[ignore]
 #[test]
-fn should_fail_to_redelegate_non_existent_delegation() {}
+fn should_fail_to_redelegate_non_existent_delegation() {
+    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
+    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+
+    const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
+    const ACCOUNT_1_REDELEGATE_AMOUNT: u64 = 32_000;
+
+    // ACCOUNT_1: a bonded account with the initial balance.
+    // ACCOUNT_2: a bonded account with the initial balance.
+    let accounts = vec![
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_1_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_2_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+    ];
+
+    // redelegate request from ACCOUNT_2 to self.
+    let redelegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_1_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(REDELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            U512::from(ACCOUNT_1_REDELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .exec(redelegate_request)
+        .commit()
+        .finish();
+
+    let response = result
+        .builder()
+        .get_exec_response(0)
+        .expect("should have a response")
+        .to_owned();
+
+    let error_message = utils::get_error_message(response);
+
+    // pos::Error::NotDelegated => 27
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(27))
+    )));
+}
 
 #[ignore]
 #[test]
