@@ -718,7 +718,77 @@ fn should_fail_to_redelegate_non_existent_delegation() {
 
 #[ignore]
 #[test]
-fn should_fail_to_self_redelegate() {}
+fn should_fail_to_self_redelegate() {
+    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
+    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+
+    const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
+    const ACCOUNT_1_DELEGATE_AMOUNT: u64 = 32_000;
+
+    // ACCOUNT_1: a bonded account with the initial balance.
+    // ACCOUNT_2: a bonded account with the initial balance.
+    let accounts = vec![
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_1_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_2_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+    ];
+
+    // delegate request from ACCOUNT_2 to ACCOUNT_1.
+    let delegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_2_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(DELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    // redelegate request from ACCOUNT_2 which redelegates from ACCOUNT_1 to ACCOUNT_1.
+    let redelegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_2_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(REDELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .exec(delegate_request)
+        .expect_success()
+        .commit()
+        .exec(redelegate_request)
+        .commit()
+        .finish();
+
+    let response = result
+        .builder()
+        .get_exec_response(1)
+        .expect("should have a response")
+        .to_owned();
+
+    let error_message = utils::get_error_message(response);
+
+    // pos::Error::SelfRedelegation => 29
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(29))
+    )));
+}
 
 #[ignore]
 #[test]
