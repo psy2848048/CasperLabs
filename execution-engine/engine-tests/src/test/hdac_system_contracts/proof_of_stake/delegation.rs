@@ -792,12 +792,82 @@ fn should_fail_to_self_redelegate() {
 
 #[ignore]
 #[test]
-fn should_fail_to_redelegate_more_than_own_shares() {}
+fn should_fail_to_redelegate_more_than_own_shares() {
+    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
+    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+    const ACCOUNT_3_ADDR: [u8; 32] = [3u8; 32];
 
-#[ignore]
-#[test]
-fn should_fail_to_undelegate_with_insufficient_amount() {}
+    const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
+    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 32_000;
+    const ACCOUNT_3_REDELEGATE_AMOUNT: u64 = 42_000;
 
-#[ignore]
-#[test]
-fn should_fail_to_delegate_with_insufficient_amount() {}
+    // ACCOUNT_1: a bonded account with the initial balance.
+    // ACCOUNT_2: a bonded account with the initial balance.
+    // ACCOUNT_3: a not bonded account with the initial balance.
+    let accounts = vec![
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_1_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_2_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_3_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+    ];
+
+    // delegate request from ACCOUNT_3 to ACCOUNT_1.
+    let delegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_3_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(DELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    // redelegate request from ACCOUNT_3 which redelegates from ACCOUNT_1 to ACCOUNT_2.
+    let redelegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_3_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(REDELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::new(ACCOUNT_2_ADDR),
+            U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .exec(delegate_request)
+        .expect_success()
+        .commit()
+        .exec(redelegate_request)
+        .commit()
+        .finish();
+
+    let response = result
+        .builder()
+        .get_exec_response(1)
+        .expect("should have a response")
+        .to_owned();
+
+    let error_message = utils::get_error_message(response);
+
+    // pos::Error::UndelegateTooLarge => 28
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(28))
+    )));
+}
