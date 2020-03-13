@@ -604,7 +604,58 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
 
 #[ignore]
 #[test]
-fn should_fail_to_delegate_to_unbonded_validator() {}
+fn should_fail_to_delegate_to_unbonded_validator() {
+    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
+    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+
+    const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
+    const ACCOUNT_1_DELEGATE_AMOUNT: u64 = 32_000;
+
+    // ACCOUNT_1: a bonded account with the initial balance.
+    // ACCOUNT_2: a not bonded account with the initial balance.
+    let accounts = vec![
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_1_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_2_ADDR),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+    ];
+
+    // delegate request from ACCOUNT_1 to ACCOUNT_2.
+    let delegate_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_1_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(DELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_2_ADDR),
+            U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .exec(delegate_request)
+        .commit()
+        .finish();
+
+    let response = result
+        .builder()
+        .get_exec_response(0)
+        .expect("should have a response")
+        .to_owned();
+
+    let error_message = utils::get_error_message(response);
+    println!("{:?}", error_message);
+    // pos::Error::NotBonded => 0
+    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(0)))));
+}
 
 #[ignore]
 #[test]

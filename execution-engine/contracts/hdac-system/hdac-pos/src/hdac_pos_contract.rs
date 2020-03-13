@@ -52,6 +52,12 @@ impl DelegatedProofOfStakeContract {
 
         // increase validator's staked token amount
         let mut stakes: Stakes = ContractStakes::read()?;
+
+        // if this is not self-delegation and target validator is not bonded
+        if delegator != validator && !stakes.0.contains_key(&validator) {
+            return Err(Error::NotBonded);
+        }
+
         stakes.bond(&validator, amount);
         ContractStakes::write(&stakes);
 
