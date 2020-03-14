@@ -20,11 +20,17 @@ mod method_names {
         pub const UNBOND: &str = pos::UNBOND;
         pub const STANDARD_PAYMENT: &str = "standard_payment";
         pub const TRANSFER_TO_ACCOUNT: &str = "transfer_to_account";
+        pub const DELEGATE: &str = pos::DELEGATE;
+        pub const UNDELEGATE: &str = pos::UNDELEGATE;
+        pub const REDELEGATE: &str = pos::REDELEGATE;
     }
     pub mod pos {
         pub const BOND: &str = "bond";
         pub const UNBOND: &str = "unbond";
         pub const GET_PAYMENT_PURSE: &str = "get_payment_purse";
+        pub const DELEGATE: &str = "delegate";
+        pub const UNDELEGATE: &str = "undelegate";
+        pub const REDELEGATE: &str = "redelegate";
     }
 }
 
@@ -33,6 +39,9 @@ pub enum Api {
     Unbond(Option<U512>),
     StandardPayment(U512),
     TransferToAccount(PublicKey, U512),
+    Delegate(PublicKey, U512),
+    Undelegate(PublicKey, Option<U512>),
+    Redelegate(PublicKey, PublicKey, U512),
 }
 
 impl Api {
@@ -70,6 +79,36 @@ impl Api {
 
                 Api::TransferToAccount(public_key, transfer_amount)
             }
+            method_names::proxy::DELEGATE => {
+                let validator: PublicKey = runtime::get_arg(1)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                let amount: U512 = runtime::get_arg(2)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                Api::Delegate(validator, amount)
+            }
+            method_names::proxy::UNDELEGATE => {
+                let validator: PublicKey = runtime::get_arg(1)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                let amount: Option<U512> = runtime::get_arg(2)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                Api::Undelegate(validator, amount)
+            }
+            method_names::proxy::REDELEGATE => {
+                let src_validator: PublicKey = runtime::get_arg(1)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                let dest_validator: PublicKey = runtime::get_arg(2)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                let amount: U512 = runtime::get_arg(3)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                Api::Redelegate(src_validator, dest_validator, amount)
+            }
             _ => runtime::revert(Error::UnknownProxyApi),
         }
     }
@@ -101,6 +140,39 @@ impl Api {
             }
             Self::TransferToAccount(public_key, amount) => {
                 system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
+            }
+            Self::Delegate(validator, amount) => {
+                let pos_ref = system::get_proof_of_stake();
+
+                let source_purse = account::get_main_purse();
+                let bonding_purse = system::create_purse();
+
+                system::transfer_from_purse_to_purse(source_purse, bonding_purse, *amount)
+                    .unwrap_or_revert();
+
+                runtime::call_contract(
+                    pos_ref,
+                    (
+                        method_names::pos::DELEGATE,
+                        *validator,
+                        *amount,
+                        bonding_purse,
+                    ),
+                )
+            }
+            Self::Undelegate(validator, amount) => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(
+                    pos_ref,
+                    (method_names::pos::UNDELEGATE, *validator, *amount),
+                )
+            }
+            Self::Redelegate(src, dest, amount) => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(
+                    pos_ref,
+                    (method_names::pos::REDELEGATE, *src, *dest, *amount),
+                )
             }
         }
     }
