@@ -8,7 +8,7 @@ use types::{
 use crate::{
     constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
     contract_queue::ContractQueue, contract_runtime::ContractRuntime,
-    contract_stakes::ContractStakes,
+    contract_stakes::ContractStakes, contract_votes::ContractVotes
 };
 
 pub struct ProofOfProfessionContract;

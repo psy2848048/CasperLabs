@@ -19,4 +19,6 @@ pub(crate) mod methods {
     pub const METHOD_DELEGATE: &str = "delegate";
     pub const METHOD_UNDELEGATE: &str = "undelegate";
     pub const METHOD_REDELEGATE: &str = "redelegate";
+    pub const METHOD_VOTE: &str = "vote";
+    pub const METHOD_UNVOTE: &str = "unvote";
 }

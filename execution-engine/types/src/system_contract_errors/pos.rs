@@ -88,6 +88,17 @@ pub enum Error {
     DelegationsKeyDeserializationFailed, // = 32
     /// Internal error: failed to deserialize the delegation's amount
     DelegationsDeserializationFailed, // = 33
+
+    /// Internal error: delegations are unexpectedly empty.
+    VotesNotFound, // = 34
+    /// Internal error: failed to deserialize the delegation's key
+    VoteKeyDeserializationFailed, // = 35
+    /// Internal error: failed to deserialize the delegation's amount
+    VotesDeserializationFailed, // = 36
+    /// Internal error: No vote record
+    NotVoted, // = 37
+    /// Attempted to unvote with too big number to occur overflow
+    UnvoteTooLarge, // = 39
 }
 
 /// An alias for `Result<T, pos::Error>`.
