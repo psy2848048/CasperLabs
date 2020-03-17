@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use engine_test_support::{
     internal::{
         exec_with_return, ExecuteRequestBuilder, WasmTestBuilder, DEFAULT_BLOCK_TIME,
-        DEFAULT_GENESIS_CONFIG,
+        DEFAULT_GENESIS_CONFIG, POS_INSTALL_CONTRACT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -19,7 +19,7 @@ const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 
 // one named_key for each validator and three for the purses
-const EXPECTED_KNOWN_KEYS_LEN: usize = (N_VALIDATORS as usize) + 3;
+const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 3;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
@@ -27,7 +27,7 @@ const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 
 #[ignore]
 #[test]
-fn should_run_pos_install_contract() {
+fn should_run_pop_install_contract() {
     let mut builder = WasmTestBuilder::default();
 
     let exec_request = ExecuteRequestBuilder::standard(
@@ -52,7 +52,7 @@ fn should_run_pos_install_contract() {
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
         &mut builder,
         SYSTEM_ADDR,
-        "hdac_pos_install.wasm",
+        POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
         (mint_uref, genesis_validators),

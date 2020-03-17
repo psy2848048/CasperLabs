@@ -1211,26 +1211,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hdac-pos"
-version = "0.1.0"
-dependencies = [
- "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-proof-of-stake 0.1.0",
- "casperlabs-types 0.2.0",
-]
-
-[[package]]
-name = "hdac-pos-install"
-version = "0.1.0"
-dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
- "client-api-proxy 0.1.0",
- "hdac-pos 0.1.0",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1964,6 +1944,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pop"
+version = "0.1.0"
+dependencies = [
+ "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "casperlabs-contract 0.2.0",
+ "casperlabs-proof-of-stake 0.1.0",
+ "casperlabs-types 0.2.0",
+]
+
+[[package]]
+name = "pop-install"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.2.0",
+ "casperlabs-types 0.2.0",
+ "client-api-proxy 0.1.0",
+ "pop 0.1.0",
+]
+
+[[package]]
 name = "pos"
 version = "0.1.0"
 dependencies = [
@@ -1975,6 +1975,14 @@ dependencies = [
 
 [[package]]
 name = "pos-bonding"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.2.0",
+ "casperlabs-types 0.2.0",
+]
+
+[[package]]
+name = "pos-delegation"
 version = "0.1.0"
 dependencies = [
  "casperlabs-contract 0.2.0",

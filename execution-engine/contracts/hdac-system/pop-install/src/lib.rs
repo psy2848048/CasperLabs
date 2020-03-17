@@ -29,7 +29,7 @@ enum Args {
 
 #[no_mangle]
 pub extern "C" fn pos_ext() {
-    hdac_pos::delegate();
+    pop::delegate();
 }
 
 #[no_mangle]
@@ -43,8 +43,8 @@ pub extern "C" fn call() {
         runtime::get_arg(Args::GenesisValidators as u32)
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
-    // Add genesis validators to PoS contract object.
-    // For now, we are storing validators in `named_keys` map of the PoS contract
+    // Add genesis validators to PoP contract object.
+    // For now, we are storing validators in `named_keys` map of the PoP contract
     // in the form: key: "v_{validator_pk}_{validator_stake}", value: doesn't
     // matter.
     let mut named_keys: BTreeMap<String, Key> = genesis_validators
@@ -63,13 +63,33 @@ pub extern "C" fn call() {
         .map(|key| (key, PLACEHOLDER_KEY))
         .collect();
 
+    // Insert genesis validator's delegations.
+    // We also store delegations in the form key:
+    // "d_{delegator_pk}_{validator_pk}_{delegation_amount}", value: doesn't matter
+    genesis_validators
+        .iter()
+        .map(|(pub_key, balance)| {
+            let key_bytes = pub_key.value();
+            let mut hex_key = String::with_capacity(64);
+            for byte in &key_bytes[..32] {
+                write!(hex_key, "{:02x}", byte).unwrap();
+            }
+            let mut uref = String::new();
+            uref.write_fmt(format_args!("d_{}_{}_{}", hex_key, hex_key, balance))
+                .unwrap();
+            uref
+        })
+        .for_each(|key| {
+            named_keys.insert(key, PLACEHOLDER_KEY);
+        });
+
     let total_bonds: U512 = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
     let rewards_purse = mint_purse(&mint, U512::zero());
 
-    // Include PoS purses in its named_keys
+    // Include PoP purses in its named_keys
     [
         (POS_BONDING_PURSE, bonding_purse.value()),
         (POS_PAYMENT_PURSE, payment_purse.value()),
