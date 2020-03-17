@@ -1,5 +1,5 @@
 [package]
-name = "hdac-pos"
+name = "pop"
 version = "0.1.0"
 authors = ["Andreas Fackler <andreas@casperlabs.io>"]
 edition = "2018"

@@ -27,7 +27,7 @@ pub use wasm_test_builder::{
 };
 
 pub const MINT_INSTALL_CONTRACT: &str = "hdac_mint_install.wasm";
-pub const POS_INSTALL_CONTRACT: &str = "hdac_pos_install.wasm";
+pub const POS_INSTALL_CONTRACT: &str = "pop_install.wasm";
 pub const CASPER_MINT_INSTALL_CONTRACT: &str = "mint_install.wasm";
 pub const CASPER_POS_INSTALL_CONTRACT: &str = "pos_install.wasm";
 pub const STANDARD_PAYMENT_CONTRACT: &str = "standard_payment.wasm";

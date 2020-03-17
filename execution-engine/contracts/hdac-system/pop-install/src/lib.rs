@@ -29,7 +29,7 @@ enum Args {
 
 #[no_mangle]
 pub extern "C" fn pos_ext() {
-    hdac_pos::delegate();
+    pop::delegate();
 }
 
 #[no_mangle]
@@ -43,8 +43,8 @@ pub extern "C" fn call() {
         runtime::get_arg(Args::GenesisValidators as u32)
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
-    // Add genesis validators to PoS contract object.
-    // For now, we are storing validators in `named_keys` map of the PoS contract
+    // Add genesis validators to PoP contract object.
+    // For now, we are storing validators in `named_keys` map of the PoP contract
     // in the form: key: "v_{validator_pk}_{validator_stake}", value: doesn't
     // matter.
     let mut named_keys: BTreeMap<String, Key> = genesis_validators
@@ -89,7 +89,7 @@ pub extern "C" fn call() {
     let payment_purse = mint_purse(&mint, U512::zero());
     let rewards_purse = mint_purse(&mint, U512::zero());
 
-    // Include PoS purses in its named_keys
+    // Include PoP purses in its named_keys
     [
         (POS_BONDING_PURSE, bonding_purse.value()),
         (POS_PAYMENT_PURSE, payment_purse.value()),

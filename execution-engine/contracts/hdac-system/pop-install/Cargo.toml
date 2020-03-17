@@ -1,5 +1,5 @@
 [package]
-name = "hdac-pos-install"
+name = "pop-install"
 version = "0.1.0"
 authors = ["Michael Birch <birchmd@casperlabs.io>"]
 edition = "2018"
@@ -16,5 +16,5 @@ std = ["contract/std", "types/std"]
 [dependencies]
 contract = { path = "../../../contract", package = "casperlabs-contract" }
 types = { path = "../../../types", package = "casperlabs-types" }
-hdac-pos = { path = "../hdac-pos", default-features = false, features = ["lib"] }
+pop = { path = "../pop", default-features = false, features = ["lib"] }
 client-api-proxy = { path = "../client-api-proxy", default-features = false, features = ["lib"] }

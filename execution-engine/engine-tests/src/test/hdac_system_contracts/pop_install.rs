@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use engine_test_support::{
     internal::{
         exec_with_return, ExecuteRequestBuilder, WasmTestBuilder, DEFAULT_BLOCK_TIME,
-        DEFAULT_GENESIS_CONFIG,
+        DEFAULT_GENESIS_CONFIG, POS_INSTALL_CONTRACT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -27,7 +27,7 @@ const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 
 #[ignore]
 #[test]
-fn should_run_pos_install_contract() {
+fn should_run_pop_install_contract() {
     let mut builder = WasmTestBuilder::default();
 
     let exec_request = ExecuteRequestBuilder::standard(
@@ -52,7 +52,7 @@ fn should_run_pos_install_contract() {
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
         &mut builder,
         SYSTEM_ADDR,
-        "hdac_pos_install.wasm",
+        POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
         (mint_uref, genesis_validators),

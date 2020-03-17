@@ -11,10 +11,10 @@ use crate::{
     contract_stakes::ContractStakes,
 };
 
-pub struct DelegatedProofOfStakeContract;
+pub struct ProofOfProfessionContract;
 
 impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
-    for DelegatedProofOfStakeContract
+    for ProofOfProfessionContract
 {
     fn bond(&self, _: PublicKey, _: U512, _: URef) -> Result<()> {
         Err(Error::NotSupportedFunc)
@@ -29,7 +29,7 @@ impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
     }
 }
 
-impl DelegatedProofOfStakeContract {
+impl ProofOfProfessionContract {
     pub fn delegate(
         &self,
         delegator: PublicKey,
