@@ -13,6 +13,7 @@ use types::{
 
 pub struct ContractVotes;
 pub struct Votes(BTreeMap<VoteKey, U512>);
+pub struct VoteStat(BTreeMap<PublicKey, U512>);
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
 pub struct VoteKey {
@@ -102,6 +103,50 @@ impl ContractVotes {
             runtime::put_key(&name, Key::Hash([0; 32]));
         }
     }
+
+    pub fn read_stat() -> Result<VoteStat> {
+        let mut vote_stat = BTreeMap::new();
+        for (name, _) in runtime::list_named_keys() {
+            let mut split_name = name.split('_');
+            if Some("a") != split_name.next() {
+                continue;
+            }
+
+            let to_publickey = |hex_str: &str| -> Result<PublicKey> {
+                if hex_str.len() != 64 {
+                    return Err(Error::VoteKeyDeserializationFailed);
+                }
+                let mut key_bytes = [0u8; 32];
+                let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
+                    .map_err(|_| Error::VoteKeyDeserializationFailed)?;
+                debug_assert!(_bytes_written == key_bytes.len());
+                Ok(PublicKey::from(key_bytes))
+            };
+
+            let hex_key = split_name
+                .next()
+                .ok_or(Error::VoteKeyDeserializationFailed)?;
+            let dapp_user = to_publickey(hex_key)?;
+
+            let hex_key = split_name
+                .next()
+                .ok_or(Error::VoteKeyDeserializationFailed)?;
+            let _dapp_owner = to_publickey(hex_key)?;
+
+            let balance = split_name
+                .next()
+                .and_then(|b| U512::from_dec_str(b).ok())
+                .ok_or(Error::VotesDeserializationFailed)?;
+
+            let user_balance = vote_stat.entry(dapp_user).or_insert(U512::from(0));
+            *user_balance += balance;
+        }
+        if vote_stat.is_empty() {
+            return Err(Error::VotesNotFound);
+        }
+
+        Ok(VoteStat(vote_stat))
+    }
 }
 
 impl Votes {
@@ -145,5 +190,11 @@ impl Votes {
                 }
             }
         }
+    }
+}
+
+impl VoteStat {
+    pub fn get(&mut self, user: &PublicKey) -> Result<U512>{
+        Ok(*self.0.get(user).unwrap())
     }
 }

@@ -8,7 +8,7 @@ use types::{
 use crate::{
     constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
     contract_queue::ContractQueue, contract_runtime::ContractRuntime,
-    contract_stakes::ContractStakes, contract_votes::ContractVotes
+    contract_stakes::ContractStakes, contract_votes::{ContractVotes, Votes, VoteStat}
 };
 
 pub struct ProofOfProfessionContract;
@@ -112,6 +112,50 @@ impl ProofOfProfessionContract {
         let payout = stakes.unbond(&src, Some(amount))?;
         stakes.bond(&dest, payout);
         ContractStakes::write(&stakes);
+
+        Ok(())
+    }
+
+    pub fn vote(
+        &self,
+        user: PublicKey,
+        dapp: PublicKey,
+        amount: U512,
+    ) -> Result<()> {
+        // staked balance check
+        if amount.is_zero() {
+            return Err(Error::BondTooSmall);
+        }
+
+        // check validator's staked token amount
+        let stakes: Stakes = ContractStakes::read()?;
+        let staked_balance: U512 = *stakes.0.get(&user).unwrap();
+
+        // check user's vote stat
+        let mut vote_stat: VoteStat = ContractVotes::read_stat()?;
+        let vote_stat_per_user: U512 = vote_stat.get(&user).unwrap();
+
+        if staked_balance < vote_stat_per_user {
+            return Err(Error::VoteTooLarge);
+        }
+
+        // check vote table
+        let mut votes: Votes = ContractVotes::read()?;
+        votes.vote(&user, &dapp, amount);
+        ContractVotes::write(&votes);
+
+        Ok(())
+    }
+
+    pub fn unvote(
+        &self,
+        user: PublicKey,
+        dapp: PublicKey,
+        maybe_amount: Option<U512>,
+    ) -> Result<()> {
+        let mut votes = ContractVotes::read()?;
+        votes.unvote(&user, &dapp, maybe_amount)?;
+        ContractVotes::write(&votes);
 
         Ok(())
     }

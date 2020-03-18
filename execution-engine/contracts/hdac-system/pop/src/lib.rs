@@ -8,12 +8,8 @@ mod contract_mint;
 mod contract_queue;
 mod contract_runtime;
 mod contract_stakes;
-<<<<<<< HEAD:execution-engine/contracts/hdac-system/pop/src/lib.rs
 mod pop_contract;
-=======
 mod contract_votes;
-mod hdac_pos_contract;
->>>>>>> feat: write contract_votes module and its error types:execution-engine/contracts/hdac-system/hdac-pos/src/lib.rs
 
 use alloc::string::String;
 
@@ -138,6 +134,30 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
                 .redelegate(delegator, src_validator, dest_validator, shares)
+                .unwrap_or_revert();
+        }
+        methods::METHOD_VOTE => {
+            let user: PublicKey = runtime::get_caller();
+            let dapp: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract
+                .vote(user, dapp, amount)
+                .unwrap_or_revert();
+        }
+        methods::METHOD_UNVOTE => {
+            let user: PublicKey = runtime::get_caller();
+            let dapp: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: Option<U512> = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract
+                .unvote(user, dapp, amount)
                 .unwrap_or_revert();
         }
         _ => {}

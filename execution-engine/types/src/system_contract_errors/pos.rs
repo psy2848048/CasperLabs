@@ -99,6 +99,8 @@ pub enum Error {
     NotVoted, // = 37
     /// Attempted to unvote with too big number to occur overflow
     UnvoteTooLarge, // = 39
+    /// Attempted to vote too large number
+    VoteTooLarge, // = 40
 }
 
 /// An alias for `Result<T, pos::Error>`.
