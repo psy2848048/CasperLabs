@@ -46,11 +46,21 @@ fn redelegate(
     );
 }
 
+fn vote(pos: &ContractRef, dapp_key: PublicKey, user_key: PublicKey, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_BOND, dapp_key, user_key, *amount));
+}
+
+fn unvote(pos: &ContractRef, dapp_key: PublicKey, user_key: PublicKey, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNBOND, dapp_key, user_key, *amount));
+}
+
 const POS_BOND: &str = "bond";
 const POS_UNBOND: &str = "unbond";
 const POS_DELEGATE: &str = "delegate";
 const POS_UNDELEGATE: &str = "undelegate";
 const POS_REDELEGATE: &str = "redelegate";
+const POS_VOTE: &str = "vote";
+const POS_UNVOTE: &str = "unvote";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -113,6 +123,30 @@ pub extern "C" fn call() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             redelegate(&pos_pointer, &src_validator, &dest_validator, &amount);
+        }
+        POS_VOTE => {
+            let user: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let dapp: PublicKey = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(3)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            vote(&pos_pointer, user, dapp, &amount)
+        }
+        POS_UNVOTE => {
+            let user: PublicKey = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let dapp: PublicKey = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(3)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            unvote(&pos_pointer, user, dapp, &amount)
         }
         _ => runtime::revert(ApiError::User(Error::UnknownCommand as u16)),
     }
