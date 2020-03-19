@@ -104,7 +104,6 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
             PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
