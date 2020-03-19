@@ -1,7 +1,11 @@
 use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
+use types::{account::PublicKey, U512};
 
-use crate::constants::local_keys::UNDELEGATE_REQUEST_QUEUE;
+use crate::{
+    constants::local_keys::UNDELEGATE_REQUEST_QUEUE,
+    request_queue::{Request, RequestQueue, RequestQueueEntry},
+};
 
 pub struct ContractQueue;
 
@@ -29,10 +33,38 @@ impl ContractQueue {
     }
 }
 
-#[derive(Clone, Default)]
-pub struct UndelegateRequestQueue;
-#[derive(Clone, Default)]
-pub struct RedelegateRequestQueue;
+type UndelegateRequestQueue = RequestQueue<UndelegateRequest>;
+
+#[derive(Clone, Copy)]
+pub struct UndelegateRequest {
+    pub delegator: PublicKey,
+    pub validator: PublicKey,
+    pub amount: U512,
+}
+
+impl Request for UndelegateRequest {
+    fn is_same(&self, rhs: &Self) -> bool {
+        self.delegator == rhs.delegator && self.validator == rhs.validator
+    }
+}
+
+type RedelegateRequestQueue = RequestQueue<RedelegateRequest>;
+
+#[derive(Clone, Copy)]
+pub struct RedelegateRequest {
+    pub delegator: PublicKey,
+    pub src_validator: PublicKey,
+    pub dest_validator: PublicKey,
+    pub amount: U512,
+}
+
+impl Request for RedelegateRequest {
+    fn is_same(&self, rhs: &Self) -> bool {
+        self.delegator == rhs.delegator
+            && self.src_validator == rhs.src_validator
+            && self.dest_validator == rhs.dest_validator
+    }
+}
 
 // TODO: remove QueueProvider
 // Currently, we are utilizing the default implemention of the Proof-of-Stake crate,
