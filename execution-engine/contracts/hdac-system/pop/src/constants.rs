@@ -1,5 +1,6 @@
 pub(crate) mod local_keys {
     pub const UNDELEGATE_REQUEST_QUEUE: u8 = 1;
+    pub const REDELEGATE_REQUEST_QUEUE: u8 = 2;
 }
 
 pub(crate) mod uref_names {
