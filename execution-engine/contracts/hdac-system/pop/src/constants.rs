@@ -1,6 +1,5 @@
 pub(crate) mod local_keys {
-    pub const BONDING_KEY: u8 = 1;
-    pub const UNBONDING_KEY: u8 = 2;
+    pub const UNDELEGATE_REQUEST_QUEUE: u8 = 1;
 }
 
 pub(crate) mod uref_names {

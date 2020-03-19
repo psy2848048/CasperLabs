@@ -10,6 +10,7 @@ mod contract_runtime;
 mod contract_stakes;
 mod contract_votes;
 mod pop_contract;
+mod request_queue;
 
 use alloc::string::String;
 
