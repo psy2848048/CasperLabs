@@ -104,8 +104,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
             PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -139,8 +139,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     // that validator should be a_{dApp_pubkey}_{user_pubkey}_{voted_amount}
     let lookup_key_vote = format!(
         "a_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
         base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
         ACCOUNT_3_VOTE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key_vote));
@@ -163,8 +163,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
             PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -198,8 +198,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(UNVOTE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
             PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
             None::<U512>,
         ),
     )
@@ -219,8 +219,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     // validate validator stake amount
     let lookup_key_vote = format!(
         "a_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
         base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
         ACCOUNT_3_VOTE_AMOUNT
     );
     assert!(!pos_contract.named_keys().contains_key(&lookup_key_vote));
@@ -267,6 +267,9 @@ fn should_fail_to_vote_more_than_bonded() {
         ),
     ];
     let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .finish();
 
     //
     // first vote. working well expected

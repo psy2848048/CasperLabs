@@ -4,7 +4,7 @@ use alloc::{
 };
 use core::fmt::Write;
 
-use contract::contract_api::runtime;
+use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{
     account::PublicKey,
     system_contract_errors::pos::{Error, Result},

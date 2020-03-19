@@ -4,6 +4,7 @@ use types::{
     system_contract_errors::pos::{Error, PurseLookupError, Result},
     Key, URef, U512,
 };
+use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 
 use crate::{
     constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
@@ -129,11 +130,11 @@ impl ProofOfProfessionContract {
 
         // check validator's staked token amount
         let stakes: Stakes = ContractStakes::read()?;
-        let staked_balance: U512 = *stakes.0.get(&user).unwrap();
+        let staked_balance: U512 = *stakes.0.get(&user).unwrap_or_revert();
 
         // check user's vote stat
         let mut vote_stat: VoteStat = ContractVotes::read_stat()?;
-        let vote_stat_per_user: U512 = vote_stat.get(&user).unwrap();
+        let vote_stat_per_user: U512 = vote_stat.get(&user).unwrap_or_revert();
 
         if staked_balance < vote_stat_per_user {
             return Err(Error::VoteTooLarge);

@@ -46,12 +46,12 @@ fn redelegate(
     );
 }
 
-fn vote(pos: &ContractRef, dapp_key: PublicKey, user_key: PublicKey, amount: &U512) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_BOND, dapp_key, user_key, *amount));
+fn vote(pos: &ContractRef, user_key: PublicKey, dapp_key: PublicKey, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_VOTE, user_key, dapp_key, *amount));
 }
 
-fn unvote(pos: &ContractRef, dapp_key: PublicKey, user_key: PublicKey, amount: &U512) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNBOND, dapp_key, user_key, *amount));
+fn unvote(pos: &ContractRef, user_key: PublicKey, dapp_key: PublicKey, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNVOTE, user_key, dapp_key, *amount));
 }
 
 const POS_BOND: &str = "bond";
