@@ -1,57 +1,19 @@
 use alloc::vec::Vec;
 use core::result;
 
-use contract::contract_api::storage;
-use proof_of_stake::{self, QueueProvider};
 use types::{
     account::PublicKey,
     bytesrepr::{self, FromBytes, ToBytes},
     CLType, CLTyped, U512,
 };
 
-use crate::{
-    constants::local_keys::{REDELEGATE_REQUEST_QUEUE, UNDELEGATE_REQUEST_QUEUE},
-    request_queue::{Request, RequestQueue},
-};
-
-pub struct ContractQueue;
-
-impl ContractQueue {
-    pub fn read_undelegate_requests() -> UndelegateRequestQueue {
-        storage::read_local(&UNDELEGATE_REQUEST_QUEUE)
-            .unwrap_or_default()
-            .unwrap_or_default()
-    }
-
-    pub fn read_redelegate_requests() -> RedelegateRequestQueue {
-        storage::read_local(&REDELEGATE_REQUEST_QUEUE)
-            .unwrap_or_default()
-            .unwrap_or_default()
-    }
-
-    pub fn write_undelegate_requests(queue: UndelegateRequestQueue) {
-        storage::write_local(UNDELEGATE_REQUEST_QUEUE, queue);
-    }
-
-    pub fn write_redelegate_requests(queue: RedelegateRequestQueue) {
-        storage::write_local(REDELEGATE_REQUEST_QUEUE, queue);
-    }
-}
-
-type UndelegateRequestQueue = RequestQueue<UndelegateRequest>;
-type RedelegateRequestQueue = RequestQueue<RedelegateRequest>;
+use super::request_queue::Request;
 
 #[derive(Clone, Copy)]
 pub struct UndelegateRequest {
     pub delegator: PublicKey,
     pub validator: PublicKey,
     pub amount: U512,
-}
-
-impl Default for RequestQueue<UndelegateRequest> {
-    fn default() -> Self {
-        RequestQueue::<UndelegateRequest> { 0: Vec::new() }
-    }
 }
 
 impl Request for UndelegateRequest {
@@ -97,12 +59,6 @@ pub struct RedelegateRequest {
     pub amount: U512,
 }
 
-impl Default for RequestQueue<RedelegateRequest> {
-    fn default() -> Self {
-        RequestQueue::<RedelegateRequest> { 0: Vec::new() }
-    }
-}
-
 impl Request for RedelegateRequest {
     fn is_same(&self, rhs: &Self) -> bool {
         self.delegator == rhs.delegator
@@ -140,26 +96,5 @@ impl ToBytes for RedelegateRequest {
 impl CLTyped for RedelegateRequest {
     fn cl_type() -> CLType {
         CLType::Any
-    }
-}
-
-// TODO: remove QueueProvider
-// Currently, we are utilizing the default implemention of the Proof-of-Stake crate,
-// so we need to add a dummy implemention to meet trait contraint.
-impl QueueProvider for ContractQueue {
-    fn read_bonding() -> proof_of_stake::Queue {
-        unimplemented!()
-    }
-
-    fn read_unbonding() -> proof_of_stake::Queue {
-        unimplemented!()
-    }
-
-    fn write_bonding(_: proof_of_stake::Queue) {
-        unimplemented!()
-    }
-
-    fn write_unbonding(_: proof_of_stake::Queue) {
-        unimplemented!()
     }
 }

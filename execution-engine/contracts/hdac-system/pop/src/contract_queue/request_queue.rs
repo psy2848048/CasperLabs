@@ -7,6 +7,7 @@ use types::{
     BlockTime, CLType, CLTyped,
 };
 
+#[derive(Default)]
 pub struct RequestQueue<T: Request>(pub Vec<RequestQueueEntry<T>>);
 
 #[derive(Clone, Copy, Debug)]
