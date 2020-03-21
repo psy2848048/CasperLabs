@@ -5,7 +5,7 @@ use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
 
 use request_queue::{Request, RequestQueue};
-pub use requests::{RedelegateRequest, UndelegateRequest};
+pub use requests::{DelegateRequest, RedelegateRequest, UndelegateRequest};
 
 pub struct ContractQueue;
 
