@@ -7,16 +7,16 @@ use types::{
     BlockTime, CLType, CLTyped,
 };
 
-#[derive(Default)]
+#[derive(Default, PartialEq)]
 pub struct RequestQueue<T: Request>(pub Vec<RequestQueueEntry<T>>);
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RequestQueueEntry<T: Request> {
     pub request: T,
     pub timestamp: BlockTime,
 }
 
-pub trait Request: Clone + Copy + FromBytes + ToBytes + CLTyped {
+pub trait Request: Clone + Copy + PartialEq + FromBytes + ToBytes + CLTyped {
     fn is_same(&self, rhs: &Self) -> bool;
 }
 

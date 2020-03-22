@@ -11,11 +11,31 @@ use super::request_queue::Request;
 
 pub type DelegateRequest = UndelegateRequest;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UndelegateRequest {
-    pub delegator: PublicKey,
-    pub validator: PublicKey,
-    pub amount: U512,
+    delegator: PublicKey,
+    validator: PublicKey,
+    amount: U512,
+}
+
+impl UndelegateRequest {
+    pub fn new(delegator: PublicKey, validator: PublicKey, amount: U512) -> Self {
+        UndelegateRequest {
+            delegator,
+            validator,
+            amount,
+        }
+    }
+}
+
+impl Default for UndelegateRequest {
+    fn default() -> Self {
+        UndelegateRequest {
+            delegator: PublicKey::from([0u8; 32]),
+            validator: PublicKey::from([0u8; 32]),
+            amount: U512::from(0),
+        }
+    }
 }
 
 impl Request for UndelegateRequest {
@@ -53,12 +73,39 @@ impl CLTyped for UndelegateRequest {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RedelegateRequest {
-    pub delegator: PublicKey,
-    pub src_validator: PublicKey,
-    pub dest_validator: PublicKey,
-    pub amount: U512,
+    delegator: PublicKey,
+    src_validator: PublicKey,
+    dest_validator: PublicKey,
+    amount: U512,
+}
+
+impl RedelegateRequest {
+    pub fn new(
+        delegator: PublicKey,
+        src_validator: PublicKey,
+        dest_validator: PublicKey,
+        amount: U512,
+    ) -> Self {
+        RedelegateRequest {
+            delegator,
+            src_validator,
+            dest_validator,
+            amount,
+        }
+    }
+}
+
+impl Default for RedelegateRequest {
+    fn default() -> Self {
+        RedelegateRequest {
+            delegator: PublicKey::from([0u8; 32]),
+            src_validator: PublicKey::from([0u8; 32]),
+            dest_validator: PublicKey::from([0u8; 32]),
+            amount: U512::from(0),
+        }
+    }
 }
 
 impl Request for RedelegateRequest {

@@ -40,3 +40,107 @@ impl QueueProvider for ContractQueue {
         unimplemented!()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use alloc::vec;
+
+    use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
+
+    use super::{DelegateRequest, Request, RequestQueue, UndelegateRequest};
+    use crate::contract_queue::request_queue::RequestQueueEntry;
+
+    const KEY1: [u8; 32] = [1; 32];
+    const KEY2: [u8; 32] = [2; 32];
+    const KEY3: [u8; 32] = [3; 32];
+    const KEY4: [u8; 32] = [4; 32];
+
+    #[test]
+    fn test_request_queue_push() {
+        let delegator = PublicKey::new(KEY1);
+        let validator_1 = PublicKey::new(KEY2);
+        let validator_2 = PublicKey::new(KEY3);
+        let validator_3 = PublicKey::new(KEY4);
+
+        let mut queue: RequestQueue<DelegateRequest> = Default::default();
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                DelegateRequest::new(delegator, validator_1, U512::from(5)),
+                BlockTime::new(100)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                DelegateRequest::new(delegator, validator_2, U512::from(5)),
+                BlockTime::new(101)
+            )
+        );
+        assert_eq!(
+            Err(Error::MultipleRequests),
+            queue.push(
+                DelegateRequest::new(delegator, validator_1, U512::from(6)),
+                BlockTime::new(102)
+            )
+        );
+        assert_eq!(
+            Err(Error::TimeWentBackwards),
+            queue.push(
+                DelegateRequest::new(delegator, validator_3, U512::from(5)),
+                BlockTime::new(100)
+            )
+        );
+    }
+
+    #[test]
+    fn test_request_queue_pop_due() {
+        let delegator = PublicKey::new(KEY1);
+        let validator_1 = PublicKey::new(KEY2);
+        let validator_2 = PublicKey::new(KEY3);
+        let validator_3 = PublicKey::new(KEY4);
+
+        let mut queue: RequestQueue<UndelegateRequest> = Default::default();
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                UndelegateRequest::new(delegator, validator_1, U512::from(5)),
+                BlockTime::new(100)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                UndelegateRequest::new(delegator, validator_2, U512::from(5)),
+                BlockTime::new(101)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                UndelegateRequest::new(delegator, validator_3, U512::from(5)),
+                BlockTime::new(102)
+            )
+        );
+        assert_eq!(
+            vec![
+                RequestQueueEntry {
+                    request: UndelegateRequest::new(delegator, validator_1, U512::from(5)),
+                    timestamp: BlockTime::new(100)
+                },
+                RequestQueueEntry {
+                    request: UndelegateRequest::new(delegator, validator_2, U512::from(5)),
+                    timestamp: BlockTime::new(101)
+                },
+            ],
+            queue.pop_due(BlockTime::new(101))
+        );
+        assert_eq!(
+            vec![RequestQueueEntry {
+                request: UndelegateRequest::new(delegator, validator_3, U512::from(5)),
+                timestamp: BlockTime::new(102)
+            },],
+            queue.pop_due(BlockTime::new(105))
+        );
+    }
+}
