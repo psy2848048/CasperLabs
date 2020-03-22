@@ -4,18 +4,18 @@ mod requests;
 use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
 
-use request_queue::{Request, RequestQueue};
-pub use requests::{DelegateRequest, RedelegateRequest, UndelegateRequest};
+use request_queue::{RequestKey, RequestQueue};
+pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey};
 
 pub struct ContractQueue;
 
 impl ContractQueue {
-    pub fn read_requests<T: Request + Default>(key: [u8; 32]) -> RequestQueue<T> {
+    pub fn read_requests<T: RequestKey + Default>(key: u8) -> RequestQueue<T> {
         storage::read_local(&key)
             .unwrap_or_default()
             .unwrap_or_default()
     }
-    pub fn write_requests<T: Request + Default>(key: [u8; 32], queue: RequestQueue<T>) {
+    pub fn write_requests<T: RequestKey + Default>(key: u8, queue: RequestQueue<T>) {
         storage::write_local(key, queue);
     }
 }
@@ -47,7 +47,7 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{DelegateRequest, Request, RequestQueue, UndelegateRequest};
+    use super::{DelegateRequestKey, RequestQueue, UndelegateRequestKey};
     use crate::contract_queue::request_queue::RequestQueueEntry;
 
     const KEY1: [u8; 32] = [1; 32];
@@ -62,32 +62,36 @@ mod tests {
         let validator_2 = PublicKey::new(KEY3);
         let validator_3 = PublicKey::new(KEY4);
 
-        let mut queue: RequestQueue<DelegateRequest> = Default::default();
+        let mut queue: RequestQueue<DelegateRequestKey> = Default::default();
         assert_eq!(
             Ok(()),
             queue.push(
-                DelegateRequest::new(delegator, validator_1, U512::from(5)),
+                DelegateRequestKey::new(delegator, validator_1),
+                U512::from(5),
                 BlockTime::new(100)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                DelegateRequest::new(delegator, validator_2, U512::from(5)),
+                DelegateRequestKey::new(delegator, validator_2),
+                U512::from(5),
                 BlockTime::new(101)
             )
         );
         assert_eq!(
             Err(Error::MultipleRequests),
             queue.push(
-                DelegateRequest::new(delegator, validator_1, U512::from(6)),
+                DelegateRequestKey::new(delegator, validator_1),
+                U512::from(6),
                 BlockTime::new(102)
             )
         );
         assert_eq!(
             Err(Error::TimeWentBackwards),
             queue.push(
-                DelegateRequest::new(delegator, validator_3, U512::from(5)),
+                DelegateRequestKey::new(delegator, validator_3),
+                U512::from(5),
                 BlockTime::new(100)
             )
         );
@@ -100,46 +104,52 @@ mod tests {
         let validator_2 = PublicKey::new(KEY3);
         let validator_3 = PublicKey::new(KEY4);
 
-        let mut queue: RequestQueue<UndelegateRequest> = Default::default();
+        let mut queue: RequestQueue<UndelegateRequestKey> = Default::default();
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequest::new(delegator, validator_1, U512::from(5)),
+                UndelegateRequestKey::new(delegator, validator_1),
+                U512::from(5),
                 BlockTime::new(100)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequest::new(delegator, validator_2, U512::from(5)),
+                UndelegateRequestKey::new(delegator, validator_2),
+                U512::from(5),
                 BlockTime::new(101)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequest::new(delegator, validator_3, U512::from(5)),
+                UndelegateRequestKey::new(delegator, validator_3),
+                U512::from(5),
                 BlockTime::new(102)
             )
         );
         assert_eq!(
             vec![
-                RequestQueueEntry {
-                    request: UndelegateRequest::new(delegator, validator_1, U512::from(5)),
-                    timestamp: BlockTime::new(100)
-                },
-                RequestQueueEntry {
-                    request: UndelegateRequest::new(delegator, validator_2, U512::from(5)),
-                    timestamp: BlockTime::new(101)
-                },
+                RequestQueueEntry::new(
+                    UndelegateRequestKey::new(delegator, validator_1),
+                    U512::from(5),
+                    BlockTime::new(100)
+                ),
+                RequestQueueEntry::new(
+                    UndelegateRequestKey::new(delegator, validator_2),
+                    U512::from(5),
+                    BlockTime::new(101)
+                ),
             ],
             queue.pop_due(BlockTime::new(101))
         );
         assert_eq!(
-            vec![RequestQueueEntry {
-                request: UndelegateRequest::new(delegator, validator_3, U512::from(5)),
-                timestamp: BlockTime::new(102)
-            },],
+            vec![RequestQueueEntry::new(
+                UndelegateRequestKey::new(delegator, validator_3),
+                U512::from(5),
+                BlockTime::new(102)
+            ),],
             queue.pop_due(BlockTime::new(105))
         );
     }
