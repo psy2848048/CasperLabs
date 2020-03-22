@@ -8,8 +8,8 @@ mod contract_mint;
 mod contract_queue;
 mod contract_runtime;
 mod contract_stakes;
-mod pop_contract;
 mod contract_votes;
+mod pop_contract;
 
 use alloc::string::String;
 
@@ -17,7 +17,7 @@ use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use proof_of_stake::ProofOfStake;
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, CLValue, URef, U512, Key
+    ApiError, CLValue, Key, URef, U512,
 };
 
 pub use crate::pop_contract::ProofOfProfessionContract;
@@ -144,9 +144,7 @@ pub fn delegate() {
             let amount: U512 = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            pop_contract
-                .vote(user, dapp, amount)
-                .unwrap_or_revert();
+            pop_contract.vote(user, dapp, amount).unwrap_or_revert();
         }
         methods::METHOD_UNVOTE => {
             let user: PublicKey = runtime::get_caller();
@@ -156,9 +154,7 @@ pub fn delegate() {
             let amount: Option<U512> = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            pop_contract
-                .unvote(user, dapp, amount)
-                .unwrap_or_revert();
+            pop_contract.unvote(user, dapp, amount).unwrap_or_revert();
         }
         _ => {}
     }

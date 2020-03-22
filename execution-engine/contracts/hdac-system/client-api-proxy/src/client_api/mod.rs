@@ -8,7 +8,7 @@ use contract::{
 };
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, U512, Key
+    ApiError, Key, U512,
 };
 
 use error::Error;
@@ -200,17 +200,11 @@ impl Api {
             }
             Self::Vote(dapp, amount) => {
                 let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(
-                    pos_ref,
-                    (method_names::pos::VOTE, *dapp, *amount),
-                )
+                runtime::call_contract(pos_ref, (method_names::pos::VOTE, *dapp, *amount))
             }
             Self::Unvote(dapp, amount) => {
                 let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(
-                    pos_ref,
-                    (method_names::pos::UNVOTE, *dapp, *amount),
-                )
+                runtime::call_contract(pos_ref, (method_names::pos::UNVOTE, *dapp, *amount))
             }
         }
     }

@@ -1,17 +1,12 @@
 use num_traits::identities::Zero;
 
-use engine_core::engine_state::{
-    genesis::GenesisAccount,
-};
+use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{
-    account::PublicKey, Key,
-    ApiError, U512,
-};
+use types::{account::PublicKey, ApiError, Key, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
@@ -75,7 +70,9 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
         GENESIS_VALIDATOR_STAKE
     );
-    assert!(pos_contract.named_keys().contains_key(&lookup_key_delegation));
+    assert!(pos_contract
+        .named_keys()
+        .contains_key(&lookup_key_delegation));
 
     let lookup_key = format!(
         "v_{}_{}",
@@ -205,7 +202,7 @@ fn should_fail_to_vote_more_than_bonded() {
     const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
     const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
     const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
-    
+
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_VOTE_AMOUNT: u64 = 30_000;
 
@@ -283,10 +280,7 @@ fn should_fail_to_vote_more_than_bonded() {
     )
     .build();
 
-    let result = builder
-        .exec(vote_request)
-        .commit()
-        .finish();
+    let result = builder.exec(vote_request).commit().finish();
 
     let response = result
         .builder()
@@ -296,5 +290,8 @@ fn should_fail_to_vote_more_than_bonded() {
 
     let error_message = utils::get_error_message(response);
 
-    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(39)))));
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(39))
+    )));
 }

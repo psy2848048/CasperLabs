@@ -10,7 +10,7 @@ use contract::{
 };
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, ContractRef, U512, Key
+    ApiError, ContractRef, Key, U512,
 };
 
 #[repr(u16)]

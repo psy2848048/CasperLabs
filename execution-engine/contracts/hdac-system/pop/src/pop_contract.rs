@@ -1,15 +1,19 @@
+use contract::unwrap_or_revert::UnwrapOrRevert;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
     system_contract_errors::pos::{Error, PurseLookupError, Result},
-    Key, URef, U512
+    Key, URef, U512,
 };
-use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 
 use crate::{
-    constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
-    contract_queue::ContractQueue, contract_runtime::ContractRuntime,
-    contract_stakes::ContractStakes, contract_votes::{ContractVotes, Votes, VoteStat}
+    constants::uref_names,
+    contract_delegations::ContractDelegations,
+    contract_mint::ContractMint,
+    contract_queue::ContractQueue,
+    contract_runtime::ContractRuntime,
+    contract_stakes::ContractStakes,
+    contract_votes::{ContractVotes, VoteStat, Votes},
 };
 
 pub struct ProofOfProfessionContract;
@@ -117,12 +121,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn vote(
-        &self,
-        user: PublicKey,
-        dapp: Key,
-        amount: U512,
-    ) -> Result<()> {
+    pub fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
         // staked balance check
         if amount.is_zero() {
             return Err(Error::BondTooSmall);
@@ -131,14 +130,15 @@ impl ProofOfProfessionContract {
         // check validator's staked token amount
         let stakes: Stakes = ContractStakes::read()?;
         // if an user has no staked amount, he cannot do anything
-        let staked_balance: U512 = *stakes.0.get(&user)
+        let staked_balance: U512 = *stakes
+            .0
+            .get(&user)
             .unwrap_or_revert_with(Error::StakesNotFound);
 
         // check user's vote stat
         let vote_stat: VoteStat = ContractVotes::read_stat()?;
         let zero_const = U512::from(0);
-        let vote_stat_per_user: U512 = *vote_stat.0.get(&user)
-            .unwrap_or_else(|| &zero_const);
+        let vote_stat_per_user: U512 = *vote_stat.0.get(&user).unwrap_or_else(|| &zero_const);
 
         if staked_balance < vote_stat_per_user + amount {
             return Err(Error::VoteTooLarge);
@@ -152,12 +152,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn unvote(
-        &self,
-        user: PublicKey,
-        dapp: Key,
-        maybe_amount: Option<U512>,
-    ) -> Result<()> {
+    pub fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
         let mut votes = ContractVotes::read()?;
         votes.unvote(&user, &dapp, maybe_amount)?;
         ContractVotes::write(&votes);

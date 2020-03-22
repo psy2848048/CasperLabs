@@ -9,7 +9,7 @@ use types::{
     account::PublicKey,
     bytesrepr::ToBytes,
     system_contract_errors::pos::{Error, Result},
-    Key, U512, ApiError
+    ApiError, Key, U512,
 };
 
 pub struct ContractVotes;
