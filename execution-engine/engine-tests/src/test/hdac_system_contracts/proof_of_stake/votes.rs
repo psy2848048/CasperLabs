@@ -1,8 +1,7 @@
 use num_traits::identities::Zero;
 
 use engine_core::engine_state::{
-    genesis::{GenesisAccount, POS_BONDING_PURSE},
-    CONV_RATE,
+    genesis::GenesisAccount,
 };
 use engine_shared::motes::Motes;
 use engine_test_support::{
@@ -10,28 +9,14 @@ use engine_test_support::{
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 use types::{
-    account::{PublicKey, PurseId},
-    ApiError, Key, U512,
+    account::PublicKey, Key,
+    ApiError, U512,
 };
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
-const BOND_METHOD: &str = "bond";
-const UNBOND_METHOD: &str = "unbond";
 const VOTE_METHOD: &str = "vote";
 const UNVOTE_METHOD: &str = "unvote";
-
-fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
-    let purse_id = builder
-        .get_pos_contract()
-        .named_keys()
-        .get(POS_BONDING_PURSE)
-        .and_then(Key::as_uref)
-        .map(|u| PurseId::new(*u))
-        .expect("should find PoS payment purse");
-
-    builder.get_purse_balance(purse_id)
-}
 
 #[ignore]
 #[test]
@@ -44,7 +29,6 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_VOTE_AMOUNT: u64 = 10_000;
-    const ACCOUNT_3_UNVOTE_AMOUNT: u64 = 5_000;
 
     let accounts = vec![
         GenesisAccount::new(
@@ -60,7 +44,7 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         GenesisAccount::new(
             PublicKey::new(ACCOUNT_3_ADDR_USER_1),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
             PublicKey::new(ACCOUNT_4_ADDR_USER_2),
@@ -93,7 +77,12 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key_delegation));
 
-    println!("1-1 finished");
+    let lookup_key = format!(
+        "v_{}_{}",
+        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        GENESIS_VALIDATOR_STAKE
+    );
+    assert!(pos_contract.named_keys().contains_key(&lookup_key));
 
     // setup done. start testing
     // execute vote
@@ -104,12 +93,11 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
     .build();
-    println!("1-2 build finished");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
@@ -117,8 +105,6 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         .expect_success()
         .commit()
         .finish();
-
-    println!("1-2 execution finished");
 
     let pos_contract = builder
         .get_contract(pos_uref.remove_access_rights())
@@ -129,11 +115,10 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| key.starts_with("v_"))
+            .filter(|(key, _)| key.starts_with("a_"))
             .count(),
         1
     );
-    println!("1-2-1 finished");
 
     // that validator should be a_{dApp_pubkey}_{user_pubkey}_{voted_amount}
     let lookup_key_vote = format!(
@@ -144,26 +129,13 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key_vote));
 
-    // there should be 1 vote
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("a_"))
-            .count(),
-        1
-    );
-
-    println!("1-2 finished");
-
     // execute second vote with user 1 to another dapp
     let vote_request = ExecuteRequestBuilder::standard(
         ACCOUNT_3_ADDR_USER_1,
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            Key::Hash(ACCOUNT_2_ADDR_DAPP_2),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -197,15 +169,14 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(UNVOTE_METHOD),
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
             None::<U512>,
         ),
     )
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
+    let _result = builder
         .exec(unvote_request)
         .expect_success()
         .commit()
@@ -214,15 +185,6 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     let pos_contract = builder
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
-
-    // validate validator stake amount
-    let lookup_key_vote = format!(
-        "a_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
-        ACCOUNT_3_VOTE_AMOUNT
-    );
-    assert!(!pos_contract.named_keys().contains_key(&lookup_key_vote));
 
     // there should be still 2 delegations
     assert_eq!(
@@ -233,7 +195,6 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
             .count(),
         1
     );
-    println!("1-3 finished");
 }
 
 #[ignore]
@@ -262,11 +223,11 @@ fn should_fail_to_vote_more_than_bonded() {
         GenesisAccount::new(
             PublicKey::new(ACCOUNT_3_ADDR_USER_1),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
     ];
     let mut builder = InMemoryWasmTestBuilder::default();
-    let result = builder
+    let _result = builder
         .run_genesis(&utils::create_genesis_config(accounts))
         .finish();
 
@@ -278,8 +239,7 @@ fn should_fail_to_vote_more_than_bonded() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -307,7 +267,6 @@ fn should_fail_to_vote_more_than_bonded() {
             .count(),
         1
     );
-    println!("2-1 finished");
 
     //
     // second vote. an error expected
@@ -318,18 +277,14 @@ fn should_fail_to_vote_more_than_bonded() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            Key::Hash(ACCOUNT_2_ADDR_DAPP_2),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
     .build();
 
-
-
     let result = builder
         .exec(vote_request)
-        .expect_success()
         .commit()
         .finish();
 
@@ -341,7 +296,5 @@ fn should_fail_to_vote_more_than_bonded() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::NotBonded => 0
-    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(0)))));
-    println!("2-2 finished");
+    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(39)))));
 }

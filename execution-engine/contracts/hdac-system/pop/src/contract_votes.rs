@@ -7,18 +7,19 @@ use core::fmt::Write;
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{
     account::PublicKey,
+    bytesrepr::ToBytes,
     system_contract_errors::pos::{Error, Result},
-    Key, U512,
+    Key, U512, ApiError
 };
 
 pub struct ContractVotes;
-pub struct Votes(BTreeMap<VoteKey, U512>);
-pub struct VoteStat(BTreeMap<PublicKey, U512>);
+pub struct Votes(pub BTreeMap<VoteKey, U512>);
+pub struct VoteStat(pub BTreeMap<PublicKey, U512>);
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
 pub struct VoteKey {
     user: PublicKey,
-    dapp: PublicKey,
+    dapp: Key,
 }
 
 impl ContractVotes {
@@ -41,6 +42,18 @@ impl ContractVotes {
                 Ok(PublicKey::from(key_bytes))
             };
 
+            let to_hash = |hex_str: &str| -> Result<Key> {
+                if hex_str.len() != 64 {
+                    return Err(Error::VoteKeyDeserializationFailed);
+                }
+                let mut hash_bytes = [0u8; 32];
+                let _bytes_written = base16::decode_slice(hex_str, &mut hash_bytes)
+                    .map_err(|_| Error::VoteKeyDeserializationFailed)?;
+                debug_assert!(_bytes_written == hash_bytes.len());
+                // TODO: How to convert hash to key
+                Ok(Key::Hash(hash_bytes))
+            };
+
             let hex_key = split_name
                 .next()
                 .ok_or(Error::VoteKeyDeserializationFailed)?;
@@ -49,7 +62,7 @@ impl ContractVotes {
             let hex_key = split_name
                 .next()
                 .ok_or(Error::VoteKeyDeserializationFailed)?;
-            let dapp_owner = to_publickey(hex_key)?;
+            let dapp_owner = to_hash(hex_key)?;
 
             let balance = split_name
                 .next()
@@ -64,9 +77,7 @@ impl ContractVotes {
                 balance,
             );
         }
-        if votes.is_empty() {
-            return Err(Error::VotesNotFound);
-        }
+
         Ok(Votes(votes))
     }
 
@@ -85,8 +96,18 @@ impl ContractVotes {
                     }
                     ret
                 };
+
+                let to_hex_string_from_hash = |hash: Key| -> String {
+                    let bytes = hash.to_bytes().unwrap_or_revert_with(ApiError::Deserialize);
+                    let mut ret = String::with_capacity(64);
+                    for byte in &bytes[..32] {
+                        write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
+                    }
+                    ret
+                };
+
                 let user = to_hex_string(vote_key.user);
-                let dapp = to_hex_string(vote_key.dapp);
+                let dapp = to_hex_string_from_hash(vote_key.dapp);
                 let mut uref = String::new();
                 uref.write_fmt(format_args!("a_{}_{}_{}", user, dapp, balance))
                     .expect("Writing to a string cannot fail");
@@ -123,6 +144,17 @@ impl ContractVotes {
                 Ok(PublicKey::from(key_bytes))
             };
 
+            let to_hash = |hex_str: &str| -> Result<Key> {
+                if hex_str.len() != 64 {
+                    return Err(Error::VoteKeyDeserializationFailed);
+                }
+                let mut hash_bytes = [0u8; 32];
+                let _bytes_written = base16::decode_slice(hex_str, &mut hash_bytes)
+                    .map_err(|_| Error::VoteKeyDeserializationFailed)?;
+                debug_assert!(_bytes_written == hash_bytes.len());
+                Ok(Key::Hash(hash_bytes))
+            };
+
             let hex_key = split_name
                 .next()
                 .ok_or(Error::VoteKeyDeserializationFailed)?;
@@ -131,7 +163,7 @@ impl ContractVotes {
             let hex_key = split_name
                 .next()
                 .ok_or(Error::VoteKeyDeserializationFailed)?;
-            let _dapp_owner = to_publickey(hex_key)?;
+            let _dapp_owner = to_hash(hex_key)?;
 
             let balance = split_name
                 .next()
@@ -141,16 +173,13 @@ impl ContractVotes {
             let user_balance = vote_stat.entry(dapp_user).or_insert(U512::from(0));
             *user_balance += balance;
         }
-        if vote_stat.is_empty() {
-            return Err(Error::VotesNotFound);
-        }
 
         Ok(VoteStat(vote_stat))
     }
 }
 
 impl Votes {
-    pub fn vote(&mut self, user: &PublicKey, dapp: &PublicKey, amount: U512) {
+    pub fn vote(&mut self, user: &PublicKey, dapp: &Key, amount: U512) {
         let key = VoteKey {
             user: *user,
             dapp: *dapp,
@@ -164,7 +193,7 @@ impl Votes {
     pub fn unvote(
         &mut self,
         user: &PublicKey,
-        dapp: &PublicKey,
+        dapp: &Key,
         maybe_amount: Option<U512>,
     ) -> Result<U512> {
         let key = VoteKey {
@@ -190,11 +219,5 @@ impl Votes {
                 }
             }
         }
-    }
-}
-
-impl VoteStat {
-    pub fn get(&mut self, user: &PublicKey) -> Result<U512>{
-        Ok(*self.0.get(user).unwrap())
     }
 }

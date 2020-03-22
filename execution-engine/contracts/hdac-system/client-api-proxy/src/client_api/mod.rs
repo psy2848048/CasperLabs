@@ -8,7 +8,7 @@ use contract::{
 };
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, U512,
+    ApiError, U512, Key
 };
 
 use error::Error;
@@ -46,8 +46,8 @@ pub enum Api {
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, U512),
-    Vote(PublicKey, PublicKey, U512),
-    Unvote(PublicKey, PublicKey, U512),
+    Vote(PublicKey, Key, U512),
+    Unvote(PublicKey, Key, U512),
 }
 
 impl Api {
@@ -119,7 +119,7 @@ impl Api {
                 let user: PublicKey = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let dapp: PublicKey = runtime::get_arg(2)
+                let dapp: Key = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
                 let amount: U512 = runtime::get_arg(3)
@@ -131,7 +131,7 @@ impl Api {
                 let user: PublicKey = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let dapp: PublicKey = runtime::get_arg(2)
+                let dapp: Key = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
                 let amount: U512 = runtime::get_arg(3)

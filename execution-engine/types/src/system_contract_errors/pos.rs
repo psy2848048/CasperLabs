@@ -98,9 +98,9 @@ pub enum Error {
     /// Internal error: No vote record
     NotVoted, // = 37
     /// Attempted to unvote with too big number to occur overflow
-    UnvoteTooLarge, // = 39
+    UnvoteTooLarge, // = 38
     /// Attempted to vote too large number
-    VoteTooLarge, // = 40
+    VoteTooLarge, // = 39
 }
 
 /// An alias for `Result<T, pos::Error>`.

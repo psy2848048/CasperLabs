@@ -2,7 +2,7 @@ use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, Stakes
 use types::{
     account::{PublicKey, PurseId},
     system_contract_errors::pos::{Error, PurseLookupError, Result},
-    Key, URef, U512,
+    Key, URef, U512
 };
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 
@@ -120,7 +120,7 @@ impl ProofOfProfessionContract {
     pub fn vote(
         &self,
         user: PublicKey,
-        dapp: PublicKey,
+        dapp: Key,
         amount: U512,
     ) -> Result<()> {
         // staked balance check
@@ -130,18 +130,22 @@ impl ProofOfProfessionContract {
 
         // check validator's staked token amount
         let stakes: Stakes = ContractStakes::read()?;
-        let staked_balance: U512 = *stakes.0.get(&user).unwrap_or_revert();
+        // if an user has no staked amount, he cannot do anything
+        let staked_balance: U512 = *stakes.0.get(&user)
+            .unwrap_or_revert_with(Error::StakesNotFound);
 
         // check user's vote stat
-        let mut vote_stat: VoteStat = ContractVotes::read_stat()?;
-        let vote_stat_per_user: U512 = vote_stat.get(&user).unwrap_or_revert();
+        let vote_stat: VoteStat = ContractVotes::read_stat()?;
+        let zero_const = U512::from(0);
+        let vote_stat_per_user: U512 = *vote_stat.0.get(&user)
+            .unwrap_or_else(|| &zero_const);
 
-        if staked_balance < vote_stat_per_user {
+        if staked_balance < vote_stat_per_user + amount {
             return Err(Error::VoteTooLarge);
         }
 
         // check vote table
-        let mut votes: Votes = ContractVotes::read()?;
+        let mut votes: Votes = ContractVotes::read()?; // <- here
         votes.vote(&user, &dapp, amount);
         ContractVotes::write(&votes);
 
@@ -151,7 +155,7 @@ impl ProofOfProfessionContract {
     pub fn unvote(
         &self,
         user: PublicKey,
-        dapp: PublicKey,
+        dapp: Key,
         maybe_amount: Option<U512>,
     ) -> Result<()> {
         let mut votes = ContractVotes::read()?;
