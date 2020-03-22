@@ -46,8 +46,8 @@ pub enum Api {
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, U512),
-    Vote(PublicKey, Key, U512),
-    Unvote(PublicKey, Key, U512),
+    Vote(Key, U512),
+    Unvote(Key, U512),
 }
 
 impl Api {
@@ -116,28 +116,22 @@ impl Api {
                 Api::Redelegate(src_validator, dest_validator, amount)
             }
             method_names::proxy::VOTE => {
-                let user: PublicKey = runtime::get_arg(1)
+                let dapp: Key = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let dapp: Key = runtime::get_arg(2)
+                let amount: U512 = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let amount: U512 = runtime::get_arg(3)
-                    .unwrap_or_revert_with(ApiError::MissingArgument)
-                    .unwrap_or_revert_with(ApiError::InvalidArgument);
-                Api::Vote(user, dapp, amount)
+                Api::Vote(dapp, amount)
             }
             method_names::proxy::UNVOTE => {
-                let user: PublicKey = runtime::get_arg(1)
+                let dapp: Key = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let dapp: Key = runtime::get_arg(2)
+                let amount: U512 = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let amount: U512 = runtime::get_arg(3)
-                    .unwrap_or_revert_with(ApiError::MissingArgument)
-                    .unwrap_or_revert_with(ApiError::InvalidArgument);
-                Api::Unvote(user, dapp, amount)
+                Api::Unvote(dapp, amount)
             }
             _ => runtime::revert(Error::UnknownProxyApi),
         }
@@ -204,18 +198,18 @@ impl Api {
                     (method_names::pos::REDELEGATE, *src, *dest, *amount),
                 )
             }
-            Self::Vote(user, dapp, amount) => {
+            Self::Vote(dapp, amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 runtime::call_contract(
                     pos_ref,
-                    (method_names::pos::VOTE, *user, *dapp, *amount),
+                    (method_names::pos::VOTE, *dapp, *amount),
                 )
             }
-            Self::Unvote(user, dapp, amount) => {
+            Self::Unvote(dapp, amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 runtime::call_contract(
                     pos_ref,
-                    (method_names::pos::UNVOTE, *user, *dapp, *amount),
+                    (method_names::pos::UNVOTE, *dapp, *amount),
                 )
             }
         }
