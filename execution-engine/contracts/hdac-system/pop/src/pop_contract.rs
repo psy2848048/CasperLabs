@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
+>>>>>>> chore: obeyed the linter majesty
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
