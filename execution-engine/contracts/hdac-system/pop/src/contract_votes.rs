@@ -23,6 +23,7 @@ pub struct VoteKey {
 }
 
 impl ContractVotes {
+    #[allow(clippy::or_fun_call)]
     pub fn read() -> Result<Votes> {
         let mut votes = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
@@ -125,6 +126,7 @@ impl ContractVotes {
         }
     }
 
+    #[allow(clippy::or_fun_call)]
     pub fn read_stat() -> Result<VoteStat> {
         let mut vote_stat = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
