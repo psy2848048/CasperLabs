@@ -12,9 +12,9 @@ pub struct RequestQueue<T: RequestKey>(pub Vec<RequestQueueEntry<T>>);
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct RequestQueueEntry<T: RequestKey> {
-    request_key: T,
-    amount: U512,
-    timestamp: BlockTime,
+    pub request_key: T,
+    pub amount: U512,
+    pub timestamp: BlockTime,
 }
 
 impl<T: RequestKey> RequestQueueEntry<T> {
