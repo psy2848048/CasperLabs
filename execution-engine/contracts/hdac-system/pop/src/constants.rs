@@ -9,6 +9,7 @@ pub(crate) mod uref_names {
 }
 
 pub(crate) mod methods {
+    pub const METHOD_MINT: &str = "mint";
     pub const METHOD_BOND: &str = "bond";
     pub const METHOD_UNBOND: &str = "unbond";
     pub const METHOD_STEP: &str = "step";
@@ -22,4 +23,13 @@ pub(crate) mod methods {
     pub const METHOD_REDELEGATE: &str = "redelegate";
     pub const METHOD_VOTE: &str = "vote";
     pub const METHOD_UNVOTE: &str = "unvote";
+}
+
+pub(crate) mod consts {
+    pub const DAYS_OF_YEAR: i64 = 365_i64;
+    pub const HOURS_OF_DAY: i64 = 24_i64;
+    pub const SECONDS_OF_HOUR: i64 = 3600_i64;
+    pub const BLOCK_TIME_IN_SEC: i64 = 2_i64;
+    pub const VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE: i64 = 30_i64;
+    pub const CONV_RATE: i64 = 1_000_000_000_i64;
 }
