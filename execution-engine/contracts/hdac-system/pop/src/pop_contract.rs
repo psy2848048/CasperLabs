@@ -284,7 +284,7 @@ impl ProofOfProfessionContract {
         ContractClaim::write_total_supply(&total_supply);
     }
 
-    pub fn distribute() {
+    pub fn distribute() -> Result<()>{
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -321,7 +321,7 @@ impl ProofOfProfessionContract {
         let mut total_pop_score = 0_f64;
         let mut pop_score_table: BTreeMap<PublicKey, U512> = BTreeMap::new();
         for unit_data in delegation_sorted_stat {
-            let unit_pop_score = pop_score_calculation(&total_delegation, *unit_data.amount);
+            let unit_pop_score = pop_score_calculation(&total_delegation, &unit_data.amount);
 
             total_pop_score += unit_pop_score;
             pop_score_table.insert(unit_data.validator, U512::from(unit_pop_score as i64));
@@ -357,10 +357,12 @@ impl ProofOfProfessionContract {
             rewards.insert_rewards(&delegation_key.delegator, &user_reward);
         }
         ContractClaim::write_reward(&rewards);
+
+        Ok(())
     }
 
     // For validator
-    pub fn claim_commission(validator: &PublicKey) {
+    pub fn claim_commission(validator: &PublicKey) -> Result<()>{
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions.0.get(validator).unwrap_or_revert_with(Error::RewardNotFound);
 
@@ -374,10 +376,12 @@ impl ProofOfProfessionContract {
 
         commissions.claim_commission(validator, validator_commission);
         ContractClaim::write_commission(&commissions);
+
+        Ok(())
     }
 
     // For user
-    pub fn claim_reward(user: &PublicKey) {
+    pub fn claim_reward(user: &PublicKey) -> Result<()> {
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards.0.get(user).unwrap_or_revert_with(Error::RewardNotFound);
 
@@ -391,6 +395,8 @@ impl ProofOfProfessionContract {
 
         rewards.claim_rewards(user, user_reward);
         ContractClaim::write_reward(&rewards);
+
+        Ok(())
     }
 }
 

@@ -24,8 +24,8 @@ pub struct DelegationKey {
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
 pub struct DelegationUnitForOrder {
-    validator: PublicKey,
-    amount: U512,
+    pub validator: PublicKey,
+    pub amount: U512,
 }
 
 impl ContractDelegations {
@@ -190,7 +190,7 @@ impl ContractDelegations {
         Ok(DelegationStat(delegation_stat))
     }
 
-    pub fn get_sorted_stat(delegation_stat: &DelegationStat) -> Vec<DelegationUnitForOrder> {
+    pub fn get_sorted_stat(delegation_stat: &DelegationStat) -> Result<Vec<DelegationUnitForOrder>> {
         let mut delegation_sorted: Vec<DelegationUnitForOrder> = Vec::new();
         for (key, value) in delegation_stat.0.iter() {
             let unit = DelegationUnitForOrder {
@@ -201,7 +201,7 @@ impl ContractDelegations {
         }
         delegation_sorted.sort_by(|a, b| b.amount.cmp(&a.amount));
 
-        delegation_sorted
+        Ok(delegation_sorted)
     }
 }
 
