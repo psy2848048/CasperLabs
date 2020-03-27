@@ -47,7 +47,7 @@ pub enum Api {
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, U512),
     Vote(Key, U512),
-    Unvote(Key, U512),
+    Unvote(Key, Option<U512>),
 }
 
 impl Api {
@@ -128,7 +128,7 @@ impl Api {
                 let dapp: Key = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let amount: U512 = runtime::get_arg(2)
+                let amount: Option<U512> = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
                 Api::Unvote(dapp, amount)
