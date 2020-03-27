@@ -4,11 +4,11 @@ use alloc::{
 };
 use core::fmt::Write;
 
-use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
+use contract::contract_api::runtime;
 use types::{
     account::PublicKey,
     system_contract_errors::pos::{Error, Result},
-    ApiError, Key, U512,
+    Key, U512,
 };
 
 pub struct ContractVotes;
@@ -22,7 +22,6 @@ pub struct VoteKey {
 }
 
 impl ContractVotes {
-    #[allow(clippy::or_fun_call)]
     pub fn read() -> Result<Votes> {
         let mut votes = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
@@ -100,7 +99,7 @@ impl ContractVotes {
                 let to_hex_string_from_hash = |hash: Key| -> String {
                     let bytes = hash
                         .into_hash()
-                        .unwrap_or_revert_with(ApiError::Deserialize);
+                        .expect("VoteKey serialization cannot fail");
                     let mut ret = String::with_capacity(64);
                     for byte in &bytes[..32] {
                         write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
@@ -127,7 +126,6 @@ impl ContractVotes {
         }
     }
 
-    #[allow(clippy::or_fun_call)]
     pub fn read_stat() -> Result<VoteStat> {
         let mut vote_stat = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
@@ -173,7 +171,7 @@ impl ContractVotes {
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::VotesDeserializationFailed)?;
 
-            let user_balance = vote_stat.entry(dapp_user).or_insert(U512::from(0));
+            let user_balance = vote_stat.entry(dapp_user).or_insert_with(|| U512::from(0));
             *user_balance += balance;
         }
 

@@ -1,4 +1,3 @@
-use contract::unwrap_or_revert::UnwrapOrRevert;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
@@ -130,15 +129,14 @@ impl ProofOfProfessionContract {
         // check validator's staked token amount
         let stakes: Stakes = ContractStakes::read()?;
         // if an user has no staked amount, he cannot do anything
-        let staked_balance: U512 = *stakes
-            .0
-            .get(&user)
-            .unwrap_or_revert_with(Error::StakesNotFound);
+        let staked_balance: U512 = match stakes.0.get(&user) {
+            Some(balance) => *balance,
+            None => return Err(Error::StakesNotFound),
+        };
 
         // check user's vote stat
         let vote_stat: VoteStat = ContractVotes::read_stat()?;
-        let zero_const = U512::from(0);
-        let vote_stat_per_user: U512 = *vote_stat.0.get(&user).unwrap_or_else(|| &zero_const);
+        let vote_stat_per_user: U512 = vote_stat.0.get(&user).cloned().unwrap_or_else(|| U512::from(0));
 
         if staked_balance < vote_stat_per_user + amount {
             return Err(Error::VoteTooLarge);
