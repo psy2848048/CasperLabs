@@ -279,12 +279,14 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn write_genesis_total_supply(genesis_total_supply: &U512) {
+    pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
         let total_supply = TotalSupply(*genesis_total_supply);
         ContractClaim::write_total_supply(&total_supply);
+
+        Ok(())
     }
 
-    pub fn distribute() -> Result<()>{
+    pub fn distribute(&self) -> Result<()>{
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -365,7 +367,7 @@ impl ProofOfProfessionContract {
     }
 
     // For validator
-    pub fn claim_commission(validator: &PublicKey) -> Result<()>{
+    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()>{
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions.0.get(validator).unwrap_or_revert_with(Error::RewardNotFound);
 
@@ -385,7 +387,7 @@ impl ProofOfProfessionContract {
     }
 
     // For user
-    pub fn claim_reward(user: &PublicKey) -> Result<()> {
+    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards.0.get(user).unwrap_or_revert_with(Error::RewardNotFound);
 
