@@ -3,6 +3,7 @@ use alloc::{
     string::String,
 };
 use core::fmt::Write;
+use libm::{log, exp};
 
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{
@@ -25,7 +26,7 @@ pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 const CONST: f64 = 87_000_000_f64;
 
 pub fn sum_of_delegation(commissions: &Commissions) -> Result<U512> {
-    let res = U512::from(0);
+    let mut res = U512::from(0);
     // U512 has no implementation of 'sum' in for-each.
     for (_, value) in commissions.0.iter() {
         res += *value;
@@ -43,7 +44,7 @@ pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount:
     if x <= 15.0_f64 {
         score = x;
     } else {
-        score = 22.2561_f64 * (x + 7.2561_f64).ln() - 54.0521_f64;
+        score = 22.2561_f64 * log(x + 7.2561_f64) / log(exp(1_f64)) - 54.0521_f64;
     }
 
     score * profession_factor
@@ -51,7 +52,7 @@ pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount:
 
 pub fn dapp_gas_deduction_rate_calculation(dapp_voted_amount: U512) -> f64 {
     let dapp_voted_amount_converted = u512ToF64(dapp_voted_amount);
-    dapp_voted_amount_converted * (1_f64 + CONST / (2_f64 * dapp_voted_amount_converted)).ln() / CONST
+    dapp_voted_amount_converted * log(1_f64 + CONST / (2_f64 * dapp_voted_amount_converted)) / (CONST * log(exp(1_f64)))
 }
 
 pub fn u512ToF64(uint512_number: U512) -> f64 {
@@ -62,7 +63,7 @@ pub fn u512ToF64(uint512_number: U512) -> f64 {
 
 pub fn f64ToU512(f64_number: f64) -> U512 {
     let mut f64_str = String::new();
-    f64_str.write_fmt(format_args!("{}", f64_str)).expect("Writing to a string cannot fail");
+    f64_str.write_fmt(format_args!("{}", f64_number)).expect("Writing to a string cannot fail");
     let mut split_number = f64_str.split('.');
     let decimal_str = split_number.next().unwrap_or_revert_with(Error::UintParsingError);
 
@@ -282,7 +283,8 @@ impl Commissions {
             Some(claim) if *claim == *amount => {
                 self.0.remove(validator).ok_or(Error::CommissionClaimRecordNotFound);
             }
-            None => runtume::revert(Error::NoCommission),
+            Some(_) => runtime::revert(Error::CommissionClaimTooLarge),
+            None => runtime::revert(Error::NoCommission),
         }
     }
 }
@@ -304,6 +306,7 @@ impl Rewards {
             Some(claim) if *claim == *amount => {
                 self.0.remove(user).ok_or(Error::RewardClaimRecordNotFound);
             }
+            Some(_) => runtime::revert(Error::RewardClaimTooLarge),
             None => runtime::revert(Error::NoReward),
         }
     }

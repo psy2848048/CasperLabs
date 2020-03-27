@@ -110,32 +110,32 @@ pub enum Error {
     CommissionPurseNotFound, // = 42
     /// Internal error: no commission record
     CommissionNotFound, // = 43
-
-    CommissionClaimRecordNotFound,
-
-    CommissionClaimTooLarge,
+    /// No claim record of commission
+    CommissionClaimRecordNotFound, // = 44
+    /// Internal error: Too large claim than you earned
+    CommissionClaimTooLarge, // = 45
     /// Internal error: failed to deserialize the user's key
-    RewardKeyDeserializationFailed, // = 44
+    RewardKeyDeserializationFailed, // = 46
     /// Internal error: failed to deserialize the user's balance
-    RewardBalanceDeserializationFailed, // = 45
+    RewardBalanceDeserializationFailed, // = 47
     /// Internal error: failed to issue a new purse for commission
-    RewardPurseNotFound, // = 46
+    RewardPurseNotFound, // = 48
     /// Internal error: no reward record in table
-    RewardNotFound, // = 47
+    RewardNotFound, // = 49
     /// Internal error: claim reward than expected
-    RewardClaimTooLarge, 
-
-    RewardClaimRecordNotFound,
-
-    NoTotalSupply,
-
-    UintParsingError,
-
-    TotalSupplyDeserializationFailed,
-
-    NoCommission,
-
-    NoReward,
+    RewardClaimTooLarge, // = 50
+    /// Try to claim although user has no reward
+    RewardClaimRecordNotFound, // = 51
+    /// Internal error: No total supply
+    NoTotalSupply, // = 52
+    /// Error while parsing between u512 and stringed integer
+    UintParsingError, // = 53
+    /// Internal error: Deserialization failed about total supply
+    TotalSupplyDeserializationFailed, // = 54
+    /// Internal error: No commission object
+    NoCommission, // = 55
+    /// Internal error: No reward object
+    NoReward, // = 56
 }
 
 /// An alias for `Result<T, pos::Error>`.

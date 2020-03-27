@@ -314,7 +314,10 @@ impl ProofOfProfessionContract {
         // 4. Calculate commission & add to commission claim table
         
         // Check total delegations
-        let total_delegation: U512 = delegation_stat.0.iter().map(|(_, v)| v).sum();
+        let mut total_delegation: U512 = U512::from(0);
+        for (_, value) in delegation_stat.0.iter() {
+            total_delegation += *value;
+        }
 
         // Pick 100 validators + Summize it to derive total PoP
         let mut idx = 0;
@@ -369,12 +372,13 @@ impl ProofOfProfessionContract {
         // 1. Mint to system account
         // 2. Transfer from system account to claimer
         let mint_contract_uref = system::get_mint();
+        let validator_commission_clone = validator_commission.clone();
 
-        let money_uref: Result<URef, mint::Error> = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, *validator_commission))?;
-        let temp_purse = money_uref.map(PurseId::new).unwrap_or_revert_with(Error::CommissionPurseNotFound);
-        system::transfer_from_purse_to_account(temp_purse, *validator, *validator_commission);
+        let money_uref: URef = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, validator_commission_clone));
+        let temp_purse = PurseId::new(money_uref);
+        system::transfer_from_purse_to_account(temp_purse, *validator, validator_commission_clone);
 
-        commissions.claim_commission(validator, validator_commission);
+        commissions.claim_commission(validator, &validator_commission_clone);
         ContractClaim::write_commission(&commissions);
 
         Ok(())
@@ -389,11 +393,12 @@ impl ProofOfProfessionContract {
         // 2. Transfer from system account to claimer
         let mint_contract_uref = system::get_mint();
 
-        let money_uref: Result<URef, mint::Error> = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, *user_reward));
-        let temp_purse = money_uref.map(PurseId::new).unwrap_or_revert_with(Error::RewardsPurseNotFound);
-        system::transfer_from_purse_to_account(temp_purse, *user, *user_reward);
+        let user_reward_clone = user_reward.clone();
+        let money_uref: URef = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, user_reward_clone));
+        let temp_purse = PurseId::new(money_uref);
+        system::transfer_from_purse_to_account(temp_purse, *user, user_reward_clone);
 
-        rewards.claim_rewards(user, user_reward);
+        rewards.claim_rewards(user, &user_reward_clone);
         ContractClaim::write_reward(&rewards);
 
         Ok(())
