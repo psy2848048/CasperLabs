@@ -7,7 +7,6 @@ use core::fmt::Write;
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{
     account::PublicKey,
-    bytesrepr::ToBytes,
     system_contract_errors::pos::{Error, Result},
     ApiError, Key, U512,
 };
@@ -99,7 +98,9 @@ impl ContractVotes {
                 };
 
                 let to_hex_string_from_hash = |hash: Key| -> String {
-                    let bytes = hash.to_bytes().unwrap_or_revert_with(ApiError::Deserialize);
+                    let bytes = hash
+                        .into_hash()
+                        .unwrap_or_revert_with(ApiError::Deserialize);
                     let mut ret = String::with_capacity(64);
                     for byte in &bytes[..32] {
                         write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
