@@ -64,7 +64,7 @@ impl ContractClaim {
                 continue;
             }
 
-            let res = split_name
+            total_supply = split_name
                 .next()
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::TotalSupplyDeserializationFailed)?;
@@ -81,15 +81,13 @@ impl ContractClaim {
         for (name, _) in runtime::list_named_keys() {
             if name.starts_with("t_") {
                 runtime::remove_key(&name);
-
-                let mut uref = String::new();
-                uref.write_fmt(format_args!("t_{}", total_supply.0))
-                    .expect("Writing to a string cannot fail");
-                runtime::put_key(&uref, Key::Hash([0; 32]));
-
-                return;
+                break;
             }
         }
+        let mut uref = String::new();
+        uref.write_fmt(format_args!("t_{}", total_supply.0))
+            .expect("Writing to a string cannot fail");
+        runtime::put_key(&uref, Key::Hash([0; 32]));
     }
 
     // prefix: "c"

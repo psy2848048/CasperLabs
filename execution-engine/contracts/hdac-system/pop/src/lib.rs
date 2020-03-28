@@ -166,9 +166,9 @@ pub fn delegate() {
         methods::METHOD_WRITE_GENESIS_TOTAL_SUPPLY => {
             let maybe_system_user: PublicKey = runtime::get_caller();
             // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
-            if maybe_system_user != PublicKey::new([0u8; 32]) {
-                runtime::revert(ApiError::NoAccessRights);
-            }
+            // if maybe_system_user != PublicKey::new([0u8; 32]) {
+            //     runtime::revert(ApiError::NoAccessRights);
+            // }
             let genesis_total_supply: U512 = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
@@ -177,9 +177,9 @@ pub fn delegate() {
         methods::METHOD_DISTRIBUTE => {
             let maybe_system_user: PublicKey = runtime::get_caller();
             // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
-            if maybe_system_user != PublicKey::new([0u8; 32]) {
-                runtime::revert(ApiError::NoAccessRights);
-            }
+            // if maybe_system_user != PublicKey::new([0u8; 32]) {
+            //     runtime::revert(ApiError::NoAccessRights);
+            // }
             pop_contract.distribute().unwrap_or_revert();
         }
         methods::METHOD_CLAIM_COMMISSION => {

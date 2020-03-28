@@ -163,7 +163,7 @@ pub extern "C" fn call() {
             unvote(&pos_pointer, &dapp, &amount);
         }
         POS_WRITE_GENESIS_TOTAL_SUPPLY => {
-            let amount: U512 = runtime::get_arg(2)
+            let amount: U512 = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             write_genesis_total_supply(&pos_pointer, &amount);
