@@ -7,6 +7,7 @@ use types::{
     system_contract_errors::pos::{Error, PurseLookupError, Result},
     mint,
     BlockTime, Key, URef, U512,
+    system_contract_errors::mint::Error as MintError,
 };
 
 use crate::{
@@ -277,7 +278,8 @@ impl ProofOfProfessionContract {
     }
 
     pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
-        let total_supply = TotalSupply(*genesis_total_supply);
+        let mut total_supply = ContractClaim::read_total_supply()?;
+        total_supply.add(genesis_total_supply);
         ContractClaim::write_total_supply(&total_supply);
 
         Ok(())
@@ -299,7 +301,7 @@ impl ProofOfProfessionContract {
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
         //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR / consts::BLOCK_TIME_IN_SEC)
         //      -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply.0 * U512::from(5) * U512::from(consts::CONV_RATE) / U512::from(100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR / consts::BLOCK_TIME_IN_SEC);
+        let inflation_pool_per_block = total_supply.0 * U512::from(5) / U512::from(100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR / consts::BLOCK_TIME_IN_SEC);
         total_supply.add(&inflation_pool_per_block);
         ContractClaim::write_total_supply(&total_supply);
 
@@ -364,43 +366,27 @@ impl ProofOfProfessionContract {
     }
 
     // For validator
-    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()>{
+    pub fn claim_commission(&self, validator: &PublicKey) -> Result<(U512)>{
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions.0.get(validator).unwrap_or_revert_with(Error::RewardNotFound);
-
-        // 1. Mint to system account
-        // 2. Transfer from system account to claimer
-        let mint_contract_uref = system::get_mint();
         let validator_commission_clone = validator_commission.clone();
-
-        let money_uref: URef = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, validator_commission_clone));
-        let temp_purse = PurseId::new(money_uref);
-        system::transfer_from_purse_to_account(temp_purse, *validator, validator_commission_clone);
-
         commissions.claim_commission(validator, &validator_commission_clone);
         ContractClaim::write_commission(&commissions);
-
-        Ok(())
+        
+        // Actual mint & transfer will be done at client-proxy
+        Ok((validator_commission_clone))
     }
 
     // For user
-    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
+    pub fn claim_reward(&self, user: &PublicKey) -> Result<(U512)> {
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards.0.get(user).unwrap_or_revert_with(Error::RewardNotFound);
-
-        // 1. Mint to system account
-        // 2. Transfer from system account to claimer
-        let mint_contract_uref = system::get_mint();
-
         let user_reward_clone = user_reward.clone();
-        let money_uref: URef = runtime::call_contract(mint_contract_uref, (methods::METHOD_MINT, user_reward_clone));
-        let temp_purse = PurseId::new(money_uref);
-        system::transfer_from_purse_to_account(temp_purse, *user, user_reward_clone);
-
         rewards.claim_rewards(user, &user_reward_clone);
         ContractClaim::write_reward(&rewards);
 
-        Ok(())
+        // Actual mint & transfer will be done at client-proxy
+        Ok((user_reward_clone))
     }
 }
 

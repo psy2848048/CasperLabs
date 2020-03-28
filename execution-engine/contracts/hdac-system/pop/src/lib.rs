@@ -184,11 +184,15 @@ pub fn delegate() {
         }
         methods::METHOD_CLAIM_COMMISSION => {
             let validator: PublicKey = runtime::get_caller();
-            pop_contract.claim_commission(&validator).unwrap_or_revert();
+            let claim_value = pop_contract.claim_commission(&validator).unwrap_or_revert();
+            let res = CLValue::from_t(claim_value).unwrap_or_revert();
+            runtime::ret(res);
         }
         methods::METHOD_CLAIM_REWARD => {
             let user: PublicKey = runtime::get_caller();
-            pop_contract.claim_reward(&user).unwrap_or_revert();
+            let claim_value = pop_contract.claim_reward(&user).unwrap_or_revert();
+            let res = CLValue::from_t(claim_value).unwrap_or_revert();
+            runtime::ret(res);
         }
         _ => {}
     }

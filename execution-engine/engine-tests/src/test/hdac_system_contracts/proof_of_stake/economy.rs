@@ -289,4 +289,42 @@ fn should_run_successful_distribute() {
             .count(),
         3
     );
+
+    println!("4. Reward");
+
+    let reward_commission_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_1_ADDR_DAPP_1,
+        CONTRACT_POS_VOTE,
+        (
+            String::from(METHOD_CLAIM_REWARD),
+        ),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(reward_commission_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("r_")
+            })
+            .count(),
+        3
+    );
 }

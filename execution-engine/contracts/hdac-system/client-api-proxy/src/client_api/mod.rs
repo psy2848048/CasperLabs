@@ -44,6 +44,10 @@ mod method_names {
         pub const CLAIM_REWARD: &str = "claim_reward";
         pub const WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
     }
+    pub mod mint {
+        pub const MINT: &str = "mint";
+        pub const TRANSFER: &str = "transfer";
+    }
 }
 
 pub enum Api {
@@ -239,11 +243,25 @@ impl Api {
             }
             Self::ClaimCommission() => {
                 let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(pos_ref, (method_names::pos::CLAIM_COMMISSION, ))
+                let claimable_value: U512 = runtime::call_contract(pos_ref, (method_names::pos::CLAIM_COMMISSION, ));
+
+                let mint_contract_uref = system::get_mint();
+                let money_uref = runtime::call_contract(mint_contract_uref, (method_names::mint::MINT, claimable_value));
+                let temp_purse = PurseId::new(money_uref);
+                //runtime::revert(Error::RewardsPurseKeyUnexpectedType);
+                //let result = mint.transfer(money_uref, )
+                system::transfer_from_purse_to_purse(temp_purse, account::get_main_purse(), claimable_value);
             }
             Self::ClaimReward() => {
                 let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(pos_ref, (method_names::pos::CLAIM_REWARD, ))
+                let claimable_value: U512 = runtime::call_contract(pos_ref, (method_names::pos::CLAIM_REWARD, ));
+                
+                let mint_contract_uref = system::get_mint();
+                let money_uref = runtime::call_contract(mint_contract_uref, (method_names::mint::MINT, claimable_value));
+                let temp_purse = PurseId::new(money_uref);
+                //runtime::revert(Error::RewardsPurseKeyUnexpectedType);
+                //let result = mint.transfer(money_uref, )
+                system::transfer_from_purse_to_purse(temp_purse, account::get_main_purse(), claimable_value);
             }
             Self::WriteGenesisTotalSupply(amount) => {
                 let pos_ref = system::get_proof_of_stake();
