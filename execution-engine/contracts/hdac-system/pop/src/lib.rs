@@ -1,9 +1,9 @@
 #![cfg_attr(not(test), no_std)]
 
 extern crate alloc;
-extern crate libm;
 
 mod constants;
+mod math;
 mod contract_delegations;
 mod contract_economy;
 mod contract_mint;

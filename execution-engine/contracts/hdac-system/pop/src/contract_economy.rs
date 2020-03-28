@@ -3,7 +3,7 @@ use alloc::{
     string::String,
 };
 use core::fmt::Write;
-use libm::{log, exp};
+use crate::math::sqrt_for_u512;
 
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{
@@ -23,7 +23,7 @@ pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
 // Used for dapp gas deduction rate calculation
-const CONST: f64 = 87_000_000_f64;
+const CONST: i64 = 87_000_000_i64;
 
 pub fn sum_of_delegation(commissions: &Commissions) -> Result<U512> {
     let mut res = U512::from(0);
@@ -34,40 +34,23 @@ pub fn sum_of_delegation(commissions: &Commissions) -> Result<U512> {
     Ok(res)
 }
 
-pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> f64 {
+pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> U512 {
     // Currenrly running in PoS.
     // Profession factor will be added soon
-    let mut score: f64 = 0_f64;
-    let x: f64 = u512ToF64(*validator_delegated_amount) / u512ToF64(*total_delegated) * 100.0_f64;
-    let profession_factor = 1_f64;
+    let mut score = U512::zero();
+    let profession_factor = U512::from(1);
 
-    if x <= 15.0_f64 {
-        score = x;
+    let x = *validator_delegated_amount * U512::from(100) / *total_delegated;
+
+    if x <= U512::from(15) {
+        // y = 1000x
+        score = *validator_delegated_amount * U512::from(100_000) / *total_delegated;
     } else {
-        score = 22.2561_f64 * log(x + 7.2561_f64) / log(exp(1_f64)) - 54.0521_f64;
+        // y = 1000 * sqrt(x + 215)
+        score = sqrt_for_u512(*validator_delegated_amount * U512::from(100_000_000) / *total_delegated + U512::from(215_000_000));
     }
 
     score * profession_factor
-}
-
-pub fn dapp_gas_deduction_rate_calculation(dapp_voted_amount: U512) -> f64 {
-    let dapp_voted_amount_converted = u512ToF64(dapp_voted_amount);
-    dapp_voted_amount_converted * log(1_f64 + CONST / (2_f64 * dapp_voted_amount_converted)) / (CONST * log(exp(1_f64)))
-}
-
-pub fn u512ToF64(uint512_number: U512) -> f64 {
-    let mut uint512_str = String::new();
-    uint512_str.write_fmt(format_args!("{}", uint512_number)).expect("Writing to a string cannot fail");
-    uint512_str.parse().unwrap()
-}
-
-pub fn f64ToU512(f64_number: f64) -> U512 {
-    let mut f64_str = String::new();
-    f64_str.write_fmt(format_args!("{}", f64_number)).expect("Writing to a string cannot fail");
-    let mut split_number = f64_str.split('.');
-    let decimal_str = split_number.next().unwrap_or_revert_with(Error::UintParsingError);
-
-    U512::from_dec_str(decimal_str).ok().unwrap_or_revert_with(Error::UintParsingError)
 }
 
 impl ContractClaim {

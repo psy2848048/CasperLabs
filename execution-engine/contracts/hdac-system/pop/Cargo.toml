@@ -14,7 +14,6 @@ std = ["contract/std", "types/std"]
 lib = []
 
 [dependencies]
-libm = "0.2.1"
 base16 = { version = "0.2.1", default-features = false }
 contract = { path = "../../../contract", package = "casperlabs-contract" }
 proof-of-stake = { path = "../../../proof-of-stake", package = "casperlabs-proof-of-stake" }

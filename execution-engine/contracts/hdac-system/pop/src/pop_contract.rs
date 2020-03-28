@@ -26,9 +26,6 @@ use crate::{
         TotalSupply,
         sum_of_delegation,
         pop_score_calculation,
-        dapp_gas_deduction_rate_calculation,
-        u512ToF64,
-        f64ToU512,
     }
 };
 
@@ -323,13 +320,13 @@ impl ProofOfProfessionContract {
 
         // Pick 100 validators + Summize it to derive total PoP
         let mut idx = 0;
-        let mut total_pop_score = 0_f64;
+        let mut total_pop_score = U512::zero();
         let mut pop_score_table: BTreeMap<PublicKey, U512> = BTreeMap::new();
         for unit_data in delegation_sorted_stat {
             let unit_pop_score = pop_score_calculation(&total_delegation, &unit_data.amount);
 
             total_pop_score += unit_pop_score;
-            pop_score_table.insert(unit_data.validator, U512::from(unit_pop_score as i64));
+            pop_score_table.insert(unit_data.validator, unit_pop_score);
 
             idx += 1;
             if idx >= 100 {
@@ -338,7 +335,7 @@ impl ProofOfProfessionContract {
         }
 
         for (validator, unit_pop_score) in pop_score_table.iter() {
-            let unit_commission = unit_pop_score * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE * inflation_pool_per_block / U512::from((total_pop_score * 100_f64) as i64);
+            let unit_commission = unit_pop_score * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE * inflation_pool_per_block / (total_pop_score * U512::from(100));
             commissions.insert_commission(validator, &unit_commission);
         }
         ContractClaim::write_commission(&commissions);
@@ -357,7 +354,7 @@ impl ProofOfProfessionContract {
 
             // 3. Derive each validator's reward portion and insert reward of each user
             let pop_score_of_validator = pop_score_table.get(&delegation_key.validator).unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
-            let user_reward = user_delegation_amount * pop_score_of_validator * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE) * inflation_pool_per_block / (U512::from((total_pop_score * 100_f64) as i64) * total_delegation_per_validator);
+            let user_reward = user_delegation_amount * pop_score_of_validator * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE) * inflation_pool_per_block / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
             rewards.insert_rewards(&delegation_key.delegator, &user_reward);
         }
