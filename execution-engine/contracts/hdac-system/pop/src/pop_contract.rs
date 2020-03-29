@@ -136,7 +136,11 @@ impl ProofOfProfessionContract {
 
         // check user's vote stat
         let vote_stat: VoteStat = ContractVotes::read_stat()?;
-        let vote_stat_per_user: U512 = vote_stat.0.get(&user).cloned().unwrap_or_else(|| U512::from(0));
+        let vote_stat_per_user: U512 = vote_stat
+            .0
+            .get(&user)
+            .cloned()
+            .unwrap_or_else(|| U512::from(0));
 
         if delegated_balance < vote_stat_per_user + amount {
             return Err(Error::VoteTooLarge);

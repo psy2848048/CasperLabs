@@ -97,9 +97,7 @@ impl ContractVotes {
                 };
 
                 let to_hex_string_from_hash = |hash: Key| -> String {
-                    let bytes = hash
-                        .into_hash()
-                        .expect("VoteKey serialization cannot fail");
+                    let bytes = hash.into_hash().expect("VoteKey serialization cannot fail");
                     let mut ret = String::with_capacity(64);
                     for byte in &bytes[..32] {
                         write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");

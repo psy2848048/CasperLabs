@@ -131,14 +131,16 @@ impl ContractDelegations {
             let hex_key = split_name
                 .next()
                 .ok_or(Error::DelegationsKeyDeserializationFailed)?;
-            let validator = to_publickey(hex_key)?;
+            let _validator = to_publickey(hex_key)?;
 
             let balance = split_name
                 .next()
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::DelegationsDeserializationFailed)?;
 
-            let delegation_balance = delegation_stat.entry(delegator).or_insert(U512::from(0));
+            let delegation_balance = delegation_stat
+                .entry(delegator)
+                .or_insert_with(|| U512::from(0));
             *delegation_balance += balance;
         }
 
