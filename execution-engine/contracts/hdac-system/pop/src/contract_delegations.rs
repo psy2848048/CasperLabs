@@ -13,6 +13,7 @@ use types::{
 
 pub struct ContractDelegations;
 pub struct Delegations(BTreeMap<DelegationKey, U512>);
+pub struct DelegationStat(pub BTreeMap<PublicKey, U512>);
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
 pub struct DelegationKey {
@@ -101,6 +102,47 @@ impl ContractDelegations {
         for name in new_urefs {
             runtime::put_key(&name, Key::Hash([0; 32]));
         }
+    }
+
+    pub fn read_user_stat() -> Result<DelegationStat> {
+        let mut delegation_stat = BTreeMap::new();
+        for (name, _) in runtime::list_named_keys() {
+            let mut split_name = name.split('_');
+            if Some("d") != split_name.next() {
+                continue;
+            }
+
+            let to_publickey = |hex_str: &str| -> Result<PublicKey> {
+                if hex_str.len() != 64 {
+                    return Err(Error::DelegationsKeyDeserializationFailed);
+                }
+                let mut key_bytes = [0u8; 32];
+                let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
+                    .map_err(|_| Error::DelegationsKeyDeserializationFailed)?;
+                debug_assert!(_bytes_written == key_bytes.len());
+                Ok(PublicKey::from(key_bytes))
+            };
+
+            let hex_key = split_name
+                .next()
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
+            let delegator = to_publickey(hex_key)?;
+
+            let hex_key = split_name
+                .next()
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
+            let validator = to_publickey(hex_key)?;
+
+            let balance = split_name
+                .next()
+                .and_then(|b| U512::from_dec_str(b).ok())
+                .ok_or(Error::DelegationsDeserializationFailed)?;
+
+            let delegation_balance = delegation_stat.entry(delegator).or_insert(U512::from(0));
+            *delegation_balance += balance;
+        }
+
+        Ok(DelegationStat(delegation_stat))
     }
 }
 

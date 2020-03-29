@@ -127,18 +127,18 @@ impl ProofOfProfessionContract {
         }
 
         // check validator's staked token amount
-        let stakes: Stakes = ContractStakes::read()?;
+        let delegation_user_stat = ContractDelegations::read_user_stat()?;
         // if an user has no staked amount, he cannot do anything
-        let staked_balance: U512 = match stakes.0.get(&user) {
+        let delegated_balance: U512 = match delegation_user_stat.0.get(&user) {
             Some(balance) => *balance,
-            None => return Err(Error::StakesNotFound),
+            None => return Err(Error::DelegationsNotFound),
         };
 
         // check user's vote stat
         let vote_stat: VoteStat = ContractVotes::read_stat()?;
         let vote_stat_per_user: U512 = vote_stat.0.get(&user).cloned().unwrap_or_else(|| U512::from(0));
 
-        if staked_balance < vote_stat_per_user + amount {
+        if delegated_balance < vote_stat_per_user + amount {
             return Err(Error::VoteTooLarge);
         }
 
