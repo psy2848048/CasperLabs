@@ -59,15 +59,15 @@ fn write_genesis_total_supply(pos: &ContractRef, amount: &U512) {
 }
 
 fn distribute(pos: &ContractRef) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_DISTRIBUTE, ));
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_DISTRIBUTE,));
 }
 
 fn claim_commission(pos: &ContractRef) {
-    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_COMMISSION, ));
+    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_COMMISSION,));
 }
 
 fn claim_reward(pos: &ContractRef) {
-    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_REWARD, ));
+    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_REWARD,));
 }
 
 const POS_BOND: &str = "bond";

@@ -6,7 +6,7 @@ use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, ApiError, Key, U512};
+use types::{account::PublicKey, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
@@ -136,9 +136,7 @@ fn should_run_successful_distribute() {
     let distribution_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_DISTRIBUTE),
-        ),
+        (String::from(METHOD_DISTRIBUTE),),
     )
     .build();
 
@@ -219,9 +217,7 @@ fn should_run_successful_distribute() {
     let distribution_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_DISTRIBUTE),
-        ),
+        (String::from(METHOD_DISTRIBUTE),),
     )
     .build();
 
@@ -257,9 +253,7 @@ fn should_run_successful_distribute() {
     let claim_commission_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_CLAIM_COMMISSION),
-        ),
+        (String::from(METHOD_CLAIM_COMMISSION),),
     )
     .build();
 
@@ -295,16 +289,14 @@ fn should_run_successful_distribute() {
     let reward_commission_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_CLAIM_REWARD),
-        ),
+        (String::from(METHOD_CLAIM_REWARD),),
     )
     .build();
 
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
+    let _result = builder
         .exec(reward_commission_request)
         .expect_success()
         .commit()

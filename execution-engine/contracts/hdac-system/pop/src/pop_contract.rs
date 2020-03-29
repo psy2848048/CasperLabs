@@ -1,6 +1,7 @@
 use alloc::{collections::BTreeMap, vec::Vec};
+#![allow(clippy::clone_on_copy)]
 
-use contract::{contract_api::{runtime, system}, unwrap_or_revert::UnwrapOrRevert};
+use contract::unwrap_or_revert::UnwrapOrRevert;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
@@ -11,8 +12,9 @@ use types::{
 };
 
 use crate::{
-    constants::{consts, methods, uref_names},
-    contract_delegations::{ContractDelegations, DelegationUnitForOrder},
+    constants::{consts, uref_names},
+    contract_delegations::ContractDelegations,
+    contract_economy::{pop_score_calculation, ContractClaim},
     contract_mint::ContractMint,
     contract_queue::{
         ContractQueue, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey,
@@ -20,14 +22,6 @@ use crate::{
     contract_runtime::ContractRuntime,
     contract_stakes::ContractStakes,
     contract_votes::{ContractVotes, VoteStat, Votes},
-    contract_economy::{
-        ContractClaim,
-        Commissions,
-        Rewards,
-        TotalSupply,
-        sum_of_delegation,
-        pop_score_calculation,
-    }
 };
 
 pub struct ProofOfProfessionContract;
@@ -285,7 +279,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn distribute(&self) -> Result<()>{
+    pub fn distribute(&self) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -299,9 +293,14 @@ impl ProofOfProfessionContract {
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
-        //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR / consts::BLOCK_TIME_IN_SEC)
-        //      -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply.0 * U512::from(5) / U512::from(100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR / consts::BLOCK_TIME_IN_SEC);
+        //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR /
+        //         consts::BLOCK_TIME_IN_SEC)
+        //    -> divider for deriving inflation per block
+        let inflation_pool_per_block = total_supply.0 * U512::from(5)
+            / U512::from(
+                100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
+                    / consts::BLOCK_TIME_IN_SEC,
+            );
         total_supply.add(&inflation_pool_per_block);
         ContractClaim::write_total_supply(&total_supply);
 
@@ -313,7 +312,7 @@ impl ProofOfProfessionContract {
         // 2. Pick 100 validators
         // 3. Summize it to derive total PoP.
         // 4. Calculate commission & add to commission claim table
-        
+        //
         // Check total delegations
         let mut total_delegation: U512 = U512::from(0);
         for (_, value) in delegation_stat.0.iter() {
@@ -321,23 +320,24 @@ impl ProofOfProfessionContract {
         }
 
         // Pick 100 validators + Summize it to derive total PoP
-        let mut idx = 0;
         let mut total_pop_score = U512::zero();
         let mut pop_score_table: BTreeMap<PublicKey, U512> = BTreeMap::new();
-        for unit_data in delegation_sorted_stat {
+        for (idx, unit_data) in delegation_sorted_stat.into_iter().enumerate() {
+            if idx >= 100 {
+                break;
+            }
+
             let unit_pop_score = pop_score_calculation(&total_delegation, &unit_data.amount);
 
             total_pop_score += unit_pop_score;
             pop_score_table.insert(unit_data.validator, unit_pop_score);
-
-            idx += 1;
-            if idx >= 100 {
-                break;
-            }
         }
 
         for (validator, unit_pop_score) in pop_score_table.iter() {
-            let unit_commission = unit_pop_score * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE * inflation_pool_per_block / (total_pop_score * U512::from(100));
+            let unit_commission = unit_pop_score
+                * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
+                * inflation_pool_per_block
+                / (total_pop_score * U512::from(100));
             commissions.insert_commission(validator, &unit_commission);
         }
         ContractClaim::write_commission(&commissions);
@@ -352,11 +352,20 @@ impl ProofOfProfessionContract {
         // 1. Swipe delegation table, and derive user's portion of delegation
         for (delegation_key, user_delegation_amount) in delegations.0.iter() {
             // 2. Lookup delegation_stat table for total delegation for each validator
-            let total_delegation_per_validator = delegation_stat.0.get(&delegation_key.validator).unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
+            let total_delegation_per_validator = delegation_stat
+                .0
+                .get(&delegation_key.validator)
+                .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
 
             // 3. Derive each validator's reward portion and insert reward of each user
-            let pop_score_of_validator = pop_score_table.get(&delegation_key.validator).unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
-            let user_reward = user_delegation_amount * pop_score_of_validator * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE) * inflation_pool_per_block / (total_pop_score * U512::from(100) * total_delegation_per_validator);
+            let pop_score_of_validator = pop_score_table
+                .get(&delegation_key.validator)
+                .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
+            let user_reward = user_delegation_amount
+                * pop_score_of_validator
+                * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
+                * inflation_pool_per_block
+                / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
             rewards.insert_rewards(&delegation_key.delegator, &user_reward);
         }
@@ -366,27 +375,33 @@ impl ProofOfProfessionContract {
     }
 
     // For validator
-    pub fn claim_commission(&self, validator: &PublicKey) -> Result<(U512)>{
+    pub fn claim_commission(&self, validator: &PublicKey) -> Result<U512> {
         let mut commissions = ContractClaim::read_commission()?;
-        let validator_commission = commissions.0.get(validator).unwrap_or_revert_with(Error::RewardNotFound);
+        let validator_commission = commissions
+            .0
+            .get(validator)
+            .unwrap_or_revert_with(Error::RewardNotFound);
         let validator_commission_clone = validator_commission.clone();
         commissions.claim_commission(validator, &validator_commission_clone);
         ContractClaim::write_commission(&commissions);
-        
+
         // Actual mint & transfer will be done at client-proxy
-        Ok((validator_commission_clone))
+        Ok(validator_commission_clone)
     }
 
     // For user
-    pub fn claim_reward(&self, user: &PublicKey) -> Result<(U512)> {
+    pub fn claim_reward(&self, user: &PublicKey) -> Result<U512> {
         let mut rewards = ContractClaim::read_reward()?;
-        let user_reward = rewards.0.get(user).unwrap_or_revert_with(Error::RewardNotFound);
+        let user_reward = rewards
+            .0
+            .get(user)
+            .unwrap_or_revert_with(Error::RewardNotFound);
         let user_reward_clone = user_reward.clone();
         rewards.claim_rewards(user, &user_reward_clone);
         ContractClaim::write_reward(&rewards);
 
         // Actual mint & transfer will be done at client-proxy
-        Ok((user_reward_clone))
+        Ok(user_reward_clone)
     }
 }
 

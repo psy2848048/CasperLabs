@@ -1,9 +1,9 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::String,
+    vec::Vec,
 };
 use core::fmt::Write;
-use alloc::vec::Vec;
 
 use contract::contract_api::runtime;
 use types::{
@@ -145,7 +145,9 @@ impl ContractDelegations {
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::DelegationsDeserializationFailed)?;
 
-            let delegation_balance = delegation_stat.entry(validator).or_insert_with(|| U512::from(0));
+            let delegation_balance = delegation_stat
+                .entry(validator)
+                .or_insert_with(|| U512::from(0));
             *delegation_balance += balance;
         }
 
@@ -190,7 +192,9 @@ impl ContractDelegations {
         Ok(DelegationStat(delegation_stat))
     }
 
-    pub fn get_sorted_stat(delegation_stat: &DelegationStat) -> Result<Vec<DelegationUnitForOrder>> {
+    pub fn get_sorted_stat(
+        delegation_stat: &DelegationStat,
+    ) -> Result<Vec<DelegationUnitForOrder>> {
         let mut delegation_sorted: Vec<DelegationUnitForOrder> = Vec::new();
         for (key, value) in delegation_stat.0.iter() {
             let unit = DelegationUnitForOrder {

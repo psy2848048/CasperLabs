@@ -3,7 +3,6 @@
 extern crate alloc;
 
 mod constants;
-mod math;
 mod contract_delegations;
 mod contract_economy;
 mod contract_mint;
@@ -11,6 +10,7 @@ mod contract_queue;
 mod contract_runtime;
 mod contract_stakes;
 mod contract_votes;
+mod math;
 mod pop_contract;
 
 use alloc::string::String;
@@ -164,7 +164,7 @@ pub fn delegate() {
             pop_contract.unvote(user, dapp, amount).unwrap_or_revert();
         }
         methods::METHOD_WRITE_GENESIS_TOTAL_SUPPLY => {
-            let maybe_system_user: PublicKey = runtime::get_caller();
+            let _maybe_system_user: PublicKey = runtime::get_caller();
             // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
             // if maybe_system_user != PublicKey::new([0u8; 32]) {
             //     runtime::revert(ApiError::NoAccessRights);
@@ -172,10 +172,12 @@ pub fn delegate() {
             let genesis_total_supply: U512 = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            pop_contract.write_genesis_total_supply(&genesis_total_supply).unwrap_or_revert();
+            pop_contract
+                .write_genesis_total_supply(&genesis_total_supply)
+                .unwrap_or_revert();
         }
         methods::METHOD_DISTRIBUTE => {
-            let maybe_system_user: PublicKey = runtime::get_caller();
+            let _maybe_system_user: PublicKey = runtime::get_caller();
             // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
             // if maybe_system_user != PublicKey::new([0u8; 32]) {
             //     runtime::revert(ApiError::NoAccessRights);

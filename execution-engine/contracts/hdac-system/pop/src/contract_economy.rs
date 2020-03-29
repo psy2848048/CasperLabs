@@ -1,16 +1,15 @@
+use crate::math::sqrt_for_u512;
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::String,
 };
 use core::fmt::Write;
-use crate::math::sqrt_for_u512;
 
-use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
+use contract::contract_api::runtime;
 use types::{
     account::PublicKey,
-    bytesrepr::ToBytes,
     system_contract_errors::pos::{Error, Result},
-    ApiError, Key, U512,
+    Key, U512,
 };
 
 pub struct ContractClaim;
@@ -22,33 +21,23 @@ pub struct TotalSupply(pub U512);
 pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
-// Used for dapp gas deduction rate calculation
-const CONST: i64 = 87_000_000_i64;
-
-pub fn sum_of_delegation(commissions: &Commissions) -> Result<U512> {
-    let mut res = U512::from(0);
-    // U512 has no implementation of 'sum' in for-each.
-    for (_, value) in commissions.0.iter() {
-        res += *value;
-    }
-    Ok(res)
-}
-
 pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> U512 {
     // Currenrly running in PoS.
     // Profession factor will be added soon
-    let mut score = U512::zero();
     let profession_factor = U512::from(1);
 
     let x = *validator_delegated_amount * U512::from(100) / *total_delegated;
 
-    if x <= U512::from(15) {
+    let score = if x <= U512::from(15) {
         // y = 1000x
-        score = *validator_delegated_amount * U512::from(100_000) / *total_delegated;
+        *validator_delegated_amount * U512::from(100_000) / *total_delegated
     } else {
         // y = 1000 * sqrt(x + 215)
-        score = sqrt_for_u512(*validator_delegated_amount * U512::from(100_000_000) / *total_delegated + U512::from(215_000_000));
-    }
+        sqrt_for_u512(
+            *validator_delegated_amount * U512::from(100_000_000) / *total_delegated
+                + U512::from(215_000_000),
+        )
+    };
 
     score * profession_factor
 }
@@ -71,7 +60,7 @@ impl ContractClaim {
 
             break;
         }
-        
+
         Ok(TotalSupply(total_supply))
     }
 
@@ -254,7 +243,7 @@ impl Commissions {
             .and_modify(|x| *x += *amount)
             .or_insert(*amount);
     }
-    
+
     pub fn claim_commission(&mut self, validator: &PublicKey, amount: &U512) {
         let claim = self.0.get_mut(validator);
         match claim {
@@ -262,7 +251,10 @@ impl Commissions {
                 *claim -= *amount;
             }
             Some(claim) if *claim == *amount => {
-                self.0.remove(validator).ok_or(Error::CommissionClaimRecordNotFound);
+                self.0
+                    .remove(validator)
+                    .ok_or(Error::CommissionClaimRecordNotFound)
+                    .unwrap_or_default();
             }
             Some(_) => runtime::revert(Error::CommissionClaimTooLarge),
             None => runtime::revert(Error::NoCommission),
@@ -277,7 +269,7 @@ impl Rewards {
             .and_modify(|x| *x += *amount)
             .or_insert(*amount);
     }
-    
+
     pub fn claim_rewards(&mut self, user: &PublicKey, amount: &U512) {
         let claim = self.0.get_mut(user);
         match claim {
@@ -285,7 +277,10 @@ impl Rewards {
                 *claim -= *amount;
             }
             Some(claim) if *claim == *amount => {
-                self.0.remove(user).ok_or(Error::RewardClaimRecordNotFound);
+                self.0
+                    .remove(user)
+                    .ok_or(Error::RewardClaimRecordNotFound)
+                    .unwrap_or_default();
             }
             Some(_) => runtime::revert(Error::RewardClaimTooLarge),
             None => runtime::revert(Error::NoReward),

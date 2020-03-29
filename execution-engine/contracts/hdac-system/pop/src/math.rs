@@ -6,7 +6,7 @@ pub fn sqrt_for_u512(number: U512) -> U512 {
     }
 
     let mut start = U512::one();
-    let mut end = number.clone();
+    let mut end = number;
     let mut res = U512::zero();
 
     while start <= end {
