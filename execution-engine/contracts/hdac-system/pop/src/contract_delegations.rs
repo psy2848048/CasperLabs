@@ -128,13 +128,8 @@ impl ContractDelegations {
                 .ok_or(Error::DelegationsKeyDeserializationFailed)?;
             let delegator = to_publickey(hex_key)?;
 
-            let hex_key = split_name
-                .next()
-                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
-            let _validator = to_publickey(hex_key)?;
-
             let balance = split_name
-                .next()
+                .nth(1)
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::DelegationsDeserializationFailed)?;
 

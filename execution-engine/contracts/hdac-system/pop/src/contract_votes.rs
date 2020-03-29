@@ -143,29 +143,13 @@ impl ContractVotes {
                 Ok(PublicKey::from(key_bytes))
             };
 
-            let to_hash = |hex_str: &str| -> Result<Key> {
-                if hex_str.len() != 64 {
-                    return Err(Error::VoteKeyDeserializationFailed);
-                }
-                let mut hash_bytes = [0u8; 32];
-                let _bytes_written = base16::decode_slice(hex_str, &mut hash_bytes)
-                    .map_err(|_| Error::VoteKeyDeserializationFailed)?;
-                debug_assert!(_bytes_written == hash_bytes.len());
-                Ok(Key::Hash(hash_bytes))
-            };
-
             let hex_key = split_name
                 .next()
                 .ok_or(Error::VoteKeyDeserializationFailed)?;
             let dapp_user = to_publickey(hex_key)?;
 
-            let hex_key = split_name
-                .next()
-                .ok_or(Error::VoteKeyDeserializationFailed)?;
-            let _dapp_owner = to_hash(hex_key)?;
-
             let balance = split_name
-                .next()
+                .nth(1)
                 .and_then(|b| U512::from_dec_str(b).ok())
                 .ok_or(Error::VotesDeserializationFailed)?;
 
