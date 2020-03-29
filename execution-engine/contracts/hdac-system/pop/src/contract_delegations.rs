@@ -131,12 +131,7 @@ impl ContractDelegations {
             };
 
             let hex_key = split_name
-                .next()
-                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
-            let _delegator = to_publickey(hex_key)?;
-
-            let hex_key = split_name
-                .next()
+                .nth(1)
                 .ok_or(Error::DelegationsKeyDeserializationFailed)?;
             let validator = to_publickey(hex_key)?;
 
