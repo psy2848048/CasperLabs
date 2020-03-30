@@ -70,3 +70,6 @@ integration-testing/**/*.wasm
 /project/reload.sbt
 # Bloop compilation output dir
 /out
+
+# Temporary DB for testing
+*.rlib

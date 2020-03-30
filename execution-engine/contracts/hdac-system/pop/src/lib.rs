@@ -8,6 +8,7 @@ mod contract_mint;
 mod contract_queue;
 mod contract_runtime;
 mod contract_stakes;
+mod contract_votes;
 mod pop_contract;
 
 use alloc::string::String;
@@ -16,7 +17,7 @@ use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use proof_of_stake::ProofOfStake;
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, CLValue, URef, U512,
+    ApiError, CLValue, Key, URef, U512,
 };
 
 pub use crate::pop_contract::ProofOfProfessionContract;
@@ -134,6 +135,26 @@ pub fn delegate() {
             pop_contract
                 .redelegate(delegator, src_validator, dest_validator, shares)
                 .unwrap_or_revert();
+        }
+        methods::METHOD_VOTE => {
+            let user: PublicKey = runtime::get_caller();
+            let dapp: Key = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract.vote(user, dapp, amount).unwrap_or_revert();
+        }
+        methods::METHOD_UNVOTE => {
+            let user: PublicKey = runtime::get_caller();
+            let dapp: Key = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: Option<U512> = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract.unvote(user, dapp, amount).unwrap_or_revert();
         }
         _ => {}
     }

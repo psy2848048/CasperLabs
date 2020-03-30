@@ -6,9 +6,13 @@ use types::{
 };
 
 use crate::{
-    constants::uref_names, contract_delegations::ContractDelegations, contract_mint::ContractMint,
-    contract_queue::ContractQueue, contract_runtime::ContractRuntime,
+    constants::uref_names,
+    contract_delegations::ContractDelegations,
+    contract_mint::ContractMint,
+    contract_queue::ContractQueue,
+    contract_runtime::ContractRuntime,
     contract_stakes::ContractStakes,
+    contract_votes::{ContractVotes, VoteStat, Votes},
 };
 
 pub struct ProofOfProfessionContract;
@@ -112,6 +116,48 @@ impl ProofOfProfessionContract {
         let payout = stakes.unbond(&src, Some(amount))?;
         stakes.bond(&dest, payout);
         ContractStakes::write(&stakes);
+
+        Ok(())
+    }
+
+    pub fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
+        // staked balance check
+        if amount.is_zero() {
+            return Err(Error::BondTooSmall);
+        }
+
+        // check validator's staked token amount
+        let delegation_user_stat = ContractDelegations::read_user_stat()?;
+        // if an user has no staked amount, he cannot do anything
+        let delegated_balance: U512 = match delegation_user_stat.0.get(&user) {
+            Some(balance) => *balance,
+            None => return Err(Error::DelegationsNotFound),
+        };
+
+        // check user's vote stat
+        let vote_stat: VoteStat = ContractVotes::read_stat()?;
+        let vote_stat_per_user: U512 = vote_stat
+            .0
+            .get(&user)
+            .cloned()
+            .unwrap_or_else(|| U512::from(0));
+
+        if delegated_balance < vote_stat_per_user + amount {
+            return Err(Error::VoteTooLarge);
+        }
+
+        // check vote table
+        let mut votes: Votes = ContractVotes::read()?; // <- here
+        votes.vote(&user, &dapp, amount);
+        ContractVotes::write(&votes);
+
+        Ok(())
+    }
+
+    pub fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
+        let mut votes = ContractVotes::read()?;
+        votes.unvote(&user, &dapp, maybe_amount)?;
+        ContractVotes::write(&votes);
 
         Ok(())
     }

@@ -10,7 +10,7 @@ use contract::{
 };
 use types::{
     account::{PublicKey, PurseId},
-    ApiError, ContractRef, U512,
+    ApiError, ContractRef, Key, U512,
 };
 
 #[repr(u16)]
@@ -46,11 +46,21 @@ fn redelegate(
     );
 }
 
+fn vote(pos: &ContractRef, dapp_key: &Key, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_VOTE, *dapp_key, *amount));
+}
+
+fn unvote(pos: &ContractRef, dapp_key: &Key, amount: &U512) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNVOTE, *dapp_key, *amount));
+}
+
 const POS_BOND: &str = "bond";
 const POS_UNBOND: &str = "unbond";
 const POS_DELEGATE: &str = "delegate";
 const POS_UNDELEGATE: &str = "undelegate";
 const POS_REDELEGATE: &str = "redelegate";
+const POS_VOTE: &str = "vote";
+const POS_UNVOTE: &str = "unvote";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -113,6 +123,24 @@ pub extern "C" fn call() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             redelegate(&pos_pointer, &src_validator, &dest_validator, &amount);
+        }
+        POS_VOTE => {
+            let dapp: Key = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            vote(&pos_pointer, &dapp, &amount);
+        }
+        POS_UNVOTE => {
+            let dapp: Key = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let amount: U512 = runtime::get_arg(2)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            unvote(&pos_pointer, &dapp, &amount);
         }
         _ => runtime::revert(ApiError::User(Error::UnknownCommand as u16)),
     }
