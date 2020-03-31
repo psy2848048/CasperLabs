@@ -94,6 +94,8 @@ pub fn delegate() {
                 .finalize_payment(amount_spent, account)
                 .unwrap_or_revert();
         }
+        // Type of this method: `fn delegate(validator: PublicKey, amount: U512, src_purse_uref:
+        // URef)`
         methods::METHOD_DELEGATE => {
             let delegator = runtime::get_caller();
             let validator: PublicKey = runtime::get_arg(1)
@@ -109,6 +111,7 @@ pub fn delegate() {
                 .delegate(delegator, validator, amount, source_uref)
                 .unwrap_or_revert();
         }
+        // Type of this method: `fn undelegate(validator: PublicKey, amount: Option<U512>)`
         methods::METHOD_UNDELEGATE => {
             let delegator: PublicKey = runtime::get_caller();
             let validator: PublicKey = runtime::get_arg(1)
@@ -121,6 +124,8 @@ pub fn delegate() {
                 .undelegate(delegator, validator, shares)
                 .unwrap_or_revert();
         }
+        // Type of this method: `fn redelegate(src_validator: PublicKey, dest_validator: PublicKey,
+        // amount: U512)`
         methods::METHOD_REDELEGATE => {
             let delegator: PublicKey = runtime::get_caller();
             let src_validator: PublicKey = runtime::get_arg(1)
