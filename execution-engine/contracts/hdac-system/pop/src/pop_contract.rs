@@ -1,18 +1,16 @@
-use alloc::{collections::BTreeMap, vec::Vec};
 #![allow(clippy::clone_on_copy)]
 
+use alloc::collections::BTreeMap;
 use contract::unwrap_or_revert::UnwrapOrRevert;
 use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, StakesProvider};
 use types::{
     account::{PublicKey, PurseId},
     system_contract_errors::pos::{Error, PurseLookupError, Result},
-    mint,
     BlockTime, Key, URef, U512,
-    system_contract_errors::mint::Error as MintError,
 };
 
 use crate::{
-    constants::{consts, uref_names},
+    constants::{consts, local_keys, uref_names},
     contract_delegations::ContractDelegations,
     contract_economy::{pop_score_calculation, ContractClaim},
     contract_mint::ContractMint,

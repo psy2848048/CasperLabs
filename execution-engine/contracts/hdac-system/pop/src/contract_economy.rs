@@ -32,10 +32,11 @@ pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount:
         // y = 1000x
         *validator_delegated_amount * U512::from(100_000) / *total_delegated
     } else {
-        // y = 1000 * sqrt(x + 215)
+        // y = 1000 * sqrt(30x - 225)
+        //   = sqrt(1_000_000 * 30 * 100 * val_delegation / total_delegated - 225_000_000)
         sqrt_for_u512(
-            *validator_delegated_amount * U512::from(100_000_000) / *total_delegated
-                + U512::from(215_000_000),
+            *validator_delegated_amount * U512::from(3_000_000_000_u64) / *total_delegated
+                - U512::from(225_000_000),
         )
     };
 
