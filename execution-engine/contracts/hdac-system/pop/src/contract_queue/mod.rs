@@ -4,8 +4,8 @@ mod requests;
 use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
 
-use request_queue::{RequestKey, RequestQueue};
-pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey};
+use request_queue::{RequestKey, RequestQueue, ClaimQueue};
+pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey, ClaimRequestKey};
 
 pub struct ContractQueue;
 
@@ -47,8 +47,9 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{DelegateRequestKey, RequestQueue, UndelegateRequestKey};
-    use crate::contract_queue::request_queue::RequestQueueEntry;
+    use super::{DelegateRequestKey, RequestQueue, UndelegateRequestKey, ClaimRequestKey, ClaimQueue};
+    use crate::contract_queue::request_queue::{RequestQueueEntry, ClaimQueueEntry};
+    use crate::contract_queue::requests::ClaimKeyType;
 
     const KEY1: [u8; 32] = [1; 32];
     const KEY2: [u8; 32] = [2; 32];
@@ -151,6 +152,95 @@ mod tests {
                 BlockTime::new(102)
             ),],
             queue.pop_due(BlockTime::new(105))
+        );
+    }
+
+    #[test]
+    fn test_claim_queue_push() {
+        let validator_1 = PublicKey::new(KEY2);
+        let validator_2 = PublicKey::new(KEY3);
+        let user_1 = PublicKey::new(KEY4);
+
+        let mut queue: ClaimQueue<ClaimRequestKey> = Default::default();
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_2),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Reward, user_1),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            Err(Error::MultipleRequests),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_2),
+                U512::from(5)
+            )
+        );
+    }
+
+    #[test]
+    fn test_claim_queue_pop() {
+        let validator_1 = PublicKey::new(KEY2);
+        let validator_2 = PublicKey::new(KEY3);
+        let user_1 = PublicKey::new(KEY4);
+
+        let mut queue: ClaimQueue<ClaimRequestKey> = Default::default();
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_2),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            Ok(()),
+            queue.push(
+                ClaimRequestKey::new(ClaimKeyType::Reward, user_1),
+                U512::from(5)
+            )
+        );
+        assert_eq!(
+            vec![
+                ClaimQueueEntry::new(
+                    ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
+                    U512::from(5)
+                ),
+                ClaimQueueEntry::new(
+                    ClaimRequestKey::new(ClaimKeyType::Reward, user_1),
+                    U512::from(5)
+                ),
+            ],
+            queue.pop(ClaimRequestKey::new(ClaimKeyType::Commission, validator_2))
+        );
+        assert_eq!(
+            vec![
+                ClaimQueueEntry::new(
+                    ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
+                    U512::from(5)
+                ),
+            ],
+            queue.pop(ClaimRequestKey::new(ClaimKeyType::Reward, user_1))
         );
     }
 }
