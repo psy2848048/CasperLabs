@@ -180,7 +180,8 @@ impl FromBytes for ClaimRequestKey {
 
 impl ToBytes for ClaimRequestKey {
     fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
-        let res: Vec<u8> = vec!(self.key_type as u8);
+        let mut res: Vec<u8> = Vec::new();
+        res.push(self.key_type as u8);
         Ok((res.into_iter())
             .chain(self.pubkey.to_bytes()?)
             .collect())

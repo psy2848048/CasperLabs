@@ -5,7 +5,7 @@ use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
 
 use request_queue::{RequestKey, RequestQueue, ClaimQueue};
-pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey, ClaimRequestKey};
+pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey, ClaimRequestKey, ClaimKeyType};
 
 pub struct ContractQueue;
 
@@ -16,6 +16,15 @@ impl ContractQueue {
             .unwrap_or_default()
     }
     pub fn write_requests<T: RequestKey + Default>(key: u8, queue: RequestQueue<T>) {
+        storage::write_local(key, queue);
+    }
+
+    pub fn read_claim_requests<T: RequestKey + Default>(key: u8) -> ClaimQueue<T> {
+        storage::read_local(&key)
+            .unwrap_or_default()
+            .unwrap_or_default()
+    }
+    pub fn write_claim_requests<T: RequestKey + Default>(key: u8, queue: ClaimQueue<T>) {
         storage::write_local(key, queue);
     }
 }
