@@ -26,6 +26,10 @@ fn unbond(pos: &ContractRef, amount: Option<U512>) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_UNBOND, amount));
 }
 
+fn step(pos: &ContractRef) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_STEP,));
+}
+
 fn delegate(pos: &ContractRef, validator: &PublicKey, amount: &U512, source: PurseId) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_DELEGATE, *validator, *amount, source));
 }
@@ -58,27 +62,23 @@ fn write_genesis_total_supply(pos: &ContractRef, amount: &U512) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_WRITE_GENESIS_TOTAL_SUPPLY, *amount));
 }
 
-fn distribute(pos: &ContractRef) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_DISTRIBUTE,));
-}
-
 fn claim_commission(pos: &ContractRef) {
-    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_COMMISSION,));
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_CLAIM_COMMISSION,));
 }
 
 fn claim_reward(pos: &ContractRef) {
-    let _: U512 = runtime::call_contract(pos.clone(), (POS_CLAIM_REWARD,));
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_CLAIM_REWARD,));
 }
 
 const POS_BOND: &str = "bond";
 const POS_UNBOND: &str = "unbond";
+const POS_STEP: &str = "step";
 const POS_DELEGATE: &str = "delegate";
 const POS_UNDELEGATE: &str = "undelegate";
 const POS_REDELEGATE: &str = "redelegate";
 const POS_VOTE: &str = "vote";
 const POS_UNVOTE: &str = "unvote";
 const POS_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
-const POS_DISTRIBUTE: &str = "distribute";
 const POS_CLAIM_COMMISSION: &str = "claim_commission";
 const POS_CLAIM_REWARD: &str = "claim_reward";
 
@@ -109,6 +109,7 @@ pub extern "C" fn call() {
 
             unbond(&pos_pointer, amount);
         }
+        POS_STEP => step(&pos_pointer),
         POS_DELEGATE => {
             let validator: PublicKey = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -167,9 +168,6 @@ pub extern "C" fn call() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             write_genesis_total_supply(&pos_pointer, &amount);
-        }
-        POS_DISTRIBUTE => {
-            distribute(&pos_pointer);
         }
         POS_CLAIM_COMMISSION => {
             claim_commission(&pos_pointer);

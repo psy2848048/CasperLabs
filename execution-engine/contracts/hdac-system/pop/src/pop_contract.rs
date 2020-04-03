@@ -44,6 +44,16 @@ impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
 }
 
 impl ProofOfProfessionContract {
+    pub fn step(&self) -> Result<()> {
+        // let blocktime = runtime::get_blocktime();
+        // self.step_undelegation(blocktime);
+        // self.step_redelegation(blocktime);
+        let _ = self.distribute();
+        let _ = self.step_claim();
+
+        Ok(())
+    }
+
     pub fn delegate(
         &self,
         delegator: PublicKey,
@@ -376,7 +386,7 @@ impl ProofOfProfessionContract {
     }
 
     // For validator
-    pub fn claim_commission(&self, validator: &PublicKey) -> Result<U512> {
+    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions
@@ -400,11 +410,11 @@ impl ProofOfProfessionContract {
         ContractQueue::write_claim_requests(local_keys::CLAIM_REQUEST_QUEUE, claim_commission_queue);
 
         // Actual mint & transfer will be done at client-proxy
-        Ok(validator_commission_clone)
+        Ok(())
     }
 
     // For user
-    pub fn claim_reward(&self, user: &PublicKey) -> Result<U512> {
+    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards
             .0
@@ -427,7 +437,7 @@ impl ProofOfProfessionContract {
         ContractQueue::write_claim_requests(local_keys::CLAIM_REQUEST_QUEUE, claim_reward_queue);
         
         // Actual mint & transfer will be done at client-proxy
-        Ok(user_reward_clone)
+        Ok(())
     }
 
     pub fn step_claim(&self) -> Result<()> {

@@ -24,7 +24,6 @@ pub(crate) mod methods {
     pub const METHOD_VOTE: &str = "vote";
     pub const METHOD_UNVOTE: &str = "unvote";
     pub const METHOD_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
-    pub const METHOD_DISTRIBUTE: &str = "distribute";
     pub const METHOD_CLAIM_COMMISSION: &str = "claim_commission";
     pub const METHOD_CLAIM_REWARD: &str = "claim_reward";
 }
