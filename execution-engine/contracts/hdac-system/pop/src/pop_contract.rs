@@ -18,7 +18,8 @@ use crate::{
     contract_economy::{pop_score_calculation, ContractClaim},
     contract_mint::ContractMint,
     contract_queue::{
-        ContractQueue, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey, ClaimRequestKey, ClaimKeyType,
+        ClaimKeyType, ClaimRequestKey, ContractQueue, DelegateRequestKey, RedelegateRequestKey,
+        UndelegateRequestKey,
     },
     contract_runtime::ContractRuntime,
     contract_stakes::ContractStakes,
@@ -398,16 +399,18 @@ impl ProofOfProfessionContract {
         ContractClaim::write_commission(&commissions);
 
         // Pushing into queue
-        let mut claim_commission_queue = ContractQueue::read_claim_requests::<ClaimRequestKey>(
-            local_keys::CLAIM_REQUEST_QUEUE,
-        );
+        let mut claim_commission_queue =
+            ContractQueue::read_claim_requests::<ClaimRequestKey>(local_keys::CLAIM_REQUEST_QUEUE);
 
         claim_commission_queue.push(
             ClaimRequestKey::new(ClaimKeyType::Commission, *validator),
             validator_commission_clone,
         )?;
 
-        ContractQueue::write_claim_requests(local_keys::CLAIM_REQUEST_QUEUE, claim_commission_queue);
+        ContractQueue::write_claim_requests(
+            local_keys::CLAIM_REQUEST_QUEUE,
+            claim_commission_queue,
+        );
 
         // Actual mint & transfer will be done at client-proxy
         Ok(())
@@ -425,9 +428,8 @@ impl ProofOfProfessionContract {
         ContractClaim::write_reward(&rewards);
 
         // Pushing into queue
-        let mut claim_reward_queue = ContractQueue::read_claim_requests::<ClaimRequestKey>(
-            local_keys::CLAIM_REQUEST_QUEUE,
-        );
+        let mut claim_reward_queue =
+            ContractQueue::read_claim_requests::<ClaimRequestKey>(local_keys::CLAIM_REQUEST_QUEUE);
 
         claim_reward_queue.push(
             ClaimRequestKey::new(ClaimKeyType::Reward, *user),
@@ -435,22 +437,22 @@ impl ProofOfProfessionContract {
         )?;
 
         ContractQueue::write_claim_requests(local_keys::CLAIM_REQUEST_QUEUE, claim_reward_queue);
-        
+
         // Actual mint & transfer will be done at client-proxy
         Ok(())
     }
 
     pub fn step_claim(&self) -> Result<()> {
-        let mut claim_queue = ContractQueue::read_claim_requests::<ClaimRequestKey>(
-            local_keys::CLAIM_REQUEST_QUEUE,
-        );
+        let mut claim_queue =
+            ContractQueue::read_claim_requests::<ClaimRequestKey>(local_keys::CLAIM_REQUEST_QUEUE);
 
         let queue_clone_for_iter = claim_queue.0.clone();
         for unit_claim_entry in queue_clone_for_iter.iter() {
             let mint_contract_uref = system::get_mint();
 
             // "mint" cannot be called from outside. "create" is alternative
-            let temp_purse = runtime::call_contract(mint_contract_uref, ("create", unit_claim_entry.amount));
+            let temp_purse =
+                runtime::call_contract(mint_contract_uref, ("create", unit_claim_entry.amount));
             let _ = system::transfer_from_purse_to_account(
                 temp_purse,
                 unit_claim_entry.request_key.pubkey,

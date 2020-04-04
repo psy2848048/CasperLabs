@@ -147,10 +147,7 @@ pub struct ClaimRequestKey {
 
 impl ClaimRequestKey {
     pub fn new(key_type: ClaimKeyType, pubkey: PublicKey) -> Self {
-        ClaimRequestKey {
-            key_type,
-            pubkey,
-        }
+        ClaimRequestKey { key_type, pubkey }
     }
 }
 
@@ -170,10 +167,7 @@ impl FromBytes for ClaimRequestKey {
         let key_type: ClaimKeyType = bytes[0].into();
         let bytes = &bytes[1..];
         let (pubkey, bytes) = PublicKey::from_bytes(bytes)?;
-        let entry = ClaimRequestKey {
-            key_type,
-            pubkey,
-        };
+        let entry = ClaimRequestKey { key_type, pubkey };
         Ok((entry, bytes))
     }
 }
@@ -182,9 +176,8 @@ impl ToBytes for ClaimRequestKey {
     fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
         let mut res: Vec<u8> = Vec::new();
         res.push(self.key_type as u8);
-        Ok((res.into_iter())
-            .chain(self.pubkey.to_bytes()?)
-            .collect())
+
+        Ok((res.into_iter()).chain(self.pubkey.to_bytes()?).collect())
     }
 }
 

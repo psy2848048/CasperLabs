@@ -27,7 +27,7 @@ fn should_run_successful_step() {
     const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
     const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
 
-    const GENESIS_VALIDATOR_STAKE: u64 = 5_000_00 * CONV_RATE;
+    const GENESIS_VALIDATOR_STAKE: u64 = 500_000 * CONV_RATE;
     const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 10_000;
     const SYSTEM_ACC_SUPPORT: u64 = 3_000_000_000 * CONV_RATE;
 
@@ -356,7 +356,7 @@ fn should_run_successful_step() {
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
+    let _result = builder
         .exec(distribution_request)
         .expect_success()
         .commit()
@@ -373,7 +373,7 @@ fn should_run_successful_step() {
         .get_account(ACCOUNT_2_ADDR_DAPP_2)
         .expect("system account should exist");
     let account2_dapp_2_balance_actual = builder.get_purse_balance(account2_dapp_2.purse_id());
-    
+
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!("Account 2 balance: {}", account2_dapp_2_balance_actual);
 }

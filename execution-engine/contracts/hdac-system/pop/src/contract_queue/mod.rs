@@ -4,8 +4,10 @@ mod requests;
 use contract::contract_api::storage;
 use proof_of_stake::{self, QueueProvider};
 
-use request_queue::{RequestKey, RequestQueue, ClaimQueue};
-pub use requests::{DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey, ClaimRequestKey, ClaimKeyType};
+use request_queue::{ClaimQueue, RequestKey, RequestQueue};
+pub use requests::{
+    ClaimKeyType, ClaimRequestKey, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey,
+};
 
 pub struct ContractQueue;
 
@@ -56,9 +58,13 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{DelegateRequestKey, RequestQueue, UndelegateRequestKey, ClaimRequestKey, ClaimQueue};
-    use crate::contract_queue::request_queue::{RequestQueueEntry, ClaimQueueEntry};
-    use crate::contract_queue::requests::ClaimKeyType;
+    use super::{
+        ClaimQueue, ClaimRequestKey, DelegateRequestKey, RequestQueue, UndelegateRequestKey,
+    };
+    use crate::contract_queue::{
+        request_queue::{ClaimQueueEntry, RequestQueueEntry},
+        requests::ClaimKeyType,
+    };
 
     const KEY1: [u8; 32] = [1; 32];
     const KEY2: [u8; 32] = [2; 32];
@@ -243,12 +249,10 @@ mod tests {
             queue.pop(ClaimRequestKey::new(ClaimKeyType::Commission, validator_2))
         );
         assert_eq!(
-            vec![
-                ClaimQueueEntry::new(
-                    ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
-                    U512::from(5)
-                ),
-            ],
+            vec![ClaimQueueEntry::new(
+                ClaimRequestKey::new(ClaimKeyType::Commission, validator_1),
+                U512::from(5)
+            ),],
             queue.pop(ClaimRequestKey::new(ClaimKeyType::Reward, user_1))
         );
     }

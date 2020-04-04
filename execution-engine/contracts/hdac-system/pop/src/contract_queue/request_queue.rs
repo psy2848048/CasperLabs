@@ -151,12 +151,14 @@ impl<T: RequestKey> ClaimQueue<T> {
     }
 
     pub fn pop(&mut self, request_key: T) -> Vec<ClaimQueueEntry<T>> {
-        let idx = self.0.iter().position(|x| x.request_key == request_key).unwrap_or_default();
+        let idx = self
+            .0
+            .iter()
+            .position(|x| x.request_key == request_key)
+            .unwrap_or_default();
         self.0.remove(idx);
 
-        let res = self.0.clone();
-
-        res
+        self.0.clone()
     }
 }
 
