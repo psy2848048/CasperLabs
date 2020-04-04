@@ -21,6 +21,7 @@ use engine_test_support::{
 const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
 
 const TRANSFER_TO_ACCOUNT_METHOD: &str = "transfer_to_account";
+const STEP_METHOD: &str = "step";
 const BOND_METHOD: &str = "bond";
 const UNBOND_METHOD: &str = "unbond";
 const DELEGATE_METHOD: &str = "delegate";
@@ -28,6 +29,9 @@ const UNDELEGATE_METHOD: &str = "undelegate";
 const REDELEGATE_METHOD: &str = "redelegate";
 const VOTE_METHOD: &str = "vote";
 const UNVOTE_METHOD: &str = "unvote";
+const WRITE_GENESIS_TOTAL_SUPPLY_METHOD: &str = "write_genesis_total_supply";
+const CLAIM_COMMISSION_METHOD: &str = "claim_commission";
+const CLAIM_REWARD_METHOD: &str = "claim_reward";
 
 fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
     // query client_api_proxy_hash from SYSTEM_ACCOUNT
@@ -584,4 +588,368 @@ fn should_invoke_successful_vote_and_unvote() {
             .count(),
         1
     );
+}
+
+#[ignore]
+#[test]
+fn should_invoke_successful_step() {
+    const SYSTEM_ADDR: [u8; 32] = [0u8; 32];
+    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
+    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
+    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
+    const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
+    const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
+
+    const GENESIS_VALIDATOR_STAKE: u64 = 5_000_00 * CONV_RATE;
+    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 10_000;
+    const SYSTEM_ACC_SUPPORT: u64 = 3_000_000_000 * CONV_RATE;
+
+    let accounts = vec![
+        // System account initiates automatically
+        // Don't have to put in here
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()) * Motes::new(U512::from(10)),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_4_ADDR_USER_2),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+        GenesisAccount::new(
+            PublicKey::new(ACCOUNT_5_ADDR_USER_3),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+            Motes::zero(),
+        ),
+    ];
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&utils::create_genesis_config(accounts))
+        .finish();
+
+    let pos_uref = builder.get_pos_contract_uref();
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    // there should be a genesis self-delegation
+    let lookup_key_delegation = format!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        GENESIS_VALIDATOR_STAKE
+    );
+    assert!(pos_contract
+        .named_keys()
+        .contains_key(&lookup_key_delegation));
+
+    let lookup_key = format!(
+        "v_{}_{}",
+        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        GENESIS_VALIDATOR_STAKE
+    );
+    assert!(pos_contract.named_keys().contains_key(&lookup_key));
+
+    println!("Here we are");
+    println!("0. send some tokens to system account");
+
+    let client_api_proxy_hash = get_client_api_proxy_hash(result.builder());
+
+    let token_transfer_request = ExecuteRequestBuilder::contract_call_by_hash(
+        ACCOUNT_1_ADDR_DAPP_1,
+        client_api_proxy_hash,
+        (String::from(TRANSFER_TO_ACCOUNT_METHOD), PublicKey::from(SYSTEM_ADDR), U512::from(SYSTEM_ACC_SUPPORT)),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(token_transfer_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Token sent!");
+
+    let system_account = builder
+        .get_account(SYSTEM_ADDR)
+        .expect("system account should exist");
+    let system_account_balance_actual = builder.get_purse_balance(system_account.purse_id());
+    println!("system account balance: {}", system_account_balance_actual);
+
+    println!("1. write genesis supply");
+
+    let write_genesis_supply_request = ExecuteRequestBuilder::contract_call_by_hash(
+        SYSTEM_ADDR,
+        client_api_proxy_hash,
+        (
+            String::from(WRITE_GENESIS_TOTAL_SUPPLY_METHOD),
+            U512::from(2_000_000_000) * U512::from(CONV_RATE),
+        ),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(write_genesis_supply_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    let pos_uref = builder.get_pos_contract_uref();
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("t_")
+            })
+            .count(),
+        1
+    );
+
+    // setup done. start distribute
+
+    println!("2. distribute");
+
+    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
+        SYSTEM_ADDR,
+        client_api_proxy_hash,
+        (String::from(STEP_METHOD),),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(distribution_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    // there should be a still only one validator.
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("c_")
+            })
+            .count(),
+        2
+    );
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| key.starts_with("r_"))
+            .count(),
+        2
+    );
+
+    // Delegate some amount and try distribute
+    println!("Delegate and try to step again");
+
+    let delegate_request = ExecuteRequestBuilder::contract_call_by_hash(
+        ACCOUNT_2_ADDR_DAPP_2,
+        client_api_proxy_hash,
+        (
+            String::from(DELEGATE_METHOD),
+            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(delegate_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("c_")
+            })
+            .count(),
+        2
+    );
+
+    println!("Delegation done");
+
+    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
+        SYSTEM_ADDR,
+        client_api_proxy_hash,
+        (String::from(STEP_METHOD),),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(distribution_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("c_")
+            })
+            .count(),
+        2
+    );
+
+    println!("3. Claim");
+
+    let claim_commission_request = ExecuteRequestBuilder::contract_call_by_hash(
+        ACCOUNT_1_ADDR_DAPP_1,
+        client_api_proxy_hash,
+        (String::from(CLAIM_COMMISSION_METHOD),),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(claim_commission_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("c_")
+            })
+            .count(),
+        1
+    );
+
+    println!("4. Reward");
+
+    let reward_commission_request = ExecuteRequestBuilder::contract_call_by_hash(
+        ACCOUNT_1_ADDR_DAPP_1,
+        client_api_proxy_hash,
+        (String::from(CLAIM_REWARD_METHOD),),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(reward_commission_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let pos_contract = builder
+        .get_contract(pos_uref.remove_access_rights())
+        .expect("should have contract");
+
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("r_")
+            })
+            .count(),
+        2
+    );
+
+    println!("5. Step again and check balance of the accounts");
+    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
+        SYSTEM_ADDR,
+        client_api_proxy_hash,
+        (String::from(STEP_METHOD),),
+    )
+    .build();
+
+    println!("Build Tx OK");
+
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder
+        .exec(distribution_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    println!("Exec OK");
+
+    let account1_dapp_1 = builder
+        .get_account(ACCOUNT_1_ADDR_DAPP_1)
+        .expect("system account should exist");
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
+
+    let account2_dapp_2 = builder
+        .get_account(ACCOUNT_2_ADDR_DAPP_2)
+        .expect("system account should exist");
+    let account2_dapp_2_balance_actual = builder.get_purse_balance(account2_dapp_2.purse_id());
+    
+    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
+    println!("Account 2 balance: {}", account2_dapp_2_balance_actual);
 }
