@@ -63,7 +63,7 @@ pub fn delegate() {
             let maybe_system_user: PublicKey = runtime::get_caller();
 
             // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
-            if maybe_system_user != PublicKey::new([0u8; 32]) {
+            if maybe_system_user.value() != [0u8; 32] {
                 runtime::revert(ApiError::NoAccessRights);
             }
 

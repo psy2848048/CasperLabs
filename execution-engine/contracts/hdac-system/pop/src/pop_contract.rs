@@ -448,13 +448,9 @@ impl ProofOfProfessionContract {
         let queue_clone_for_iter = claim_queue.0.clone();
         for unit_claim_entry in queue_clone_for_iter.iter() {
             let mint_contract_uref = system::get_mint();
-            let minted_money_uref = runtime::call_contract(
-                mint_contract_uref,
-                ("mint", unit_claim_entry.amount),
-            );
-            let temp_purse = PurseId::new(minted_money_uref);
-            //runtime::revert(Error::RewardsPurseKeyUnexpectedType);
-            //let result = mint.transfer(money_uref, )
+
+            // "mint" cannot be called from outside. "create" is alternative
+            let temp_purse = runtime::call_contract(mint_contract_uref, ("create", unit_claim_entry.amount));
             let _ = system::transfer_from_purse_to_account(
                 temp_purse,
                 unit_claim_entry.request_key.pubkey,
