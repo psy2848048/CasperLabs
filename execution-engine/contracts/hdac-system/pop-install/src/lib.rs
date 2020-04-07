@@ -20,6 +20,7 @@ const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 const POS_FUNCTION_NAME: &str = "pos_ext";
+const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 #[repr(u32)]
 enum Args {
@@ -87,7 +88,12 @@ pub extern "C" fn call() {
 
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
-    let rewards_purse = mint_purse(&mint, U512::zero());
+    // let rewards_purse = mint_purse(&mint, U512::zero());
+    // Charge unreachable amount of token into inaccessible wallet
+    let rewards_purse = mint_purse(
+        &mint,
+        U512::from(999_999_999_999_u64) * U512::from(BIGSUN_TO_HDAC),
+    );
 
     // Include PoP purses in its named_keys
     [

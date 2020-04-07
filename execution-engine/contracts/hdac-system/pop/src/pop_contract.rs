@@ -9,7 +9,7 @@ use proof_of_stake::{MintProvider, ProofOfStake, RuntimeProvider, Stakes, Stakes
 use types::{
     account::{PublicKey, PurseId},
     system_contract_errors::pos::{Error, PurseLookupError, Result},
-    BlockTime, Key, URef, U512,
+    BlockTime, Key, TransferResult, URef, U512,
 };
 
 use crate::{
@@ -305,15 +305,24 @@ impl ProofOfProfessionContract {
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
-        //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR /
-        //         consts::BLOCK_TIME_IN_SEC)
+        //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
+        //         * consts::BLOCK_PRODUCING_PER_SEC)
         //    -> divider for deriving inflation per block
         let inflation_pool_per_block = total_supply.0 * U512::from(5)
             / U512::from(
-                100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
-                    / consts::BLOCK_TIME_IN_SEC,
+                100 * consts::DAYS_OF_YEAR
+                    * consts::HOURS_OF_DAY
+                    * consts::SECONDS_OF_HOUR
+                    * consts::BLOCK_PRODUCING_PER_SEC,
             );
         total_supply.add(&inflation_pool_per_block);
+
+        // Check total supply meets max supply
+        if total_supply.0 > U512::from(consts::MAX_SUPPLY) * U512::from(consts::BIGSUN_TO_HDAC) {
+            // No inflation anymore
+            return Ok(());
+        }
+
         ContractClaim::write_total_supply(&total_supply);
 
         /////////////////////////////////
@@ -448,16 +457,18 @@ impl ProofOfProfessionContract {
 
         let queue_clone_for_iter = claim_queue.0.clone();
         for unit_claim_entry in queue_clone_for_iter.iter() {
-            let mint_contract_uref = system::get_mint();
+            let reward_purse = get_purse_id::<ContractRuntime>(uref_names::POS_REWARD_PURSE)
+                .map_err(PurseLookupError::rewards)?;
 
-            // "mint" cannot be called from outside. "create" is alternative
-            let temp_purse =
-                runtime::call_contract(mint_contract_uref, ("create", unit_claim_entry.amount));
-            let _ = system::transfer_from_purse_to_account(
-                temp_purse,
+            let transfer_res: TransferResult = system::transfer_from_purse_to_account(
+                reward_purse,
                 unit_claim_entry.request_key.pubkey,
                 unit_claim_entry.amount,
             );
+
+            if let Err(err) = transfer_res {
+                runtime::revert(err);
+            }
 
             claim_queue.pop(unit_claim_entry.request_key);
         }

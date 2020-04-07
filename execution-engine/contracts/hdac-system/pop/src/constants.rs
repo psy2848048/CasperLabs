@@ -7,6 +7,7 @@ pub(crate) mod local_keys {
 
 pub(crate) mod uref_names {
     pub const POS_BONDING_PURSE: &str = "pos_bonding_purse";
+    pub const POS_REWARD_PURSE: &str = "pos_rewards_purse";
 }
 
 pub(crate) mod methods {
@@ -32,6 +33,8 @@ pub(crate) mod consts {
     pub const DAYS_OF_YEAR: i64 = 365_i64;
     pub const HOURS_OF_DAY: i64 = 24_i64;
     pub const SECONDS_OF_HOUR: i64 = 3600_i64;
-    pub const BLOCK_TIME_IN_SEC: i64 = 2_i64;
+    pub const BLOCK_PRODUCING_PER_SEC: i64 = 2_i64;
+    pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce
+    pub const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
     pub const VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE: i64 = 30_i64;
 }

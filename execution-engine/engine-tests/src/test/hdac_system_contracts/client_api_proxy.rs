@@ -20,6 +20,8 @@ use engine_test_support::{
 
 const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
 
+const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
+
 const TRANSFER_TO_ACCOUNT_METHOD: &str = "transfer_to_account";
 const STEP_METHOD: &str = "step";
 const BOND_METHOD: &str = "bond";
@@ -600,16 +602,16 @@ fn should_invoke_successful_step() {
     const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
     const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
 
-    const GENESIS_VALIDATOR_STAKE: u64 = 500_000 * CONV_RATE;
-    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 10_000;
-    const SYSTEM_ACC_SUPPORT: u64 = 3_000_000_000 * CONV_RATE;
+    const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
+    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
+    const SYSTEM_ACC_SUPPORT: u64 = 5u64 * BIGSUN_TO_HDAC;
 
     let accounts = vec![
         // System account initiates automatically
         // Don't have to put in here
         GenesisAccount::new(
             PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()) * Motes::new(U512::from(10)),
+            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
@@ -702,7 +704,7 @@ fn should_invoke_successful_step() {
         client_api_proxy_hash,
         (
             String::from(WRITE_GENESIS_TOTAL_SUPPLY_METHOD),
-            U512::from(2_000_000_000) * U512::from(CONV_RATE),
+            U512::from(2_000_000_000) * U512::from(BIGSUN_TO_HDAC),
         ),
     )
     .build();
@@ -725,10 +727,7 @@ fn should_invoke_successful_step() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("t_")
-            })
+            .filter(|(key, _)| { key.starts_with("t_") })
             .count(),
         1
     );
@@ -764,10 +763,7 @@ fn should_invoke_successful_step() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("c_")
-            })
+            .filter(|(key, _)| { key.starts_with("c_") })
             .count(),
         2
     );
@@ -805,6 +801,7 @@ fn should_invoke_successful_step() {
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
 
+    println!("**** Dummy output from here ****");
     assert_eq!(
         pos_contract
             .named_keys()
@@ -816,6 +813,7 @@ fn should_invoke_successful_step() {
             .count(),
         2
     );
+    println!("**** Dummy output ends here ****");
 
     println!("Delegation done");
 
@@ -841,6 +839,7 @@ fn should_invoke_successful_step() {
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
 
+    println!("**** Dummy output from here ****");
     assert_eq!(
         pos_contract
             .named_keys()
@@ -852,6 +851,7 @@ fn should_invoke_successful_step() {
             .count(),
         2
     );
+    println!("**** Dummy output ends here ****");
 
     println!("3. Claim");
 
@@ -877,6 +877,7 @@ fn should_invoke_successful_step() {
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
 
+    println!("**** Dummy output from here ****");
     assert_eq!(
         pos_contract
             .named_keys()
@@ -888,6 +889,23 @@ fn should_invoke_successful_step() {
             .count(),
         1
     );
+    println!("**** Dummy output ends here ****");
+
+    let account1_dapp_1 = builder
+        .get_account(ACCOUNT_1_ADDR_DAPP_1)
+        .expect("system account should exist");
+    let system_account = builder
+        .get_account(SYSTEM_ADDR)
+        .expect("system account should exist");
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
+    let system_balance = builder.get_purse_balance(system_account.purse_id());
+
+    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
+    println!(
+        "Initial: {}",
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
+    );
+    println!("System balance: {}", system_balance);
 
     println!("4. Reward");
 
@@ -913,6 +931,7 @@ fn should_invoke_successful_step() {
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
 
+    println!("**** Dummy output from here ****");
     assert_eq!(
         pos_contract
             .named_keys()
@@ -924,6 +943,23 @@ fn should_invoke_successful_step() {
             .count(),
         2
     );
+    println!("**** Dummy output ends here ****");
+
+    let account1_dapp_1 = builder
+        .get_account(ACCOUNT_1_ADDR_DAPP_1)
+        .expect("system account should exist");
+    let system_account = builder
+        .get_account(SYSTEM_ADDR)
+        .expect("system account should exist");
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
+    let system_balance = builder.get_purse_balance(system_account.purse_id());
+
+    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
+    println!(
+        "Initial: {}",
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
+    );
+    println!("System balance: {}", system_balance);
 
     println!("5. Step again and check balance of the accounts");
     let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
@@ -947,13 +983,16 @@ fn should_invoke_successful_step() {
     let account1_dapp_1 = builder
         .get_account(ACCOUNT_1_ADDR_DAPP_1)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-
-    let account2_dapp_2 = builder
-        .get_account(ACCOUNT_2_ADDR_DAPP_2)
+    let system_account = builder
+        .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account2_dapp_2_balance_actual = builder.get_purse_balance(account2_dapp_2.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
+    let system_balance = builder.get_purse_balance(system_account.purse_id());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
-    println!("Account 2 balance: {}", account2_dapp_2_balance_actual);
+    println!(
+        "Initial: {}",
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
+    );
+    println!("System balance: {}", system_balance);
 }
