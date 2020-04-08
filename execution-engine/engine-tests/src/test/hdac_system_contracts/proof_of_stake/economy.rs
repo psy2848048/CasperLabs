@@ -97,7 +97,7 @@ fn should_run_successful_step() {
     let token_transfer_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_TRANSFER_PURSE_TO_ACCOUNT,
-        (PublicKey::from(SYSTEM_ADDR), U512::from(SYSTEM_ACC_SUPPORT))
+        (PublicKey::from(SYSTEM_ADDR), U512::from(SYSTEM_ACC_SUPPORT)),
     )
     .build();
 

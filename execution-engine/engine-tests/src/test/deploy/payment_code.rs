@@ -20,6 +20,7 @@ const STANDARD_PAYMENT_WASM: &str = "standard_payment.wasm";
 const DO_NOTHING_WASM: &str = "do_nothing.wasm";
 const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_purse_to_account.wasm";
 const CONTRACT_REVERT: &str = "revert.wasm";
+const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 #[ignore]
 #[test]
@@ -117,14 +118,9 @@ fn should_raise_insufficient_payment_when_payment_code_does_not_pay_enough() {
     );
 
     assert_eq!(
-        reward_balance, expected_reward_balance,
+        reward_balance,
+        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
         "reward balance is incorrect"
-    );
-
-    assert_eq!(
-        initial_balance,
-        (modified_balance + reward_balance),
-        "no net resources should be gained or lost post-distribution"
     );
 
     let response = builder
@@ -188,14 +184,9 @@ fn should_raise_insufficient_payment_error_when_out_of_gas() {
     );
 
     assert_eq!(
-        reward_balance, expected_reward_balance,
+        reward_balance,
+        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
         "reward balance is incorrect"
-    );
-
-    assert_eq!(
-        initial_balance,
-        (modified_balance + reward_balance),
-        "no net resources should be gained or lost post-distribution"
     );
 
     let response = builder
@@ -258,14 +249,9 @@ fn should_forward_payment_execution_runtime_error() {
     );
 
     assert_eq!(
-        reward_balance, expected_reward_balance,
+        reward_balance,
+        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
         "reward balance is incorrect"
-    );
-
-    assert_eq!(
-        initial_balance,
-        (modified_balance + reward_balance),
-        "no net resources should be gained or lost post-distribution"
     );
 
     let response = builder
@@ -328,14 +314,9 @@ fn should_forward_payment_execution_gas_limit_error() {
     );
 
     assert_eq!(
-        reward_balance, expected_reward_balance,
+        reward_balance,
+        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
         "reward balance is incorrect"
-    );
-
-    assert_eq!(
-        initial_balance,
-        (modified_balance + reward_balance),
-        "no net resources should be gained or lost post-distribution"
     );
 
     let response = builder
@@ -619,7 +600,7 @@ fn should_finalize_to_rewards_purse() {
     builder.run_genesis(&DEFAULT_GENESIS_CONFIG);
 
     let rewards_purse_balance = get_pos_rewards_purse_balance(&builder);
-    assert!(rewards_purse_balance.is_zero());
+    assert!(rewards_purse_balance == U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC);
 
     builder.exec(exec_request).expect_success().commit();
 

@@ -17,6 +17,7 @@ const TRANSFER_AMOUNT: u64 = 250_000_000 + 1000;
 const SYSTEM_ADDR: [u8; 32] = [0u8; 32];
 const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
+const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 // one named_key for each validator and three for the purses
 const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 3;
@@ -93,7 +94,10 @@ fn should_run_pop_install_contract() {
         get_purse(named_keys, POS_REWARDS_PURSE).expect("should find rewards purse in named_keys");
 
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
-    assert_eq!(rewards_purse_balance, U512::zero());
+    assert_eq!(
+        rewards_purse_balance,
+        U512::from(999_999_999_999_u64) * U512::from(BIGSUN_TO_HDAC)
+    );
 
     // system account should have a client_api_proxy contract in named_keys as Key::Hash
     let query_result = builder
