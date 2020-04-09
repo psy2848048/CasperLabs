@@ -31,7 +31,7 @@ const UNDELEGATE_METHOD: &str = "undelegate";
 const REDELEGATE_METHOD: &str = "redelegate";
 const VOTE_METHOD: &str = "vote";
 const UNVOTE_METHOD: &str = "unvote";
-const WRITE_GENESIS_TOTAL_SUPPLY_METHOD: &str = "write_genesis_total_supply";
+// const WRITE_GENESIS_TOTAL_SUPPLY_METHOD: &str = "write_genesis_total_supply";
 const CLAIM_COMMISSION_METHOD: &str = "claim_commission";
 const CLAIM_REWARD_METHOD: &str = "claim_reward";
 
@@ -697,40 +697,40 @@ fn should_invoke_successful_step() {
     let system_account_balance_actual = builder.get_purse_balance(system_account.purse_id());
     println!("system account balance: {}", system_account_balance_actual);
 
-    println!("1. write genesis supply");
+    // println!("1. write genesis supply");
 
-    let write_genesis_supply_request = ExecuteRequestBuilder::contract_call_by_hash(
-        SYSTEM_ADDR,
-        client_api_proxy_hash,
-        (
-            String::from(WRITE_GENESIS_TOTAL_SUPPLY_METHOD),
-            U512::from(2_000_000_000) * U512::from(BIGSUN_TO_HDAC),
-        ),
-    )
-    .build();
+    // let write_genesis_supply_request = ExecuteRequestBuilder::contract_call_by_hash(
+    //     SYSTEM_ADDR,
+    //     client_api_proxy_hash,
+    //     (
+    //         String::from(WRITE_GENESIS_TOTAL_SUPPLY_METHOD),
+    //         U512::from(2_000_000_000) * U512::from(BIGSUN_TO_HDAC),
+    //     ),
+    // )
+    // .build();
 
-    println!("Build Tx OK");
+    // println!("Build Tx OK");
 
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(write_genesis_supply_request)
-        .expect_success()
-        .commit()
-        .finish();
+    // let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    // let result = builder
+    //     .exec(write_genesis_supply_request)
+    //     .expect_success()
+    //     .commit()
+    //     .finish();
 
-    let pos_uref = builder.get_pos_contract_uref();
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
+    // let pos_uref = builder.get_pos_contract_uref();
+    // let pos_contract = builder
+    //     .get_contract(pos_uref.remove_access_rights())
+    //     .expect("should have contract");
 
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| { key.starts_with("t_") })
-            .count(),
-        1
-    );
+    // assert_eq!(
+    //     pos_contract
+    //         .named_keys()
+    //         .iter()
+    //         .filter(|(key, _)| { key.starts_with("t_") })
+    //         .count(),
+    //     1
+    // );
 
     // setup done. start distribute
 

@@ -84,6 +84,16 @@ pub extern "C" fn call() {
             named_keys.insert(key, PLACEHOLDER_KEY);
         });
 
+    // Insert total supply
+    let mut total_supply_uref = String::new();
+    total_supply_uref
+        .write_fmt(format_args!(
+            "t_{}",
+            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC)
+        ))
+        .unwrap();
+    named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
+
     let total_bonds: U512 = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
     let bonding_purse = mint_purse(&mint, total_bonds);
