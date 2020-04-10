@@ -101,6 +101,41 @@ pub enum Error {
     UnvoteTooLarge, // = 38
     /// Attempted to vote too large number
     VoteTooLarge, // = 39
+
+    /// Internal error: failed to deserialize the validator's key
+    CommissionKeyDeserializationFailed, // = 40
+    /// Internal error: failed to deserialize the validator's balance
+    CommissionBalanceDeserializationFailed, // = 41
+    /// Internal error: failed to issue a new purse for commission
+    CommissionPurseNotFound, // = 42
+    /// Internal error: no commission record
+    CommissionNotFound, // = 43
+    /// No claim record of commission
+    CommissionClaimRecordNotFound, // = 44
+    /// Internal error: Too large claim than you earned
+    CommissionClaimTooLarge, // = 45
+    /// Internal error: failed to deserialize the user's key
+    RewardKeyDeserializationFailed, // = 46
+    /// Internal error: failed to deserialize the user's balance
+    RewardBalanceDeserializationFailed, // = 47
+    /// Internal error: failed to issue a new purse for commission
+    RewardPurseNotFound, // = 48
+    /// Internal error: no reward record in table
+    RewardNotFound, // = 49
+    /// Internal error: claim reward than expected
+    RewardClaimTooLarge, // = 50
+    /// Try to claim although user has no reward
+    RewardClaimRecordNotFound, // = 51
+    /// Internal error: No total supply
+    NoTotalSupply, // = 52
+    /// Error while parsing between u512 and stringed integer
+    UintParsingError, // = 53
+    /// Internal error: Deserialization failed about total supply
+    TotalSupplyDeserializationFailed, // = 54
+    /// Internal error: No commission object
+    NoCommission, // = 55
+    /// Internal error: No reward object
+    NoReward, // = 56
 }
 
 /// An alias for `Result<T, pos::Error>`.

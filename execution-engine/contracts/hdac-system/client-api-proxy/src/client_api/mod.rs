@@ -18,6 +18,7 @@ mod method_names {
         use super::pos;
         pub const BOND: &str = pos::BOND;
         pub const UNBOND: &str = pos::UNBOND;
+        pub const STEP: &str = pos::STEP;
         pub const STANDARD_PAYMENT: &str = "standard_payment";
         pub const TRANSFER_TO_ACCOUNT: &str = "transfer_to_account";
         pub const DELEGATE: &str = pos::DELEGATE;
@@ -25,16 +26,23 @@ mod method_names {
         pub const REDELEGATE: &str = pos::REDELEGATE;
         pub const VOTE: &str = pos::VOTE;
         pub const UNVOTE: &str = pos::UNVOTE;
+        pub const CLAIM_COMMISSION: &str = pos::CLAIM_COMMISSION;
+        pub const CLAIM_REWARD: &str = pos::CLAIM_REWARD;
+        pub const WRITE_GENESIS_TOTAL_SUPPLY: &str = pos::WRITE_GENESIS_TOTAL_SUPPLY;
     }
     pub mod pos {
         pub const BOND: &str = "bond";
         pub const UNBOND: &str = "unbond";
+        pub const STEP: &str = "step";
         pub const GET_PAYMENT_PURSE: &str = "get_payment_purse";
         pub const DELEGATE: &str = "delegate";
         pub const UNDELEGATE: &str = "undelegate";
         pub const REDELEGATE: &str = "redelegate";
         pub const VOTE: &str = "vote";
         pub const UNVOTE: &str = "unvote";
+        pub const CLAIM_COMMISSION: &str = "claim_commission";
+        pub const CLAIM_REWARD: &str = "claim_reward";
+        pub const WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
     }
 }
 
@@ -43,11 +51,15 @@ pub enum Api {
     Unbond(Option<U512>),
     StandardPayment(U512),
     TransferToAccount(PublicKey, U512),
+    Step(),
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, U512),
     Vote(Key, U512),
     Unvote(Key, Option<U512>),
+    ClaimCommission(),
+    ClaimReward(),
+    WriteGenesisTotalSupply(U512),
 }
 
 impl Api {
@@ -85,6 +97,7 @@ impl Api {
 
                 Api::TransferToAccount(public_key, transfer_amount)
             }
+            method_names::proxy::STEP => Api::Step(),
             method_names::proxy::DELEGATE => {
                 let validator: PublicKey = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -133,6 +146,14 @@ impl Api {
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
                 Api::Unvote(dapp, amount)
             }
+            method_names::proxy::CLAIM_COMMISSION => Api::ClaimCommission(),
+            method_names::proxy::CLAIM_REWARD => Api::ClaimReward(),
+            method_names::proxy::WRITE_GENESIS_TOTAL_SUPPLY => {
+                let amount: U512 = runtime::get_arg(1)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                Api::WriteGenesisTotalSupply(amount)
+            }
             _ => runtime::revert(Error::UnknownProxyApi),
         }
     }
@@ -164,6 +185,10 @@ impl Api {
             }
             Self::TransferToAccount(public_key, amount) => {
                 system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
+            }
+            Self::Step() => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(pos_ref, (method_names::pos::STEP,))
             }
             Self::Delegate(validator, amount) => {
                 let pos_ref = system::get_proof_of_stake();
@@ -205,6 +230,21 @@ impl Api {
             Self::Unvote(dapp, amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 runtime::call_contract(pos_ref, (method_names::pos::UNVOTE, *dapp, *amount))
+            }
+            Self::ClaimCommission() => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(pos_ref, (method_names::pos::CLAIM_COMMISSION,))
+            }
+            Self::ClaimReward() => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(pos_ref, (method_names::pos::CLAIM_REWARD,))
+            }
+            Self::WriteGenesisTotalSupply(amount) => {
+                let pos_ref = system::get_proof_of_stake();
+                runtime::call_contract(
+                    pos_ref,
+                    (method_names::pos::WRITE_GENESIS_TOTAL_SUPPLY, *amount),
+                )
             }
         }
     }

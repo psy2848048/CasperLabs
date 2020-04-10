@@ -120,3 +120,69 @@ impl CLTyped for RedelegateRequestKey {
         CLType::Any
     }
 }
+
+#[repr(u8)]
+#[derive(Clone, Debug, Copy, PartialEq)]
+pub enum ClaimKeyType {
+    Error = 0,
+    Commission = 1,
+    Reward = 2,
+}
+
+impl From<u8> for ClaimKeyType {
+    fn from(key_byte: u8) -> Self {
+        match key_byte {
+            1u8 => ClaimKeyType::Commission,
+            2u8 => ClaimKeyType::Reward,
+            _ => ClaimKeyType::Error,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Copy, PartialEq)]
+pub struct ClaimRequestKey {
+    pub key_type: ClaimKeyType, // := commission, reward
+    pub pubkey: PublicKey,
+}
+
+impl ClaimRequestKey {
+    pub fn new(key_type: ClaimKeyType, pubkey: PublicKey) -> Self {
+        ClaimRequestKey { key_type, pubkey }
+    }
+}
+
+impl Default for ClaimRequestKey {
+    fn default() -> Self {
+        ClaimRequestKey {
+            key_type: ClaimKeyType::Commission,
+            pubkey: PublicKey::from([0u8; 32]),
+        }
+    }
+}
+
+impl RequestKey for ClaimRequestKey {}
+
+impl FromBytes for ClaimRequestKey {
+    fn from_bytes(bytes: &[u8]) -> result::Result<(Self, &[u8]), bytesrepr::Error> {
+        let key_type: ClaimKeyType = bytes[0].into();
+        let bytes = &bytes[1..];
+        let (pubkey, bytes) = PublicKey::from_bytes(bytes)?;
+        let entry = ClaimRequestKey { key_type, pubkey };
+        Ok((entry, bytes))
+    }
+}
+
+impl ToBytes for ClaimRequestKey {
+    fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
+        let mut res: Vec<u8> = Vec::new();
+        res.push(self.key_type as u8);
+
+        Ok((res.into_iter()).chain(self.pubkey.to_bytes()?).collect())
+    }
+}
+
+impl CLTyped for ClaimRequestKey {
+    fn cl_type() -> CLType {
+        CLType::Any
+    }
+}
