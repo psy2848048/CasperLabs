@@ -19,8 +19,8 @@ const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
-// one named_key for each validator and three for the purses
-const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 3;
+// one named_key for each validator and four for the purses and the total supply amount.
+const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 4;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
