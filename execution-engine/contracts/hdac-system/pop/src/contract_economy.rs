@@ -82,7 +82,6 @@ impl ContractClaim {
 
     // prefix: "c"
     // c_{PublicKey}_{ClaimableBalance}
-    #[allow(clippy::or_fun_call)]
     pub fn read_commission() -> Result<Commissions> {
         let mut commissions = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
@@ -120,7 +119,6 @@ impl ContractClaim {
 
     // prefix: "c"
     // c_{PublicKey}_{ClaimableBalance}
-    #[allow(clippy::or_fun_call)]
     pub fn write_commission(commissions: &Commissions) {
         // Encode the stakes as a set of uref names.
         let mut new_urefs: BTreeSet<String> = commissions
@@ -157,7 +155,6 @@ impl ContractClaim {
 
     // prefix: "r"
     // r_{PublicKey}_{ClaimableBalance}
-    #[allow(clippy::or_fun_call)]
     pub fn read_reward() -> Result<Rewards> {
         let mut rewards = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
@@ -195,7 +192,6 @@ impl ContractClaim {
 
     // prefix: "r"
     // r_{PublicKey}_{ClaimableBalance}
-    #[allow(clippy::or_fun_call)]
     pub fn write_reward(rewards: &Rewards) {
         // Encode the stakes as a set of uref names.
         let mut new_urefs: BTreeSet<String> = rewards
