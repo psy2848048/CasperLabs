@@ -37,21 +37,23 @@ impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
     }
 
     fn step(&self) -> Result<()> {
-        Err(Error::NotSupportedFunc)
+        // let blocktime = runtime::get_blocktime();
+        // self.step_undelegation(blocktime);
+        // self.step_redelegation(blocktime);
+        let caller = runtime::get_caller();
+
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
+        self.distribute()?;
+        self.step_claim()?;
+
+        Ok(())
     }
 }
 
 impl ProofOfProfessionContract {
-    pub fn step(&self) -> Result<()> {
-        // let blocktime = runtime::get_blocktime();
-        // self.step_undelegation(blocktime);
-        // self.step_redelegation(blocktime);
-        let _ = self.distribute();
-        let _ = self.step_claim();
-
-        Ok(())
-    }
-
     pub fn delegate(
         &self,
         delegator: PublicKey,
@@ -281,6 +283,12 @@ impl ProofOfProfessionContract {
     }
 
     pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
+        let caller = runtime::get_caller();
+
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
         let mut total_supply = ContractClaim::read_total_supply()?;
         total_supply.add(genesis_total_supply);
         ContractClaim::write_total_supply(&total_supply);
