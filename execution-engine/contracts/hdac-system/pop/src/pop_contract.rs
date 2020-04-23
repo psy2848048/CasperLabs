@@ -1,5 +1,3 @@
-#![allow(clippy::clone_on_copy)]
-
 use alloc::collections::BTreeMap;
 use contract::{
     contract_api::{runtime, system},
@@ -39,21 +37,23 @@ impl ProofOfStake<ContractMint, ContractQueue, ContractRuntime, ContractStakes>
     }
 
     fn step(&self) -> Result<()> {
-        Err(Error::NotSupportedFunc)
+        // let blocktime = runtime::get_blocktime();
+        // self.step_undelegation(blocktime);
+        // self.step_redelegation(blocktime);
+        let caller = runtime::get_caller();
+
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
+        self.distribute()?;
+        self.step_claim()?;
+
+        Ok(())
     }
 }
 
 impl ProofOfProfessionContract {
-    pub fn step(&self) -> Result<()> {
-        // let blocktime = runtime::get_blocktime();
-        // self.step_undelegation(blocktime);
-        // self.step_redelegation(blocktime);
-        let _ = self.distribute();
-        let _ = self.step_claim();
-
-        Ok(())
-    }
-
     pub fn delegate(
         &self,
         delegator: PublicKey,
@@ -283,6 +283,12 @@ impl ProofOfProfessionContract {
     }
 
     pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
+        let caller = runtime::get_caller();
+
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
         let mut total_supply = ContractClaim::read_total_supply()?;
         total_supply.add(genesis_total_supply);
         ContractClaim::write_total_supply(&total_supply);
@@ -401,17 +407,17 @@ impl ProofOfProfessionContract {
         let validator_commission = commissions
             .0
             .get(validator)
+            .cloned()
             .unwrap_or_revert_with(Error::RewardNotFound);
-        let validator_commission_clone = validator_commission.clone();
-        commissions.claim_commission(validator, &validator_commission_clone);
+
+        commissions.claim_commission(validator, &validator_commission);
         ContractClaim::write_commission(&commissions);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
-        claim_requests.0.push(ClaimRequest::Commission(
-            *validator,
-            validator_commission_clone,
-        ));
+        claim_requests
+            .0
+            .push(ClaimRequest::Commission(*validator, validator_commission));
 
         ContractQueue::write_claim_requests(claim_requests);
 
@@ -425,16 +431,16 @@ impl ProofOfProfessionContract {
         let user_reward = rewards
             .0
             .get(user)
+            .cloned()
             .unwrap_or_revert_with(Error::RewardNotFound);
-        let user_reward_clone = user_reward.clone();
-        rewards.claim_rewards(user, &user_reward_clone);
+        rewards.claim_rewards(user, &user_reward);
         ContractClaim::write_reward(&rewards);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
         claim_requests
             .0
-            .push(ClaimRequest::Reward(*user, user_reward_clone));
+            .push(ClaimRequest::Reward(*user, user_reward));
 
         ContractQueue::write_claim_requests(claim_requests);
 

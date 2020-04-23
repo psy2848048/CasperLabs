@@ -60,13 +60,6 @@ pub fn delegate() {
         // Type of this method: `fn step()`
         methods::METHOD_STEP => {
             // This is called by the system in every block.
-            let maybe_system_user: PublicKey = runtime::get_caller();
-
-            // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
-            if maybe_system_user.value() != [0u8; 32] {
-                runtime::revert(ApiError::NoAccessRights);
-            }
-
             pop_contract.step().unwrap_or_revert();
         }
         // Type of this method: `fn get_payment_purse() -> PurseId`
@@ -171,13 +164,6 @@ pub fn delegate() {
             pop_contract.unvote(user, dapp, amount).unwrap_or_revert();
         }
         methods::METHOD_WRITE_GENESIS_TOTAL_SUPPLY => {
-            let maybe_system_user: PublicKey = runtime::get_caller();
-
-            // system user: PublicKey([0, 0, 0, ... , 0]) 32 of 0s
-            if maybe_system_user != PublicKey::new([0u8; 32]) {
-                runtime::revert(ApiError::NoAccessRights);
-            }
-
             let genesis_total_supply: U512 = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
