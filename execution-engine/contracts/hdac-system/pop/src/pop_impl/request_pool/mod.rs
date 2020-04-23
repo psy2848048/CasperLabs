@@ -11,14 +11,34 @@ use request_queue::{RequestKey, RequestQueue};
 pub use requests::{ClaimRequest, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey};
 
 pub struct ContractQueue;
+pub enum DelegationKind {
+    Delegate,
+    Undelegate,
+    Redelegate,
+}
 
 impl ContractQueue {
-    pub fn read_requests<T: RequestKey + Default>(key: u8) -> RequestQueue<T> {
+    pub fn read_delegation_requests<T: RequestKey + Default>(
+        kind: DelegationKind,
+    ) -> RequestQueue<T> {
+        let key = match kind {
+            DelegationKind::Delegate => local_keys::DELEGATE_REQUEST_QUEUE,
+            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
+            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
+        };
         storage::read_local(&key)
             .unwrap_or_default()
             .unwrap_or_default()
     }
-    pub fn write_requests<T: RequestKey + Default>(key: u8, queue: RequestQueue<T>) {
+    pub fn write_delegation_requests<T: RequestKey + Default>(
+        kind: DelegationKind,
+        queue: RequestQueue<T>,
+    ) {
+        let key = match kind {
+            DelegationKind::Delegate => local_keys::DELEGATE_REQUEST_QUEUE,
+            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
+            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
+        };
         storage::write_local(key, queue);
     }
 
