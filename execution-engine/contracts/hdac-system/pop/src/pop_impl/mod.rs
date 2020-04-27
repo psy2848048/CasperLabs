@@ -120,7 +120,7 @@ impl ProofOfStake for ProofOfProfessionContract {
 }
 
 impl ProofOfProfessionContract {
-    pub fn step(&self) -> Result<()> {
+    pub fn step(&mut self) -> Result<()> {
         // let blocktime = runtime::get_blocktime();
         // self.step_undelegation(blocktime);
         // self.step_redelegation(blocktime);
@@ -129,6 +129,11 @@ impl ProofOfProfessionContract {
         if caller.value() != consts::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
+
+        let current = self.get_block_time();
+        self.step_delegation(current)?;
+        self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
+        self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
 
         self.distribute()?;
         self.step_claim()?;
@@ -171,8 +176,6 @@ impl ProofOfProfessionContract {
 
         ContractQueue::write_delegation_requests(DelegationKind::Delegate, request_queue);
 
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_delegation(self.get_block_time())?;
         Ok(())
     }
 
@@ -223,9 +226,6 @@ impl ProofOfProfessionContract {
         )?;
 
         ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
-
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_undelegation(self.get_block_time())?;
         Ok(())
     }
 
@@ -285,10 +285,6 @@ impl ProofOfProfessionContract {
         )?;
 
         ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
-
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_redelegation(self.get_block_time())?;
-
         Ok(())
     }
 
