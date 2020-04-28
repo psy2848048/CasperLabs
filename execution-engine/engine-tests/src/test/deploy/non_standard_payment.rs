@@ -5,7 +5,7 @@ use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -25,9 +25,9 @@ fn should_charge_non_main_purse() {
     const TEST_PURSE_NAME: &str = "test-purse";
 
     let account_1_public_key = ACCOUNT_1_ADDR;
-    let payment_purse_amount = U512::from(10_000_000);
-    let account_1_funding_amount = U512::from(100_000_000);
-    let account_1_purse_funding_amount = U512::from(50_000_000);
+    let payment_purse_amount = *DEFAULT_PAYMENT;
+    let account_1_funding_amount = *DEFAULT_PAYMENT * 10;
+    let account_1_purse_funding_amount = *DEFAULT_PAYMENT * 5;
 
     let mut builder = InMemoryWasmTestBuilder::default();
 

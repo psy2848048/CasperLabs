@@ -3,7 +3,7 @@ use engine_shared::{motes::Motes, transform::Transform};
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
+        DEFAULT_ACCOUNT_KEY, DEFAULT_CASPER_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -11,7 +11,6 @@ use types::{account::PublicKey, Key, URef, U512};
 
 const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([42u8; 32]);
 const DO_NOTHING_WASM: &str = "do_nothing.wasm";
-const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 const TRANSFER_PURSE_TO_ACCOUNT_WASM: &str = "transfer_purse_to_account.wasm";
 const REVERT_WASM: &str = "revert.wasm";
 const ENDLESS_LOOP_WASM: &str = "endless_loop.wasm";
@@ -31,7 +30,7 @@ fn should_raise_insufficient_payment_when_caller_lacks_minimum_balance() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     let _response = builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .expect_success()
         .commit()
@@ -91,7 +90,7 @@ fn should_raise_insufficient_payment_when_payment_code_does_not_pay_enough() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit();
 
@@ -113,8 +112,7 @@ fn should_raise_insufficient_payment_when_payment_code_does_not_pay_enough() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -157,7 +155,7 @@ fn should_raise_insufficient_payment_error_when_out_of_gas() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -180,8 +178,7 @@ fn should_raise_insufficient_payment_error_when_out_of_gas() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -222,7 +219,7 @@ fn should_forward_payment_execution_runtime_error() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -245,8 +242,7 @@ fn should_forward_payment_execution_runtime_error() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -287,7 +283,7 @@ fn should_forward_payment_execution_gas_limit_error() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -310,8 +306,7 @@ fn should_forward_payment_execution_gas_limit_error() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -353,7 +348,7 @@ fn should_run_out_of_gas_when_session_code_exceeds_gas_limit() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     let transfer_result = builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -393,7 +388,7 @@ fn should_correctly_charge_when_session_code_runs_out_of_gas() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -455,7 +450,7 @@ fn should_correctly_charge_when_session_code_fails() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .commit()
         .finish();
@@ -512,7 +507,7 @@ fn should_correctly_charge_when_session_code_succeeds() {
     let mut builder = InMemoryWasmTestBuilder::default();
 
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(exec_request)
         .expect_success()
         .commit()
@@ -590,10 +585,10 @@ fn should_finalize_to_rewards_purse() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
 
-    builder.run_genesis(&DEFAULT_GENESIS_CONFIG);
+    builder.run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG);
 
     let rewards_purse_balance = get_pos_rewards_purse_balance(&builder);
-    assert!(rewards_purse_balance == U512::from(999_999_999_999_u64) * BIGSUN_TO_HDAC);
+    assert!(rewards_purse_balance.is_zero());
 
     builder.exec(exec_request).expect_success().commit();
 
@@ -627,7 +622,7 @@ fn independent_standard_payments_should_not_write_the_same_keys() {
 
     // create another account via transfer
     builder
-        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .run_genesis(&DEFAULT_CASPER_GENESIS_CONFIG)
         .exec(setup_exec_request)
         .expect_success()
         .commit();

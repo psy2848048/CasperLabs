@@ -1,8 +1,11 @@
 extern crate alloc;
 
-use engine_test_support::{Code, Hash, PublicKey, SessionBuilder, TestContext, TestContextBuilder};
+use engine_test_support::{
+    internal::DEFAULT_PAYMENT, Code, Hash, PublicKey, SessionBuilder, TestContext,
+    TestContextBuilder,
+};
 
-use types::{Key, U512};
+use types::Key;
 
 const GAME_WASM: &str = "tic_tac_toe_smart_contract.wasm";
 const GAME_CONTRACT_NAME: &str = "tic_tac_toe";
@@ -23,7 +26,7 @@ pub struct GameTest {
 
 impl GameTest {
     pub fn new() -> Self {
-        let initial_balance = U512::from(100_000_000_000u64);
+        let initial_balance = *DEFAULT_PAYMENT * 1000;
         let context = TestContextBuilder::new()
             .with_account(PLAYER_X, initial_balance)
             .with_account(PLAYER_O, initial_balance)
