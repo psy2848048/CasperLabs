@@ -6,10 +6,7 @@ use contract::{
     contract_api::{account, runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use types::{
-    account::{PublicKey, PurseId},
-    ApiError, Key, U512,
-};
+use types::{account::PublicKey, ApiError, Key, URef, U512};
 
 use error::Error;
 
@@ -178,7 +175,7 @@ impl Api {
             Self::StandardPayment(amount) => {
                 let pos_ref = system::get_proof_of_stake();
                 let main_purse = account::get_main_purse();
-                let payment_purse: PurseId =
+                let payment_purse: URef =
                     runtime::call_contract(pos_ref, (method_names::pos::GET_PAYMENT_PURSE,));
                 system::transfer_from_purse_to_purse(main_purse, payment_purse, *amount)
                     .unwrap_or_revert();

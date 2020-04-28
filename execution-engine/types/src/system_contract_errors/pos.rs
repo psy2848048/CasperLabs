@@ -1,10 +1,16 @@
 //! Home of the Proof of Stake contract's [`Error`] type.
 
+use alloc::vec::Vec;
 use core::result;
 
+use crate::{
+    bytesrepr::{self, ToBytes, U8_SERIALIZED_LENGTH},
+    CLType, CLTyped,
+};
+
 /// Errors which can occur while executing the Proof of Stake contract.
-#[derive(Debug, PartialEq)]
 // TODO: Split this up into user errors vs. system errors.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[repr(u8)]
 pub enum Error {
     // ===== User errors =====
@@ -136,6 +142,23 @@ pub enum Error {
     NoCommission, // = 55
     /// Internal error: No reward object
     NoReward, // = 56
+}
+
+impl CLTyped for Error {
+    fn cl_type() -> CLType {
+        CLType::U8
+    }
+}
+
+impl ToBytes for Error {
+    fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
+        let value = *self as u8;
+        value.to_bytes()
+    }
+
+    fn serialized_length(&self) -> usize {
+        U8_SERIALIZED_LENGTH
+    }
 }
 
 /// An alias for `Result<T, pos::Error>`.

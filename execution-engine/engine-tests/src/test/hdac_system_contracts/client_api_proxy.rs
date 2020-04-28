@@ -5,10 +5,7 @@ use engine_core::engine_state::{
     CONV_RATE, SYSTEM_ACCOUNT_ADDR,
 };
 use engine_shared::{motes::Motes, stored_value::StoredValue, transform::Transform};
-use types::{
-    account::{PublicKey, PurseId},
-    Key, U512,
-};
+use types::{account::PublicKey, Key, U512};
 
 use engine_test_support::{
     internal::{
@@ -18,7 +15,7 @@ use engine_test_support::{
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 
-const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
+const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
 
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
@@ -84,7 +81,7 @@ fn should_invoke_successful_transfer_to_account() {
 
     let balance = test_result
         .builder()
-        .get_purse_balance(account_1.purse_id());
+        .get_purse_balance(account_1.main_purse());
 
     assert_eq!(balance, transferred_amount);
 }
@@ -106,16 +103,13 @@ fn should_invoke_successful_standard_payment() {
             .with_deploy_hash([1; 32])
             .with_session_code(
                 "transfer_purse_to_account.wasm",
-                (
-                    PublicKey::new(ACCOUNT_1_ADDR),
-                    U512::from(transferred_amount),
-                ),
+                (ACCOUNT_1_ADDR, U512::from(transferred_amount)),
             )
             .with_stored_payment_hash(
                 client_api_proxy_hash.to_vec(),
                 ("standard_payment", *DEFAULT_PAYMENT),
             )
-            .with_authorization_keys(&[*DEFAULT_ACCOUNT_KEY])
+            .with_authorization_keys(&[DEFAULT_ACCOUNT_KEY])
             .build();
 
         ExecuteRequestBuilder::new().push_deploy(deploy).build()
@@ -127,7 +121,7 @@ fn should_invoke_successful_standard_payment() {
         .expect("should get genesis account");
     let modified_balance = transfer_result
         .builder()
-        .get_purse_balance(default_account.purse_id());
+        .get_purse_balance(default_account.main_purse());
     let initial_balance = U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE);
 
     assert_ne!(
@@ -160,7 +154,7 @@ fn should_invoke_successful_bond_and_unbond() {
 
     // only DEFAULT_ACCOUNT is in initial validator queue.
     let accounts: Vec<GenesisAccount> = vec![GenesisAccount::new(
-        PublicKey::new(DEFAULT_ACCOUNT_ADDR),
+        DEFAULT_ACCOUNT_ADDR,
         Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
         Motes::new(BOND_AMOUNT.into()),
     )];
@@ -216,7 +210,7 @@ fn should_invoke_successful_bond_and_unbond() {
 
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
         BOND_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -251,9 +245,10 @@ fn should_invoke_successful_bond_and_unbond() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(
-                |(key, _)| key.starts_with(&format!("v_{}", base16::encode_lower(&ACCOUNT_1_ADDR)))
-            )
+            .filter(|(key, _)| key.starts_with(&format!(
+                "v_{}",
+                base16::encode_lower(ACCOUNT_1_ADDR.as_bytes())
+            )))
             .count(),
         0
     );
@@ -271,9 +266,9 @@ fn should_invoke_successful_bond_and_unbond() {
 #[ignore]
 #[test]
 fn should_invoke_successful_delegation_methods() {
-    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR: [u8; 32] = [3u8; 32];
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR: PublicKey = PublicKey::ed25519_from([3u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
 
@@ -285,17 +280,17 @@ fn should_invoke_successful_delegation_methods() {
     // ACCOUNT_3: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR),
+            ACCOUNT_3_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -315,7 +310,7 @@ fn should_invoke_successful_delegation_methods() {
         client_api_proxy_hash,
         (
             DELEGATE_METHOD,
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
         ),
     )
@@ -327,8 +322,8 @@ fn should_invoke_successful_delegation_methods() {
         client_api_proxy_hash,
         (
             REDELEGATE_METHOD,
-            PublicKey::new(ACCOUNT_1_ADDR),
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_1_ADDR,
+            ACCOUNT_2_ADDR,
             U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
         ),
     )
@@ -338,11 +333,7 @@ fn should_invoke_successful_delegation_methods() {
     let undelegate_request = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_3_ADDR,
         client_api_proxy_hash,
-        (
-            UNDELEGATE_METHOD,
-            PublicKey::new(ACCOUNT_1_ADDR),
-            None as Option<U512>,
-        ),
+        (UNDELEGATE_METHOD, ACCOUNT_1_ADDR, None as Option<U512>),
     )
     .build();
 
@@ -368,14 +359,14 @@ fn should_invoke_successful_delegation_methods() {
     // Validate delegations
     let expected_delegation_1 = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR),
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         ACCOUNT_3_REDELEGATE_AMOUNT
     );
     let delegation_key_that_should_not_exist = format!(
         "d_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR)
+        base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes())
     );
     assert!(pos_contract
         .named_keys()
@@ -401,12 +392,12 @@ fn should_invoke_successful_delegation_methods() {
     // Validate stakes
     let expected_stakes_1 = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     let expected_stakes_2 = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_3_REDELEGATE_AMOUNT
     );
 
@@ -429,10 +420,9 @@ fn should_invoke_successful_delegation_methods() {
             .named_keys()
             .get(POS_BONDING_PURSE)
             .and_then(Key::as_uref)
-            .map(|u| PurseId::new(*u))
             .expect("should find PoS payment purse");
 
-        builder.get_purse_balance(purse_id)
+        builder.get_purse_balance(*purse_id)
     };
     assert_eq!(
         pos_bonding_purse_balance,
@@ -443,38 +433,38 @@ fn should_invoke_successful_delegation_methods() {
 #[ignore]
 #[test]
 fn should_invoke_successful_vote_and_unvote() {
-    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
-    const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
-    const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
+    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
+    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
+    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_VOTE_AMOUNT: u64 = 10_000;
 
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            ACCOUNT_2_ADDR_DAPP_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            ACCOUNT_3_ADDR_USER_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_4_ADDR_USER_2),
+            ACCOUNT_4_ADDR_USER_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_5_ADDR_USER_3),
+            ACCOUNT_5_ADDR_USER_3,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -496,7 +486,7 @@ fn should_invoke_successful_vote_and_unvote() {
         client_api_proxy_hash,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -530,7 +520,7 @@ fn should_invoke_successful_vote_and_unvote() {
         client_api_proxy_hash,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_2_ADDR_DAPP_2),
+            Key::Hash(ACCOUNT_2_ADDR_DAPP_2.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -564,7 +554,7 @@ fn should_invoke_successful_vote_and_unvote() {
         client_api_proxy_hash,
         (
             String::from(UNVOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
             None::<U512>,
         ),
     )
@@ -595,12 +585,12 @@ fn should_invoke_successful_vote_and_unvote() {
 #[ignore]
 #[test]
 fn should_invoke_successful_step() {
-    const SYSTEM_ADDR: [u8; 32] = [0u8; 32];
-    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
-    const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
-    const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
+    const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
+    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
+    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
+    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
     const ACCOUNT_3_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
@@ -610,27 +600,27 @@ fn should_invoke_successful_step() {
         // System account initiates automatically
         // Don't have to put in here
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            ACCOUNT_2_ADDR_DAPP_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            ACCOUNT_3_ADDR_USER_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_4_ADDR_USER_2),
+            ACCOUNT_4_ADDR_USER_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_5_ADDR_USER_3),
+            ACCOUNT_5_ADDR_USER_3,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -649,8 +639,8 @@ fn should_invoke_successful_step() {
     // there should be a genesis self-delegation
     let lookup_key_delegation = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract
@@ -659,7 +649,7 @@ fn should_invoke_successful_step() {
 
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -674,7 +664,7 @@ fn should_invoke_successful_step() {
         client_api_proxy_hash,
         (
             String::from(TRANSFER_TO_ACCOUNT_METHOD),
-            PublicKey::from(SYSTEM_ADDR),
+            SYSTEM_ADDR,
             U512::from(SYSTEM_ACC_SUPPORT),
         ),
     )
@@ -694,7 +684,7 @@ fn should_invoke_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let system_account_balance_actual = builder.get_purse_balance(system_account.purse_id());
+    let system_account_balance_actual = builder.get_purse_balance(system_account.main_purse());
     println!("system account balance: {}", system_account_balance_actual);
 
     // println!("1. write genesis supply");
@@ -784,7 +774,7 @@ fn should_invoke_successful_step() {
         client_api_proxy_hash,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
         ),
     )
@@ -897,8 +887,8 @@ fn should_invoke_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(
@@ -951,8 +941,8 @@ fn should_invoke_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(
@@ -986,8 +976,8 @@ fn should_invoke_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(

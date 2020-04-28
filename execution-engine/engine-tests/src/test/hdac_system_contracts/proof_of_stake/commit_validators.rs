@@ -24,12 +24,12 @@ fn should_return_bonded_validators() {
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account_1 = GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             Motes::new(ACCOUNT_1_BALANCE.into()),
             Motes::new(ACCOUNT_1_BOND.into()),
         );
         let account_2 = GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             Motes::new(ACCOUNT_2_BALANCE.into()),
             Motes::new(ACCOUNT_2_BOND.into()),
         );

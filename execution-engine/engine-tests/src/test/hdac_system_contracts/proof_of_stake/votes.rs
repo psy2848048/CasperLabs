@@ -16,38 +16,38 @@ const UNVOTE_METHOD: &str = "unvote";
 #[ignore]
 #[test]
 fn should_run_successful_vote_and_unvote_after_bonding() {
-    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
-    const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
-    const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
+    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
+    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
+    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_VOTE_AMOUNT: u64 = 10_000;
 
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            ACCOUNT_2_ADDR_DAPP_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            ACCOUNT_3_ADDR_USER_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_4_ADDR_USER_2),
+            ACCOUNT_4_ADDR_USER_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_5_ADDR_USER_3),
+            ACCOUNT_5_ADDR_USER_3,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -66,8 +66,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     // there should be a genesis self-delegation
     let lookup_key_delegation = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract
@@ -76,7 +76,7 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
 
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -90,7 +90,7 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -120,8 +120,8 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     // that validator should be a_{dApp_pubkey}_{user_pubkey}_{voted_amount}
     let lookup_key_vote = format!(
         "a_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
         ACCOUNT_3_VOTE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key_vote));
@@ -132,7 +132,7 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_2_ADDR_DAPP_2),
+            Key::Hash(ACCOUNT_2_ADDR_DAPP_2.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -166,7 +166,7 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
         CONTRACT_POS_VOTE,
         (
             String::from(UNVOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
             None::<U512>,
         ),
     )
@@ -199,26 +199,26 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
 fn should_fail_to_vote_more_than_bonded() {
     // 1. Try to vote twice.
     // 2. Second vote, the amount of vote exceeds than user's bond, an error expected
-    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
+    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_VOTE_AMOUNT: u64 = 30_000;
 
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            ACCOUNT_2_ADDR_DAPP_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            ACCOUNT_3_ADDR_USER_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
@@ -236,7 +236,7 @@ fn should_fail_to_vote_more_than_bonded() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1),
+            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )
@@ -274,7 +274,7 @@ fn should_fail_to_vote_more_than_bonded() {
         CONTRACT_POS_VOTE,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_2_ADDR_DAPP_2),
+            Key::Hash(ACCOUNT_2_ADDR_DAPP_2.value()),
             U512::from(ACCOUNT_3_VOTE_AMOUNT),
         ),
     )

@@ -10,6 +10,9 @@ service GossipService {
     // Notify the callee about new blocks being available on the caller.
     rpc NewBlocks(NewBlocksRequest) returns (NewBlocksResponse);
 
+    // Notify the callee about new deploys being available on the caller.
+    rpc NewDeploys(NewDeploysRequest) returns (NewDeploysResponse);
+
     // Retrieve the ancestors of certain blocks in the DAG; to be called repeatedly
     // as necessary to synchronize DAGs between peers.
     rpc StreamAncestorBlockSummaries(StreamAncestorBlockSummariesRequest) returns (stream io.casperlabs.casper.consensus.BlockSummary);
@@ -20,8 +23,18 @@ service GossipService {
     // Retrieve arbitrary block summaries, if the callee knows about them.
     rpc StreamBlockSummaries(StreamBlockSummariesRequest) returns (stream io.casperlabs.casper.consensus.BlockSummary);
 
+    // Retrieve arbitrary deploy summaries, if the callee knows about them.
+    rpc StreamDeploySummaries(StreamDeploySummariesRequest) returns (stream io.casperlabs.casper.consensus.DeploySummary);
+
     // Retrieve an arbitrarily sized block as a stream of chunks, with optionally compressed content.
     rpc GetBlockChunked(GetBlockChunkedRequest) returns (stream Chunk);
+
+    // Retrieve an arbitrary list of deploys, with optionally compressed contents.
+    // One use case would be to gossip deploys between nodes so that they can be included
+    // in a block by the first validator who gets to propose a block. The second case is
+    // to retrieve all the deploys which are missing from the body of a block, i.e. haven't
+    // been downloaded yet as part of earlier blocks or deploy gossiping.
+    rpc StreamDeploysChunked(StreamDeploysChunkedRequest) returns (stream Chunk);
 
     // Retrieve the Genesis candidate supported by this node. Every node should either produce one from specification,
     // get one from its bootstrap, or have it persisted from earlier runs.
@@ -50,8 +63,24 @@ message NewBlocksResponse {
     bool is_new = 1;
 }
 
+message NewDeploysRequest {
+    // Address of the caller from where the callee can download the deploys from.
+    io.casperlabs.comm.discovery.Node sender = 1;
+    repeated bytes deploy_hashes = 2;
+}
+
+message NewDeploysResponse {
+    // Indicate that some of the deploys in the notifications were new and the callee will attempt
+    // to gossip them to further nodes when it gets around to downloading them.
+    bool is_new = 1;
+}
+
 message StreamBlockSummariesRequest {
     repeated bytes block_hashes = 1;
+}
+
+message StreamDeploySummariesRequest {
+    repeated bytes deploy_hashes = 1;
 }
 
 message StreamAncestorBlockSummariesRequest {
@@ -75,6 +104,13 @@ message StreamLatestMessagesRequest {}
 
 message GetBlockChunkedRequest {
     bytes block_hash = 1;
+    uint32 chunk_size = 2;
+    repeated string accepted_compression_algorithms = 3;
+    bool exclude_deploy_bodies = 4;
+}
+
+message StreamDeploysChunkedRequest {
+    repeated bytes deploy_hashes = 1;
     uint32 chunk_size = 2;
     repeated string accepted_compression_algorithms = 3;
 }

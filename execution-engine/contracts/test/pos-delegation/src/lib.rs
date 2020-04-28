@@ -8,17 +8,14 @@ use contract::{
     contract_api::{account, runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use types::{
-    account::{PublicKey, PurseId},
-    ApiError, ContractRef, Key, U512,
-};
+use types::{account::PublicKey, ApiError, ContractRef, Key, URef, U512};
 
 #[repr(u16)]
 enum Error {
     UnknownCommand,
 }
 
-fn bond(pos: &ContractRef, amount: &U512, source: PurseId) {
+fn bond(pos: &ContractRef, amount: &U512, source: URef) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_BOND, *amount, source));
 }
 
@@ -30,7 +27,7 @@ fn step(pos: &ContractRef) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_STEP,));
 }
 
-fn delegate(pos: &ContractRef, validator: &PublicKey, amount: &U512, source: PurseId) {
+fn delegate(pos: &ContractRef, validator: &PublicKey, amount: &U512, source: URef) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_DELEGATE, *validator, *amount, source));
 }
 

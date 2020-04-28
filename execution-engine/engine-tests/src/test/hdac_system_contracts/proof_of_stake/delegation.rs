@@ -9,10 +9,7 @@ use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{
-    account::{PublicKey, PurseId},
-    ApiError, Key, U512,
-};
+use types::{account::PublicKey, ApiError, Key, U512};
 
 const CONTRACT_POS_DELEGATION: &str = "pos_delegation.wasm";
 
@@ -27,7 +24,7 @@ fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
         .named_keys()
         .get(POS_BONDING_PURSE)
         .and_then(Key::as_uref)
-        .map(|u| PurseId::new(*u))
+        .cloned()
         .expect("should find PoS payment purse");
 
     builder.get_purse_balance(purse_id)
@@ -36,8 +33,8 @@ fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
 #[ignore]
 #[test]
 fn should_run_successful_delegate_and_undelegate() {
-    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_2_DELEGATE_AMOUNT: u64 = 32_000;
     const ACCOUNT_2_UNDELEGATE_AMOUNT: u64 = 20_000;
@@ -46,12 +43,12 @@ fn should_run_successful_delegate_and_undelegate() {
     // ACCOUNT_2: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -70,8 +67,8 @@ fn should_run_successful_delegate_and_undelegate() {
     // there should be a genesis self-delegation
     let lookup_key = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -83,7 +80,7 @@ fn should_run_successful_delegate_and_undelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             U512::from(ACCOUNT_2_DELEGATE_AMOUNT),
         ),
     )
@@ -113,7 +110,7 @@ fn should_run_successful_delegate_and_undelegate() {
     // that validator should be v_{ACCOUNT_1}_{GENESIS_VALIDATOR_STAKE + ACCOUNT_2_DELEGATE_AMOUNT}
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_2_DELEGATE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -131,8 +128,8 @@ fn should_run_successful_delegate_and_undelegate() {
     // there should be d_{ACCOUNT_2}_{ACCOUNT_1}_{ACCOUNT_2_DELEGATE_AMOUNT}
     let lookup_key = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_2_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         ACCOUNT_2_DELEGATE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -153,7 +150,7 @@ fn should_run_successful_delegate_and_undelegate() {
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
     assert_eq!(
-        result.builder().get_purse_balance(account_2.purse_id()),
+        result.builder().get_purse_balance(account_2.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_2_DELEGATE_AMOUNT)
             - Motes::from_gas(gas_cost, CONV_RATE)
                 .expect("should convert")
@@ -167,7 +164,7 @@ fn should_run_successful_delegate_and_undelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(UNDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Some(U512::from(ACCOUNT_2_UNDELEGATE_AMOUNT)),
         ),
     )
@@ -187,7 +184,7 @@ fn should_run_successful_delegate_and_undelegate() {
     // validate validator stake amount
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_2_DELEGATE_AMOUNT - ACCOUNT_2_UNDELEGATE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -205,8 +202,8 @@ fn should_run_successful_delegate_and_undelegate() {
     // validate delegation amount which is deducted with ACCOUNT_2_UNDELEGATE_AMOUNT.
     let lookup_key = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_2_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         ACCOUNT_2_DELEGATE_AMOUNT - ACCOUNT_2_UNDELEGATE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -230,7 +227,7 @@ fn should_run_successful_delegate_and_undelegate() {
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
     assert_eq!(
-        result.builder().get_purse_balance(account_2.purse_id()),
+        result.builder().get_purse_balance(account_2.main_purse()),
         U512::from(
             DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_2_DELEGATE_AMOUNT
                 + ACCOUNT_2_UNDELEGATE_AMOUNT
@@ -246,7 +243,7 @@ fn should_run_successful_delegate_and_undelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(UNDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             None as Option<U512>,
         ),
     )
@@ -266,7 +263,7 @@ fn should_run_successful_delegate_and_undelegate() {
     // validate validator stake amount
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -286,9 +283,10 @@ fn should_run_successful_delegate_and_undelegate() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(
-                |(key, _)| key.starts_with(&format!("d_{}", base16::encode_lower(&ACCOUNT_2_ADDR)))
-            )
+            .filter(|(key, _)| key.starts_with(&format!(
+                "d_{}",
+                base16::encode_lower(ACCOUNT_2_ADDR.as_bytes())
+            )))
             .count(),
         0
     );
@@ -310,7 +308,7 @@ fn should_run_successful_delegate_and_undelegate() {
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
     assert_eq!(
-        result.builder().get_purse_balance(account_2.purse_id()),
+        result.builder().get_purse_balance(account_2.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
             - Motes::from_gas(gas_cost, CONV_RATE)
                 .expect("should convert")
@@ -321,9 +319,9 @@ fn should_run_successful_delegate_and_undelegate() {
 #[ignore]
 #[test]
 fn should_run_successful_redelegate() {
-    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR: [u8; 32] = [3u8; 32];
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR: PublicKey = PublicKey::ed25519_from([3u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 32_000;
@@ -334,17 +332,17 @@ fn should_run_successful_redelegate() {
     // ACCOUNT_3: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR),
+            ACCOUNT_3_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -356,7 +354,7 @@ fn should_run_successful_redelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
         ),
     )
@@ -367,8 +365,8 @@ fn should_run_successful_redelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(REDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_1_ADDR,
+            ACCOUNT_2_ADDR,
             U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
         ),
     )
@@ -403,12 +401,12 @@ fn should_run_successful_redelegate() {
     // validate stakes
     let expected_account_1_stake = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_3_DELEGATE_AMOUNT - ACCOUNT_3_REDELEGATE_AMOUNT
     );
     let expected_account_2_stake = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_3_REDELEGATE_AMOUNT
     );
 
@@ -422,14 +420,14 @@ fn should_run_successful_redelegate() {
     // validate delegations
     let expected_delegation_1 = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         ACCOUNT_3_DELEGATE_AMOUNT - ACCOUNT_3_REDELEGATE_AMOUNT
     );
     let expected_delegation_2 = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR),
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         ACCOUNT_3_REDELEGATE_AMOUNT
     );
     assert!(pos_contract
@@ -451,8 +449,8 @@ fn should_run_successful_redelegate() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(REDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_1_ADDR,
+            ACCOUNT_2_ADDR,
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT - ACCOUNT_3_REDELEGATE_AMOUNT),
         ),
     )
@@ -469,12 +467,12 @@ fn should_run_successful_redelegate() {
     // validate stakes
     let expected_account_1_stake = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     let expected_account_2_stake = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         GENESIS_VALIDATOR_STAKE + ACCOUNT_3_DELEGATE_AMOUNT
     );
 
@@ -488,8 +486,8 @@ fn should_run_successful_redelegate() {
     // validate delegations
     let expected_delegation = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR),
-        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
+        base16::encode_lower(ACCOUNT_2_ADDR.as_bytes()),
         ACCOUNT_3_DELEGATE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&expected_delegation));
@@ -499,9 +497,10 @@ fn should_run_successful_redelegate() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(
-                |(key, _)| key.starts_with(&format!("d_{}", base16::encode_lower(&ACCOUNT_3_ADDR)))
-            )
+            .filter(|(key, _)| key.starts_with(&format!(
+                "d_{}",
+                base16::encode_lower(ACCOUNT_3_ADDR.as_bytes())
+            )))
             .count(),
         1
     );
@@ -523,7 +522,7 @@ fn should_run_successful_redelegate() {
         .get_account(ACCOUNT_3_ADDR)
         .expect("should get account 3");
     assert_eq!(
-        result.builder().get_purse_balance(account_3.purse_id()),
+        result.builder().get_purse_balance(account_3.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_3_DELEGATE_AMOUNT)
             - Motes::from_gas(gas_cost, CONV_RATE)
                 .expect("should convert")
@@ -534,8 +533,8 @@ fn should_run_successful_redelegate() {
 #[ignore]
 #[test]
 fn should_fail_to_unbond_more_than_own_self_delegation() {
-    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_2_DELEGATE_AMOUNT: u64 = 32_000;
@@ -544,12 +543,12 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
     // ACCOUNT_2: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -561,7 +560,7 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             U512::from(ACCOUNT_2_DELEGATE_AMOUNT),
         ),
     )
@@ -605,8 +604,8 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
 #[ignore]
 #[test]
 fn should_fail_to_delegate_to_unbonded_validator() {
-    const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
     const ACCOUNT_1_DELEGATE_AMOUNT: u64 = 32_000;
@@ -615,12 +614,12 @@ fn should_fail_to_delegate_to_unbonded_validator() {
     // ACCOUNT_2: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -632,7 +631,7 @@ fn should_fail_to_delegate_to_unbonded_validator() {
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_2_ADDR),
+            ACCOUNT_2_ADDR,
             U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
         ),
     )
@@ -670,12 +669,12 @@ fn should_fail_to_redelegate_non_existent_delegation() {
     // ACCOUNT_2: a bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
@@ -683,12 +682,12 @@ fn should_fail_to_redelegate_non_existent_delegation() {
 
     // redelegate request from ACCOUNT_2 to self.
     let redelegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_1_ADDR,
+        PublicKey::ed25519_from(ACCOUNT_1_ADDR),
         CONTRACT_POS_DELEGATION,
         (
             String::from(REDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_2_ADDR),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             U512::from(ACCOUNT_1_REDELEGATE_AMOUNT),
         ),
     )
@@ -729,12 +728,12 @@ fn should_fail_to_self_redelegate() {
     // ACCOUNT_2: a bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -742,11 +741,11 @@ fn should_fail_to_self_redelegate() {
 
     // delegate request from ACCOUNT_2 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_2_ADDR,
+        PublicKey::ed25519_from(ACCOUNT_2_ADDR),
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
         ),
     )
@@ -754,12 +753,12 @@ fn should_fail_to_self_redelegate() {
 
     // redelegate request from ACCOUNT_2 which redelegates from ACCOUNT_1 to ACCOUNT_1.
     let redelegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_2_ADDR,
+        PublicKey::ed25519_from(ACCOUNT_2_ADDR),
         CONTRACT_POS_DELEGATION,
         (
             String::from(REDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
         ),
     )
@@ -806,17 +805,17 @@ fn should_fail_to_redelegate_more_than_own_shares() {
     // ACCOUNT_3: a not bonded account with the initial balance.
     let accounts = vec![
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_3_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -824,11 +823,11 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_3_ADDR,
+        PublicKey::ed25519_from(ACCOUNT_3_ADDR),
         CONTRACT_POS_DELEGATION,
         (
             String::from(DELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
         ),
     )
@@ -836,12 +835,12 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     // redelegate request from ACCOUNT_3 which redelegates from ACCOUNT_1 to ACCOUNT_2.
     let redelegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_3_ADDR,
+        PublicKey::ed25519_from(ACCOUNT_3_ADDR),
         CONTRACT_POS_DELEGATION,
         (
             String::from(REDELEGATE_METHOD),
-            PublicKey::new(ACCOUNT_1_ADDR),
-            PublicKey::new(ACCOUNT_2_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_1_ADDR),
+            PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
         ),
     )

@@ -3,31 +3,19 @@
 extern crate alloc;
 
 mod constants;
-mod contract_delegations;
-mod contract_economy;
-mod contract_mint;
-mod contract_queue;
-mod contract_runtime;
-mod contract_stakes;
-mod contract_votes;
 mod math;
-mod pop_contract;
+mod pop_impl;
 
 use alloc::string::String;
 
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use proof_of_stake::ProofOfStake;
-use types::{
-    account::{PublicKey, PurseId},
-    ApiError, CLValue, Key, URef, U512,
-};
+use types::{account::PublicKey, ApiError, CLValue, Key, URef, U512};
 
-pub use crate::pop_contract::ProofOfProfessionContract;
-
-use crate::constants::methods;
+use crate::{constants::methods, pop_impl::ProofOfProfessionContract};
 
 pub fn delegate() {
-    let pop_contract = ProofOfProfessionContract;
+    let mut pop_contract = ProofOfProfessionContract;
 
     let method_name: String = runtime::get_arg(0)
         .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -62,20 +50,20 @@ pub fn delegate() {
             // This is called by the system in every block.
             pop_contract.step().unwrap_or_revert();
         }
-        // Type of this method: `fn get_payment_purse() -> PurseId`
+        // Type of this method: `fn get_payment_purse() -> URef`
         methods::METHOD_GET_PAYMENT_PURSE => {
             let rights_controlled_purse = pop_contract.get_payment_purse().unwrap_or_revert();
             let return_value = CLValue::from_t(rights_controlled_purse).unwrap_or_revert();
             runtime::ret(return_value);
         }
-        // Type of this method: `fn set_refund_purse(purse_id: PurseId)`
+        // Type of this method: `fn set_refund_purse(purse_id: URef)`
         methods::METHOD_SET_REFUND_PURSE => {
-            let purse_id: PurseId = runtime::get_arg(1)
+            let purse_id: URef = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract.set_refund_purse(purse_id).unwrap_or_revert();
         }
-        // Type of this method: `fn get_refund_purse() -> PurseId`
+        // Type of this method: `fn get_refund_purse() -> URef`
         methods::METHOD_GET_REFUND_PURSE => {
             // We purposely choose to remove the access rights so that we do not
             // accidentally give rights for a purse to some contract that is not
