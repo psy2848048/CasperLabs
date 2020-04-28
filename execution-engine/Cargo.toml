@@ -3,7 +3,6 @@ cargo-features = ["profile-overrides"]
 [workspace]
 
 members = [
-    "cargo-casperlabs",
     "contract",
     "contracts/[!.]*/*",
     "engine-core",
@@ -23,7 +22,6 @@ exclude = [
 ]
 
 default-members = [
-    "cargo-casperlabs",
     "contract",
     "engine-core",
     "engine-grpc-server",
