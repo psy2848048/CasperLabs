@@ -4,7 +4,8 @@ import {Error} from "../../../../contract-as/assembly/error";
 import {fromBytesString} from "../../../../contract-as/assembly/bytesrepr";
 import {Key} from "../../../../contract-as/assembly/key";
 import {putKey} from "../../../../contract-as/assembly";
-import {PurseId} from "../../../../contract-as/assembly/purseid";
+import {createPurse} from "../../../../contract-as/assembly/purse";
+import {URef} from "../../../../contract-as/assembly/uref";
 
 enum Args {
   PurseName = 0,
@@ -12,8 +13,7 @@ enum Args {
 
 enum CustomError {
   MissingPurseNameArg = 1,
-  InvalidPurseNameArg = 2,
-  UnableToCreatePurse = 3
+  InvalidPurseNameArg = 2
 }
 
 export function call(): void {
@@ -30,13 +30,8 @@ export function call(): void {
   }
   let purseName = purseNameResult.value;
 
-  const maybePurse = PurseId.create();
-  if (maybePurse === null){
-    Error.fromUserError(<u16>CustomError.UnableToCreatePurse).revert();
-    return;
-  }
+  const purse = createPurse();
 
-  const key = Key.fromURef(maybePurse.asURef());
-
+  const key = Key.fromURef(purse);
   putKey(purseName, <Key>key);
 }

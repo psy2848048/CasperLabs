@@ -22,12 +22,12 @@ const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 #[ignore]
 #[test]
 fn should_run_successful_step() {
-    const SYSTEM_ADDR: [u8; 32] = [0u8; 32];
-    const ACCOUNT_1_ADDR_DAPP_1: [u8; 32] = [1u8; 32];
-    const ACCOUNT_2_ADDR_DAPP_2: [u8; 32] = [2u8; 32];
-    const ACCOUNT_3_ADDR_USER_1: [u8; 32] = [3u8; 32];
-    const ACCOUNT_4_ADDR_USER_2: [u8; 32] = [4u8; 32];
-    const ACCOUNT_5_ADDR_USER_3: [u8; 32] = [5u8; 32];
+    const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
+    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
+    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
+    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
+    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
     const ACCOUNT_3_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
@@ -37,27 +37,27 @@ fn should_run_successful_step() {
         // System account initiates automatically
         // Don't have to put in here
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_2_ADDR_DAPP_2),
+            ACCOUNT_2_ADDR_DAPP_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_3_ADDR_USER_1),
+            ACCOUNT_3_ADDR_USER_1,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_4_ADDR_USER_2),
+            ACCOUNT_4_ADDR_USER_2,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
         GenesisAccount::new(
-            PublicKey::new(ACCOUNT_5_ADDR_USER_3),
+            ACCOUNT_5_ADDR_USER_3,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::zero(),
         ),
@@ -76,8 +76,8 @@ fn should_run_successful_step() {
     // there should be a genesis self-delegation
     let lookup_key_delegation = format!(
         "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
-        base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract
@@ -86,7 +86,7 @@ fn should_run_successful_step() {
 
     let lookup_key = format!(
         "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_3_ADDR_USER_1),
+        base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
         GENESIS_VALIDATOR_STAKE
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key));
@@ -97,7 +97,7 @@ fn should_run_successful_step() {
     let token_transfer_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR_DAPP_1,
         CONTRACT_TRANSFER_PURSE_TO_ACCOUNT,
-        (PublicKey::from(SYSTEM_ADDR), U512::from(SYSTEM_ACC_SUPPORT)),
+        (SYSTEM_ADDR, U512::from(SYSTEM_ACC_SUPPORT)),
     )
     .build();
 
@@ -115,7 +115,7 @@ fn should_run_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let system_account_balance_actual = builder.get_purse_balance(system_account.purse_id());
+    let system_account_balance_actual = builder.get_purse_balance(system_account.main_purse());
     println!("system account balance: {}", system_account_balance_actual);
 
     println!("1. write genesis supply");
@@ -205,7 +205,7 @@ fn should_run_successful_step() {
         CONTRACT_POS_VOTE,
         (
             String::from(METHOD_DELEGATE),
-            PublicKey::new(ACCOUNT_1_ADDR_DAPP_1),
+            ACCOUNT_1_ADDR_DAPP_1,
             U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
         ),
     )
@@ -318,8 +318,8 @@ fn should_run_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(
@@ -372,8 +372,8 @@ fn should_run_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(
@@ -407,8 +407,8 @@ fn should_run_successful_step() {
     let system_account = builder
         .get_account(SYSTEM_ADDR)
         .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.purse_id());
-    let system_balance = builder.get_purse_balance(system_account.purse_id());
+    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
+    let system_balance = builder.get_purse_balance(system_account.main_purse());
 
     println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
     println!(

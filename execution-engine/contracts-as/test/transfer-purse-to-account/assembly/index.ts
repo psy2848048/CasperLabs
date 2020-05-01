@@ -4,9 +4,10 @@ import {Error, ErrorCode} from "../../../../contract-as/assembly/error";
 import {U512} from "../../../../contract-as/assembly/bignum";
 import {getMainPurse} from "../../../../contract-as/assembly/account";
 import {Key} from "../../../../contract-as/assembly/key";
-import {PurseId, TransferredTo} from "../../../../contract-as/assembly/purseid";
 import {putKey} from "../../../../contract-as/assembly";
 import {CLValue} from "../../../../contract-as/assembly/clvalue";
+import {getPurseBalance, transferFromPurseToAccount, TransferredTo} from "../../../../contract-as/assembly/purse";
+import {URef} from "../../../../contract-as/assembly/uref";
 
 
 const TRANSFER_RESULT_UREF_NAME = "transfer_result";
@@ -21,17 +22,11 @@ enum CustomError{
     MissingAmountArg = 1,
     InvalidAmountArg = 2,
     MissingDestinationAccountArg = 3,
-    UnableToGetMainPurse = 4,
     UnableToGetBalance = 103
 }
 
 export function call(): void {
-    const maybeMainPurse = getMainPurse();
-    if (maybeMainPurse === null) {
-        Error.fromUserError(<u16>CustomError.UnableToGetMainPurse).revert();
-        return;
-    }
-    const mainPurse = <PurseId>maybeMainPurse;
+    const mainPurse = getMainPurse();
     const destinationAccountAddrArg = CL.getArg(Args.DestinationAccount);
     if (destinationAccountAddrArg === null) {
         Error.fromUserError(<u16>CustomError.MissingDestinationAccountArg).revert();
@@ -49,7 +44,7 @@ export function call(): void {
     }
     let amount = amountResult.value;
     let message = "";
-    const result = mainPurse.transferToAccount(<Uint8Array>destinationAccountAddrArg, amount);
+    const result = transferFromPurseToAccount(<URef>mainPurse, <Uint8Array>destinationAccountAddrArg, amount);
     switch (result) {
         case TransferredTo.NewAccount:
             message = "Ok(NewAccount)";
@@ -63,7 +58,7 @@ export function call(): void {
     }
     const transferResultKey = Key.create(CLValue.fromString(message));
     putKey(TRANSFER_RESULT_UREF_NAME, <Key>transferResultKey);
-    const maybeBalance  = mainPurse.getBalance();
+    const maybeBalance = getPurseBalance(mainPurse);
     if (maybeBalance === null) {
         Error.fromUserError(<u16>CustomError.UnableToGetBalance).revert();
         return;

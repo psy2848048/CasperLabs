@@ -4,18 +4,20 @@ use engine_core::engine_state::{
 };
 use engine_shared::{motes::Motes, stored_value::StoredValue};
 use engine_test_support::internal::{
-    utils, InMemoryWasmTestBuilder, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT, POS_INSTALL_CONTRACT,
+    utils, InMemoryWasmTestBuilder, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
+    POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
 };
 use types::{account::PublicKey, Key, ProtocolVersion, U512};
 
 const MINT_INSTALL: &str = MINT_INSTALL_CONTRACT;
 const POS_INSTALL: &str = POS_INSTALL_CONTRACT;
+const STANDARD_PAYMENT_INSTALL: &str = STANDARD_PAYMENT_INSTALL_CONTRACT;
 const BAD_INSTALL: &str = "standard_payment.wasm";
 
 const CHAIN_NAME: &str = "Jeremiah";
 const TIMESTAMP: u64 = 0;
-const ACCOUNT_1_ADDR: [u8; 32] = [1u8; 32];
-const ACCOUNT_2_ADDR: [u8; 32] = [2u8; 32];
+const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 const ACCOUNT_1_BONDED_AMOUNT: u64 = 1_000_000;
 const ACCOUNT_2_BONDED_AMOUNT: u64 = 2_000_000;
 const ACCOUNT_1_BALANCE: u64 = 1_000_000_000;
@@ -26,7 +28,7 @@ const ACCOUNT_2_BALANCE: u64 = 2_000_000_000;
 fn should_run_genesis() {
     let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
     let account_1 = {
-        let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
+        let account_1_public_key = ACCOUNT_1_ADDR;
         let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
         GenesisAccount::new(
             account_1_public_key,
@@ -37,7 +39,7 @@ fn should_run_genesis() {
 
     let account_2_balance = Motes::new(ACCOUNT_2_BALANCE.into());
     let account_2 = {
-        let account_2_public_key = PublicKey::new(ACCOUNT_2_ADDR);
+        let account_2_public_key = ACCOUNT_2_ADDR;
         let account_2_bonded_amount = Motes::new(ACCOUNT_2_BONDED_AMOUNT.into());
         GenesisAccount::new(
             account_2_public_key,
@@ -49,6 +51,7 @@ fn should_run_genesis() {
     let name = CHAIN_NAME.to_string();
     let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL);
     let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL);
+    let standard_payment_installer_bytes = utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL);
     let accounts = vec![account_1, account_2];
     let protocol_version = ProtocolVersion::V1_0_0;
     let wasm_costs = *DEFAULT_WASM_COSTS;
@@ -59,6 +62,7 @@ fn should_run_genesis() {
         protocol_version,
         mint_installer_bytes,
         pos_installer_bytes,
+        standard_payment_installer_bytes,
         accounts,
         wasm_costs,
     );
@@ -79,9 +83,9 @@ fn should_run_genesis() {
         .get_account(ACCOUNT_2_ADDR)
         .expect("account 2 should exist");
 
-    let system_account_balance_actual = builder.get_purse_balance(system_account.purse_id());
-    let account_1_balance_actual = builder.get_purse_balance(account_1.purse_id());
-    let account_2_balance_actual = builder.get_purse_balance(account_2.purse_id());
+    let system_account_balance_actual = builder.get_purse_balance(system_account.main_purse());
+    let account_1_balance_actual = builder.get_purse_balance(account_1.main_purse());
+    let account_2_balance_actual = builder.get_purse_balance(account_2.main_purse());
 
     assert_eq!(system_account_balance_actual, U512::zero());
     assert_eq!(account_1_balance_actual, account_1_balance.value());
@@ -109,7 +113,7 @@ fn should_run_genesis() {
 fn should_fail_if_bad_mint_install_contract_is_provided() {
     let genesis_config = {
         let account_1 = {
-            let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
+            let account_1_public_key = ACCOUNT_1_ADDR;
             let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
             let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
             GenesisAccount::new(
@@ -119,7 +123,7 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
             )
         };
         let account_2 = {
-            let account_2_public_key = PublicKey::new(ACCOUNT_2_ADDR);
+            let account_2_public_key = ACCOUNT_2_ADDR;
             let account_2_balance = Motes::new(ACCOUNT_2_BALANCE.into());
             let account_2_bonded_amount = Motes::new(ACCOUNT_2_BONDED_AMOUNT.into());
             GenesisAccount::new(
@@ -131,6 +135,8 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
         let name = CHAIN_NAME.to_string();
         let mint_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
         let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL);
+        let standard_payment_installer_bytes =
+            utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL);
         let accounts = vec![account_1, account_2];
         let protocol_version = ProtocolVersion::V1_0_0;
         let wasm_costs = *DEFAULT_WASM_COSTS;
@@ -141,6 +147,7 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
             protocol_version,
             mint_installer_bytes,
             pos_installer_bytes,
+            standard_payment_installer_bytes,
             accounts,
             wasm_costs,
         )
@@ -157,7 +164,7 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
 fn should_fail_if_bad_pos_install_contract_is_provided() {
     let genesis_config = {
         let account_1 = {
-            let account_1_public_key = PublicKey::new(ACCOUNT_1_ADDR);
+            let account_1_public_key = ACCOUNT_1_ADDR;
             let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
             let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
             GenesisAccount::new(
@@ -167,7 +174,7 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
             )
         };
         let account_2 = {
-            let account_2_public_key = PublicKey::new(ACCOUNT_2_ADDR);
+            let account_2_public_key = ACCOUNT_2_ADDR;
             let account_2_balance = Motes::new(ACCOUNT_2_BALANCE.into());
             let account_2_bonded_amount = Motes::new(ACCOUNT_2_BONDED_AMOUNT.into());
             GenesisAccount::new(
@@ -179,6 +186,8 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
         let name = CHAIN_NAME.to_string();
         let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL);
         let pos_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
+        let standard_payment_installer_bytes =
+            utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL);
         let accounts = vec![account_1, account_2];
         let protocol_version = ProtocolVersion::V1_0_0;
         let wasm_costs = *DEFAULT_WASM_COSTS;
@@ -189,6 +198,7 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
             protocol_version,
             mint_installer_bytes,
             pos_installer_bytes,
+            standard_payment_installer_bytes,
             accounts,
             wasm_costs,
         )

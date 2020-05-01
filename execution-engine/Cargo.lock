@@ -4,24 +4,24 @@
 name = "add-associated-key"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "add-gas-subcall"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "add-update-associated-key"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -49,24 +49,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "args-multi"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "args-u32"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "args-u512"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -93,8 +93,8 @@ dependencies = [
 name = "authorized-keys"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -189,16 +189,16 @@ dependencies = [
 name = "bonding"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "bonding-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -246,20 +246,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "cargo-casperlabs"
-version = "0.3.0"
-dependencies = [
- "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "colour 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "toml 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "casperlabs-contract"
-version = "0.2.0"
+version = "0.4.1"
 dependencies = [
- "casperlabs-types 0.2.0",
+ "casperlabs-types 0.4.1",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex_fmt 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "version-sync 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -268,20 +258,24 @@ dependencies = [
 
 [[package]]
 name = "casperlabs-engine-core"
-version = "0.2.0"
+version = "0.5.1"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-engine-shared 0.3.0",
- "casperlabs-engine-storage 0.2.0",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-engine-shared 0.5.1",
+ "casperlabs-engine-storage 0.5.1",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-mint 0.2.1",
+ "casperlabs-proof-of-stake 0.2.1",
+ "casperlabs-standard-payment 0.2.1",
+ "casperlabs-types 0.4.1",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex_fmt 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "itertools 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked-hash-map 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "matches 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-derive 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -295,19 +289,19 @@ dependencies = [
 
 [[package]]
 name = "casperlabs-engine-grpc-server"
-version = "0.14.0"
+version = "0.18.1"
 dependencies = [
- "casperlabs-engine-core 0.2.0",
- "casperlabs-engine-shared 0.3.0",
- "casperlabs-engine-storage 0.2.0",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-engine-core 0.5.1",
+ "casperlabs-engine-shared 0.5.1",
+ "casperlabs-engine-storage 0.5.1",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-types 0.4.1",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ctrlc 3.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "grpc 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
- "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lmdb 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "parity-wasm 0.31.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "proptest 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 2.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -319,21 +313,21 @@ dependencies = [
 name = "casperlabs-engine-metrics-scraper"
 version = "0.1.0"
 dependencies = [
- "casperlabs-engine-shared 0.3.0",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures 0.1.29 (registry+https://github.com/rust-lang/crates.io-index)",
  "hyper 0.12.35 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio 0.1.22 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "casperlabs-engine-shared"
-version = "0.3.0"
+version = "0.5.1"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "blake2 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-types 0.4.1",
  "chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "hostname 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -345,15 +339,16 @@ dependencies = [
  "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wabt 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "casperlabs-engine-storage"
-version = "0.2.0"
+version = "0.5.1"
 dependencies = [
- "casperlabs-engine-shared 0.3.0",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-engine-shared 0.5.1",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-types 0.4.1",
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lmdb 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -366,18 +361,19 @@ dependencies = [
 
 [[package]]
 name = "casperlabs-engine-test-support"
-version = "0.3.0"
+version = "0.6.3"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-engine-core 0.2.0",
- "casperlabs-engine-grpc-server 0.14.0",
- "casperlabs-engine-shared 0.3.0",
- "casperlabs-engine-storage 0.2.0",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-engine-core 0.5.1",
+ "casperlabs-engine-grpc-server 0.18.1",
+ "casperlabs-engine-shared 0.5.1",
+ "casperlabs-engine-storage 0.5.1",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-types 0.4.1",
  "grpc 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "lmdb 0.8.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "protobuf 2.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.7.3 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -389,14 +385,14 @@ name = "casperlabs-engine-tests"
 version = "0.1.0"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-engine-core 0.2.0",
- "casperlabs-engine-grpc-server 0.14.0",
- "casperlabs-engine-shared 0.3.0",
- "casperlabs-engine-storage 0.2.0",
- "casperlabs-engine-test-support 0.3.0",
- "casperlabs-engine-wasm-prep 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-engine-core 0.5.1",
+ "casperlabs-engine-grpc-server 0.18.1",
+ "casperlabs-engine-shared 0.5.1",
+ "casperlabs-engine-storage 0.5.1",
+ "casperlabs-engine-test-support 0.6.3",
+ "casperlabs-engine-wasm-prep 0.4.1",
+ "casperlabs-types 0.4.1",
  "clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "criterion 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -405,14 +401,16 @@ dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
  "tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wabt 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "casperlabs-engine-wasm-prep"
-version = "0.2.0"
+version = "0.4.1"
 dependencies = [
- "casperlabs-types 0.2.0",
+ "casperlabs-types 0.4.1",
  "parity-wasm 0.31.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "proptest 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "pwasm-utils 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -420,21 +418,29 @@ dependencies = [
 
 [[package]]
 name = "casperlabs-mint"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
- "casperlabs-types 0.2.0",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "casperlabs-proof-of-stake"
-version = "0.1.0"
+version = "0.2.1"
 dependencies = [
- "casperlabs-types 0.2.0",
+ "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
+name = "casperlabs-standard-payment"
+version = "0.2.1"
+dependencies = [
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "casperlabs-types"
-version = "0.2.0"
+version = "0.4.1"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "bitflags 1.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -442,6 +448,7 @@ dependencies = [
  "failure 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "hex_fmt 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-derive 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-integer 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
  "proptest 0.9.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "uint 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -470,8 +477,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "check-system-contract-urefs-access-rights"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -502,8 +509,8 @@ dependencies = [
 name = "client-api-proxy"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -515,12 +522,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "colour"
-version = "0.3.0"
+name = "cmake"
+version = "0.1.42"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
- "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "term 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cc 1.0.50 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -532,48 +538,48 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "counter-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "counter-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "create-accounts"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "create-named-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "create-purse-01"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "create-purses"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -602,8 +608,8 @@ name = "create-test-node-shared"
 version = "0.1.0"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -735,8 +741,8 @@ dependencies = [
 name = "deserialize-error"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -751,18 +757,8 @@ dependencies = [
 name = "direct-revert"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
-]
-
-[[package]]
-name = "dirs"
-version = "1.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)",
- "redox_users 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -789,31 +785,31 @@ dependencies = [
 name = "do-nothing"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
 name = "do-nothing-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "do-nothing-stored-caller"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "do-nothing-stored-upgrader"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "create-purse-01 0.1.0",
 ]
 
@@ -821,142 +817,142 @@ dependencies = [
 name = "ee-221-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-401-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-401-regression-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-441-rng-state"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-460-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-532-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
 name = "ee-536-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-539-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-549-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
 name = "ee-550-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-572-regression-create"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-572-regression-escalate"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-584-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-597-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-598-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-599-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-601-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "ee-803-regression"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -968,7 +964,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "endless-loop"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
@@ -994,9 +990,16 @@ dependencies = [
 name = "erc20-smart-contract"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "erc20-logic 0.1.0",
+]
+
+[[package]]
+name = "expensive-calculation"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
@@ -1023,8 +1026,8 @@ dependencies = [
 name = "faucet"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1077,64 +1080,64 @@ dependencies = [
 name = "get-arg"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-blocktime"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-caller"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-caller-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-caller-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-caller-subcall"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-phase"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "get-phase-payment"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1146,6 +1149,11 @@ dependencies = [
  "libc 0.2.66 (registry+https://github.com/rust-lang/crates.io-index)",
  "wasi 0.9.0+wasi-snapshot-preview1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "glob"
+version = "0.2.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "grpc"
@@ -1196,8 +1204,8 @@ dependencies = [
 name = "hdac-mint-install"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "hdac-mint-token 0.1.0",
 ]
 
@@ -1205,9 +1213,9 @@ dependencies = [
 name = "hdac-mint-token"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-mint 0.1.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-mint 0.2.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1222,16 +1230,16 @@ dependencies = [
 name = "hello-name-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "hello-name-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1401,16 +1409,16 @@ dependencies = [
 name = "key-management-thresholds"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "keys-manager"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1432,24 +1440,24 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "list-known-urefs-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "list-known-urefs-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "list-named-keys"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1476,23 +1484,23 @@ dependencies = [
 name = "local-state"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
+ "casperlabs-contract 0.4.1",
 ]
 
 [[package]]
 name = "local-state-add"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "local-state-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "local-state 0.1.0",
 ]
 
@@ -1500,16 +1508,16 @@ dependencies = [
 name = "local-state-stored-caller"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "local-state-stored-upgraded"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "local-state 0.1.0",
 ]
 
@@ -1517,8 +1525,8 @@ dependencies = [
 name = "local-state-stored-upgrader"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "local-state-stored-upgraded 0.1.0",
 ]
 
@@ -1544,30 +1552,31 @@ version = "0.4.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "cfg-if 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "mailing-list-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "mailing-list-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "main-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1589,8 +1598,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "measure-gas-subcall"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
+name = "measure-gas-subcall-2"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1620,8 +1637,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "mint-install"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "mint-token 0.1.0",
 ]
 
@@ -1629,17 +1646,17 @@ dependencies = [
 name = "mint-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "mint-token"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-mint 0.1.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-mint 0.2.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1685,9 +1702,9 @@ dependencies = [
 name = "modified-mint"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-mint 0.1.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-mint 0.2.1",
+ "casperlabs-types 0.4.1",
  "mint-token 0.1.0",
 ]
 
@@ -1695,16 +1712,16 @@ dependencies = [
 name = "modified-mint-caller"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "modified-mint-upgrader"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "modified-mint 0.1.0",
 ]
 
@@ -1712,26 +1729,27 @@ dependencies = [
 name = "modified-system-upgrader"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "modified-mint 0.1.0",
  "pos 0.1.0",
+ "standard-payment 0.1.0",
 ]
 
 [[package]]
 name = "named-keys"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "named-purse-payment"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1784,6 +1802,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "autocfg 1.0.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "num-derive"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "proc-macro2 0.4.30 (registry+https://github.com/rust-lang/crates.io-index)",
+ "quote 0.6.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "syn 0.15.44 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -1856,8 +1884,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "overwrite-uref-content"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1918,8 +1946,8 @@ dependencies = [
 name = "payment-from-named-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -1948,17 +1976,17 @@ name = "pop"
 version = "0.1.0"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-proof-of-stake 0.1.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-proof-of-stake 0.2.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pop-install"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "client-api-proxy 0.1.0",
  "pop 0.1.0",
 ]
@@ -1968,49 +1996,51 @@ name = "pos"
 version = "0.1.0"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
- "casperlabs-contract 0.2.0",
- "casperlabs-proof-of-stake 0.1.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-proof-of-stake 0.2.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pos-bonding"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pos-delegation"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pos-finalize-payment"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pos-get-payment-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "pos-install"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-proof-of-stake 0.2.1",
+ "casperlabs-types 0.4.1",
  "pos 0.1.0",
 ]
 
@@ -2018,8 +2048,8 @@ dependencies = [
 name = "pos-refund-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2123,24 +2153,24 @@ dependencies = [
 name = "purse-holder-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "purse-holder-stored-caller"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "purse-holder-stored-upgrader"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2392,8 +2422,8 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "remove-associated-key"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2408,8 +2438,8 @@ dependencies = [
 name = "revert"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2530,16 +2560,16 @@ dependencies = [
 name = "set-key-thresholds"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "simple-transfer"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2574,16 +2604,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "standard-payment"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-proof-of-stake 0.2.1",
+ "casperlabs-standard-payment 0.2.1",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
+name = "standard-payment-install"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+ "standard-payment 0.1.0",
 ]
 
 [[package]]
 name = "standard-payment-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "standard-payment 0.1.0",
 ]
 
@@ -2591,8 +2632,8 @@ dependencies = [
 name = "state-initializer"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2617,16 +2658,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "subcall-revert-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "subcall-revert-define"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2669,8 +2710,8 @@ dependencies = [
 name = "system-contracts-access"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -2696,16 +2737,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "term"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-dependencies = [
- "byteorder 1.3.4 (registry+https://github.com/rust-lang/crates.io-index)",
- "dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)",
- "winapi 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
-]
-
-[[package]]
 name = "termcolor"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2717,17 +2748,22 @@ dependencies = [
 name = "test-hdac-mint-token"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "test-mint-token"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
+
+[[package]]
+name = "text_io"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "textwrap"
@@ -2743,6 +2779,32 @@ version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "lazy_static 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tic-tac-toe-cli"
+version = "0.1.0"
+dependencies = [
+ "text_io 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tic-tac-toe-logic 0.1.0",
+]
+
+[[package]]
+name = "tic-tac-toe-logic"
+version = "0.1.0"
+dependencies = [
+ "num-derive 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "tic-tac-toe-smart-contract"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+ "num-traits 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "tic-tac-toe-logic 0.1.0",
 ]
 
 [[package]]
@@ -3025,48 +3087,56 @@ dependencies = [
 name = "transfer-main-purse-to-new-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-purse-to-account"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-purse-to-account-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-purse-to-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-to-account"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
+name = "transfer-to-account-batch"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-to-account-stored"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "transfer-to-account 0.1.0",
 ]
 
@@ -3074,24 +3144,33 @@ dependencies = [
 name = "transfer-to-account-u512"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
+name = "transfer-to-account-u512-stored"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+ "transfer-to-account-u512 0.1.0",
 ]
 
 [[package]]
 name = "transfer-to-existing-account"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "transfer-to-purse"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -3119,16 +3198,16 @@ dependencies = [
 name = "unbonding"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
 name = "unbonding-call"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -3188,8 +3267,8 @@ dependencies = [
 name = "update-associated-key"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
 ]
 
 [[package]]
@@ -3252,8 +3331,8 @@ dependencies = [
 name = "vesting-smart-contract"
 version = "0.1.0"
 dependencies = [
- "casperlabs-contract 0.2.0",
- "casperlabs-types 0.2.0",
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
  "vesting-logic 0.1.0",
 ]
 
@@ -3261,6 +3340,27 @@ dependencies = [
 name = "void"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "wabt"
+version = "0.9.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "serde 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_derive 1.0.104 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_json 1.0.48 (registry+https://github.com/rust-lang/crates.io-index)",
+ "wabt-sys 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "wabt-sys"
+version = "0.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "cc 1.0.50 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cmake 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)",
+ "glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "wait-timeout"
@@ -3446,6 +3546,14 @@ version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "write-all-types"
+version = "0.1.0"
+dependencies = [
+ "casperlabs-contract 0.4.1",
+ "casperlabs-types 0.4.1",
+]
+
+[[package]]
 name = "ws2_32-sys"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3485,7 +3593,7 @@ dependencies = [
 "checksum chrono 0.4.10 (registry+https://github.com/rust-lang/crates.io-index)" = "31850b4a4d6bae316f7a09e691c944c28299298837edc0a03f755618c23cbc01"
 "checksum clap 2.33.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5067f5bb2d80ef5d68b4c87db81601f0b75bca627bc2ef76b141d7b846a3c6d9"
 "checksum cloudabi 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "ddfc5b9aa5d4507acaf872de71051dfd0e309860e88966e1051e462a077aac4f"
-"checksum colour 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "83a328d8ddb37e76b43ee7da69a58f59c0c72d5cf8c091d004712f3154b41cd7"
+"checksum cmake 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "81fb25b677f8bf1eb325017cb6bb8452f87969db0fedb4f757b297bee78a7c62"
 "checksum constant_time_eq 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "245097e9a4535ee1e3e3931fcfcd55a796a44c643e8596ff6566d68f09b87bbc"
 "checksum criterion 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "1fc755679c12bda8e5523a71e4d654b6bf2e14bd838dfc48cde6559a05caf7d1"
 "checksum criterion-plot 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)" = "a01e15e0ea58e8234f96146b1f91fa9d0e4dd7a38da93ff7a75d42c0b9d3a545"
@@ -3500,7 +3608,6 @@ dependencies = [
 "checksum csv-core 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)" = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
 "checksum ctrlc 3.1.4 (registry+https://github.com/rust-lang/crates.io-index)" = "7a4ba686dff9fa4c1c9636ce1010b0cf98ceb421361b0bb3d6faeec43bd217a7"
 "checksum digest 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f3d0c8c8752312f9713efd397ff63acb9f85585afbf179282e720e7704954dd5"
-"checksum dirs 1.0.5 (registry+https://github.com/rust-lang/crates.io-index)" = "3fd78930633bd1c6e35c4b42b1df7b0cbc6bc191146e512bb3bedf243fcc3901"
 "checksum dirs 2.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "13aea89a5c93364a98e9b37b2fa237effbb694d5cfe01c5b70941f7eb087d5e3"
 "checksum dirs-sys 0.3.4 (registry+https://github.com/rust-lang/crates.io-index)" = "afa0b23de8fd801745c471deffa6e12d248f962c9fd4b4c33787b055599bde7b"
 "checksum either 1.5.3 (registry+https://github.com/rust-lang/crates.io-index)" = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
@@ -3515,6 +3622,7 @@ dependencies = [
 "checksum futures-cpupool 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "ab90cde24b3319636588d0c35fe03b1333857621051837ed769faefb4c2162e4"
 "checksum generic-array 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c68f0274ae0e023facc3c97b2e00f076be70e254bc851d972503b328db79b2ec"
 "checksum getrandom 0.1.14 (registry+https://github.com/rust-lang/crates.io-index)" = "7abc8dd8451921606d809ba32e95b6111925cd2906060d2dcc29c070220503eb"
+"checksum glob 0.2.11 (registry+https://github.com/rust-lang/crates.io-index)" = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
 "checksum grpc 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2aaf1d741fe6f3413f1f9f71b99f5e4e26776d563475a8a53ce53a73a8534c1d"
 "checksum grpc-compiler 0.6.2 (registry+https://github.com/rust-lang/crates.io-index)" = "907274ce8ee7b40a0d0b0db09022ea22846a47cfb1fc8ad2c983c70001b4ffb1"
 "checksum h2 0.1.26 (registry+https://github.com/rust-lang/crates.io-index)" = "a5b34c246847f938a410a03c5458c7fee2274436675e76d8b903c08efc29c462"
@@ -3558,6 +3666,7 @@ dependencies = [
 "checksum nom 4.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "2ad2a91a8e869eeb30b9cb3119ae87773a8f4ae617f41b1eb9c154b2905f7bd6"
 "checksum num 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)" = "b8536030f9fea7127f841b45bb6243b27255787fb4eb83958aa1ef9d2fdc0c36"
 "checksum num-complex 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)" = "b6b19411a9719e753aff12e5187b74d60d3dc449ec3f4dc21e3989c3f554bc95"
+"checksum num-derive 0.2.5 (registry+https://github.com/rust-lang/crates.io-index)" = "eafd0b45c5537c3ba526f79d3e75120036502bebacbb3f3220914067ce39dbf2"
 "checksum num-derive 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)" = "0c8b15b261814f992e33760b1fca9fe8b693d8a65299f20c9901688636cfb746"
 "checksum num-integer 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "3f6ea62e9d81a77cd3ee9a2a5b9b609447857f3d358704331e4ef39eb247fcba"
 "checksum num-iter 0.1.40 (registry+https://github.com/rust-lang/crates.io-index)" = "dfb0800a0291891dd9f4fe7bd9c19384f98f7fbe0cd0f39a2c6b88b9868bbc00"
@@ -3642,8 +3751,8 @@ dependencies = [
 "checksum synstructure 0.12.3 (registry+https://github.com/rust-lang/crates.io-index)" = "67656ea1dc1b41b1451851562ea232ec2e5a80242139f7e679ceccfb5d61f545"
 "checksum tempdir 0.3.7 (registry+https://github.com/rust-lang/crates.io-index)" = "15f2b5fb00ccdf689e0149d1b1b3c03fead81c2b37735d812fa8bddbbf41b6d8"
 "checksum tempfile 3.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "7a6e24d9338a0a5be79593e2fa15a648add6138caa803e2d5bc782c371732ca9"
-"checksum term 0.5.2 (registry+https://github.com/rust-lang/crates.io-index)" = "edd106a334b7657c10b7c540a0106114feadeb4dc314513e97df481d5d966f42"
 "checksum termcolor 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "bb6bfa289a4d7c5766392812c0a1f4c1ba45afa1ad47803c11e1f407d846d75f"
+"checksum text_io 0.1.8 (registry+https://github.com/rust-lang/crates.io-index)" = "6cb170b4f47dc48835fbc56259c12d8963e542b05a24be2e3a1f5a6c320fd2d4"
 "checksum textwrap 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "d326610f408c7a4eb6f51c37c330e496b08506c9457c9d34287ecc38809fb060"
 "checksum thread_local 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)" = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 "checksum time 0.1.42 (registry+https://github.com/rust-lang/crates.io-index)" = "db8dcfca086c1143c9270ac42a2bbd8a7ee477b78ac8e45b19abfb0cbede4b6f"
@@ -3687,6 +3796,8 @@ dependencies = [
 "checksum version_check 0.1.5 (registry+https://github.com/rust-lang/crates.io-index)" = "914b1a6776c4c929a602fafd8bc742e06365d4bcbe48c30f9cca5824f70dc9dd"
 "checksum version_check 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "078775d0255232fb988e6fccf26ddc9d1ac274299aaedcedce21c6f72cc533ce"
 "checksum void 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)" = "6a02e4885ed3bc0f2de90ea6dd45ebcbb66dacffe03547fadbb0eeae2770887d"
+"checksum wabt 0.9.2 (registry+https://github.com/rust-lang/crates.io-index)" = "3c5c5c1286c6e578416982609f47594265f9d489f9b836157d403ad605a46693"
+"checksum wabt-sys 0.7.1 (registry+https://github.com/rust-lang/crates.io-index)" = "23d7043ebb3e5d96fad7a8d3ca22ee9880748ff8c3e18092cfb2a49d3b8f9084"
 "checksum wait-timeout 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "9f200f5b12eb75f8c1ed65abd4b2db8a6e1b138a20de009dacee265a2498f3f6"
 "checksum walkdir 2.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "777182bc735b6424e1a57516d35ed72cb8019d85c8c9bf536dccb3445c1a2f7d"
 "checksum want 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "b6395efa4784b027708f7451087e647ec73cc74f5d9bc2e418404248d679a230"

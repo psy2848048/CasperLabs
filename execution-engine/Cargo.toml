@@ -3,7 +3,6 @@ cargo-features = ["profile-overrides"]
 [workspace]
 
 members = [
-    "cargo-casperlabs",
     "contract",
     "contracts/[!.]*/*",
     "engine-core",
@@ -15,6 +14,7 @@ members = [
     "engine-wasm-prep",
     "mint",
     "proof-of-stake",
+    "standard-payment",
     "types"
 ]
 exclude = [
@@ -22,7 +22,6 @@ exclude = [
 ]
 
 default-members = [
-    "cargo-casperlabs",
     "contract",
     "engine-core",
     "engine-grpc-server",
@@ -33,10 +32,11 @@ default-members = [
     "engine-wasm-prep",
     "mint",
     "proof-of-stake",
+    "standard-payment",
     "types"
 ]
 
 # Include debug symbols in the release build of `casperlabs-engine-tests` so that `simple-transfer` will yield useful
 # perf data.
-[profile.release.overrides.casperlabs-engine-tests]
+[profile.release.package.casperlabs-engine-tests]
 debug = true
