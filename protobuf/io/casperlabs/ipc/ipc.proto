@@ -252,6 +252,7 @@ message ChainSpec {
         CostTable costs = 7;
         DeployConfig deploy_config = 8;
         HighwayConfig highway_config = 9;
+        repeated string state_infos = 11;
     }
 
     message GenesisAccount {

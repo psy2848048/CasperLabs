@@ -48,6 +48,16 @@ fn should_run_pop_install_contract() {
     let genesis_validators: BTreeMap<PublicKey, U512> = (1u8..=N_VALIDATORS)
         .map(|i| (PublicKey::ed25519_from([i; 32]), U512::from(i)))
         .collect();
+    let state_infos: Vec<String> = (1u8..=N_VALIDATORS)
+        .map(|i| {
+            format!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&PublicKey::ed25519_from([i; 32]).as_bytes()),
+                base16::encode_lower(&PublicKey::ed25519_from([i; 32]).as_bytes()),
+                i.to_string()
+            )
+        })
+        .collect();
 
     let total_bond = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
@@ -58,7 +68,7 @@ fn should_run_pop_install_contract() {
         POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
-        (mint_uref, genesis_validators),
+        (mint_uref, genesis_validators, state_infos),
         vec![mint_uref],
     )
     .expect("should run successfully");

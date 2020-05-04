@@ -6,6 +6,7 @@ use crate::engine_server::{
     ipc::{ChainSpec_GenesisAccount, ChainSpec_GenesisConfig},
     mappings::MappingError,
 };
+use protobuf::RepeatedField;
 
 impl From<GenesisConfig> for ChainSpec_GenesisConfig {
     fn from(genesis_config: GenesisConfig) -> Self {
@@ -29,6 +30,10 @@ impl From<GenesisConfig> for ChainSpec_GenesisConfig {
                 .collect::<Vec<ChainSpec_GenesisAccount>>();
             pb_genesis_config.set_accounts(accounts.into());
         }
+
+        pb_genesis_config.set_state_infos(RepeatedField::from_vec(
+            genesis_config.state_infos().to_vec(),
+        ));
         pb_genesis_config
             .mut_costs()
             .set_wasm(genesis_config.wasm_costs().into());
@@ -48,6 +53,7 @@ impl TryFrom<ChainSpec_GenesisConfig> for GenesisConfig {
             .into_iter()
             .map(TryInto::try_into)
             .collect::<Result<Vec<GenesisAccount>, Self::Error>>()?;
+        let state_infos = pb_genesis_config.take_state_infos().into_vec();
         let wasm_costs = pb_genesis_config.take_costs().take_wasm().into();
         let mint_initializer_bytes = pb_genesis_config.mint_installer;
         let proof_of_stake_initializer_bytes = pb_genesis_config.pos_installer;
@@ -60,6 +66,7 @@ impl TryFrom<ChainSpec_GenesisConfig> for GenesisConfig {
             proof_of_stake_initializer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         ))
     }

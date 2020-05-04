@@ -4,8 +4,8 @@ use engine_core::engine_state::{
 };
 use engine_shared::{motes::Motes, stored_value::StoredValue};
 use engine_test_support::internal::{
-    utils, InMemoryWasmTestBuilder, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
-    POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
+    utils, InMemoryWasmTestBuilder, CASPER_MINT_INSTALL_CONTRACT, CASPER_POS_INSTALL_CONTRACT,
+    DEFAULT_WASM_COSTS, STANDARD_PAYMENT_INSTALL_CONTRACT,
 };
 use types::{account::PublicKey, Key, ProtocolVersion, U512};
 
@@ -46,9 +46,26 @@ fn should_run_genesis() {
         )
     };
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_2_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+    ];
+
     let name = CHAIN_NAME.to_string();
-    let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL_CONTRACT);
-    let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL_CONTRACT);
+    let mint_installer_bytes = utils::read_wasm_file_bytes(CASPER_MINT_INSTALL_CONTRACT);
+    let pos_installer_bytes = utils::read_wasm_file_bytes(CASPER_POS_INSTALL_CONTRACT);
     let standard_payment_installer_bytes =
         utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL_CONTRACT);
     let accounts = vec![account_1, account_2];
@@ -63,6 +80,7 @@ fn should_run_genesis() {
         pos_installer_bytes,
         standard_payment_installer_bytes,
         accounts,
+        state_infos,
         wasm_costs,
     );
 
@@ -132,9 +150,27 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
                 account_2_bonded_amount,
             )
         };
+
+        let state_infos = vec![
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                ACCOUNT_1_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                ACCOUNT_2_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+        ];
+
         let name = CHAIN_NAME.to_string();
         let mint_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
-        let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL_CONTRACT);
+        let pos_installer_bytes = utils::read_wasm_file_bytes(CASPER_POS_INSTALL_CONTRACT);
         let standard_payment_installer_bytes =
             utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL_CONTRACT);
         let accounts = vec![account_1, account_2];
@@ -149,6 +185,7 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
             pos_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         )
     };
@@ -184,8 +221,24 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
                 account_2_bonded_amount,
             )
         };
+        let state_infos = vec![
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                ACCOUNT_1_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                ACCOUNT_2_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+        ];
         let name = CHAIN_NAME.to_string();
-        let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL_CONTRACT);
+        let mint_installer_bytes = utils::read_wasm_file_bytes(CASPER_MINT_INSTALL_CONTRACT);
         let pos_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
         let standard_payment_installer_bytes =
             utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL_CONTRACT);
@@ -201,6 +254,7 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
             pos_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         )
     };

@@ -63,9 +63,26 @@ fn should_run_successful_step() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .finish();
 
     let pos_uref = builder.get_pos_contract_uref();

@@ -2,7 +2,7 @@ use std::{fmt, iter};
 
 use num_traits::Zero;
 use rand::{
-    distributions::{Distribution, Standard},
+    distributions::{Alphanumeric, Distribution, Standard},
     Rng,
 };
 
@@ -118,6 +118,7 @@ pub struct GenesisConfig {
     proof_of_stake_installer_bytes: Vec<u8>,
     standard_payment_installer_bytes: Vec<u8>,
     accounts: Vec<GenesisAccount>,
+    state_infos: Vec<String>,
     wasm_costs: WasmCosts,
 }
 
@@ -131,6 +132,7 @@ impl GenesisConfig {
         proof_of_stake_installer_bytes: Vec<u8>,
         standard_payment_installer_bytes: Vec<u8>,
         accounts: Vec<GenesisAccount>,
+        state_infos: Vec<String>,
         wasm_costs: WasmCosts,
     ) -> Self {
         GenesisConfig {
@@ -141,6 +143,7 @@ impl GenesisConfig {
             proof_of_stake_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         }
     }
@@ -194,6 +197,14 @@ impl GenesisConfig {
     pub fn push_account(&mut self, account: GenesisAccount) {
         self.accounts.push(account);
     }
+
+    pub fn state_infos(&self) -> &[String] {
+        self.state_infos.as_slice()
+    }
+
+    pub fn push_state_infos(&mut self, state_info: String) {
+        self.state_infos.push(state_info);
+    }
 }
 
 impl Distribution<GenesisConfig> for Standard {
@@ -219,8 +230,14 @@ impl Distribution<GenesisConfig> for Standard {
         let standard_payment_installer_bytes =
             iter::repeat(()).map(|_| rng.gen()).take(count).collect();
 
-        count = rng.gen_range(1, 10);
         let accounts = iter::repeat(()).map(|_| rng.gen()).take(count).collect();
+
+        count = rng.gen_range(100, 1000);
+        let state_len = rng.gen_range(30, 160);
+        let state_infos = iter::repeat(())
+            .map(|_| rng.sample_iter(&Alphanumeric).take(state_len).collect())
+            .take(count)
+            .collect();
 
         let wasm_costs = WasmCosts {
             regular: rng.gen(),
@@ -243,6 +260,7 @@ impl Distribution<GenesisConfig> for Standard {
             proof_of_stake_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         }
     }

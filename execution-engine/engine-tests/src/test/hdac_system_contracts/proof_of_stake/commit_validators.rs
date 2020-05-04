@@ -38,7 +38,24 @@ fn should_return_bonded_validators() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts.clone());
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            ACCOUNT_1_BOND.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            ACCOUNT_2_BOND.to_string()
+        )
+        .to_string(),
+    ];
+
+    let genesis_config = utils::create_genesis_config(accounts.clone(), state_infos);
 
     let exec_request =
         ExecuteRequestBuilder::standard(DEFAULT_ACCOUNT_ADDR, CONTRACT_LOCAL_STATE, ()).build();

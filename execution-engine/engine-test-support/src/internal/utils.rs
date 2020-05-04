@@ -18,8 +18,8 @@ use types::Key;
 
 use crate::internal::{
     CASPER_MINT_INSTALL_CONTRACT, CASPER_POS_INSTALL_CONTRACT, DEFAULT_CHAIN_NAME,
-    DEFAULT_GENESIS_TIMESTAMP, DEFAULT_PROTOCOL_VERSION, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
-    POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
+    DEFAULT_GENESIS_TIMESTAMP, DEFAULT_PROTOCOL_VERSION, DEFAULT_STATE_INFOS, DEFAULT_WASM_COSTS,
+    MINT_INSTALL_CONTRACT, POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
 };
 
 lazy_static! {
@@ -102,7 +102,10 @@ pub fn read_wasm_file_bytes<T: AsRef<Path>>(contract_file: T) -> Vec<u8> {
     panic!("{}\n", error_msg);
 }
 
-pub fn create_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisConfig {
+pub fn create_genesis_config(
+    accounts: Vec<GenesisAccount>,
+    state_infos: Vec<String>,
+) -> GenesisConfig {
     let name = DEFAULT_CHAIN_NAME.to_string();
     let timestamp = DEFAULT_GENESIS_TIMESTAMP;
     let mint_installer_bytes = read_wasm_file_bytes(MINT_INSTALL_CONTRACT);
@@ -118,6 +121,7 @@ pub fn create_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisConfig {
         proof_of_stake_installer_bytes,
         standard_payment_installer_bytes,
         accounts,
+        state_infos,
         wasm_costs,
     )
 }
@@ -126,7 +130,7 @@ pub fn create_casper_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisCon
     let mint_installer_bytes = read_wasm_file_bytes(CASPER_MINT_INSTALL_CONTRACT);
     let proof_of_stake_installer_bytes = read_wasm_file_bytes(CASPER_POS_INSTALL_CONTRACT);
     let standard_payment_installer_bytes = read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL_CONTRACT);
-    let default = create_genesis_config(accounts);
+    let default = create_genesis_config(accounts, DEFAULT_STATE_INFOS.to_vec());
     GenesisConfig::new(
         default.name().to_string(),
         default.timestamp(),
@@ -135,6 +139,7 @@ pub fn create_casper_genesis_config(accounts: Vec<GenesisAccount>) -> GenesisCon
         proof_of_stake_installer_bytes,
         standard_payment_installer_bytes,
         default.accounts().to_vec(),
+        default.state_infos().to_vec(),
         default.wasm_costs(),
     )
 }
