@@ -54,9 +54,17 @@ fn should_run_successful_delegate_and_undelegate() {
         ),
     ];
 
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .finish();
 
     let pos_uref = builder.get_pos_contract_uref();
@@ -348,6 +356,23 @@ fn should_run_successful_redelegate() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_3_ADDR,
@@ -374,7 +399,7 @@ fn should_run_successful_redelegate() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .commit()
         .exec(redelegate_request)
@@ -554,6 +579,14 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         ),
     ];
 
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_2_ADDR,
@@ -578,7 +611,7 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .expect_success()
         .commit()
@@ -625,6 +658,14 @@ fn should_fail_to_delegate_to_unbonded_validator() {
         ),
     ];
 
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
     // delegate request from ACCOUNT_1 to ACCOUNT_2.
     let delegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR,
@@ -639,7 +680,7 @@ fn should_fail_to_delegate_to_unbonded_validator() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .commit()
         .finish();
@@ -680,6 +721,23 @@ fn should_fail_to_redelegate_non_existent_delegation() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     // redelegate request from ACCOUNT_2 to self.
     let redelegate_request = ExecuteRequestBuilder::standard(
         PublicKey::ed25519_from(ACCOUNT_1_ADDR),
@@ -695,7 +753,7 @@ fn should_fail_to_redelegate_non_existent_delegation() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(redelegate_request)
         .commit()
         .finish();
@@ -739,6 +797,14 @@ fn should_fail_to_self_redelegate() {
         ),
     ];
 
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(&ACCOUNT_1_ADDR),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
     // delegate request from ACCOUNT_2 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
         PublicKey::ed25519_from(ACCOUNT_2_ADDR),
@@ -766,7 +832,7 @@ fn should_fail_to_self_redelegate() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .expect_success()
         .commit()
@@ -821,6 +887,23 @@ fn should_fail_to_redelegate_more_than_own_shares() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            base16::encode_lower(&ACCOUNT_1_ADDR),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            base16::encode_lower(&ACCOUNT_2_ADDR),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
         PublicKey::ed25519_from(ACCOUNT_3_ADDR),
@@ -848,7 +931,7 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .expect_success()
         .commit()

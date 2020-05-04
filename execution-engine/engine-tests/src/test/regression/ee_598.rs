@@ -34,8 +34,15 @@ fn should_fail_unboding_more_than_it_was_staked_ee_598_regression() {
         tmp.push(account);
         tmp
     };
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,

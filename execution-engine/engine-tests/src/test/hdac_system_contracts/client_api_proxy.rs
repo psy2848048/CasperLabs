@@ -158,7 +158,14 @@ fn should_invoke_successful_bond_and_unbond() {
         Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
         Motes::new(BOND_AMOUNT.into()),
     )];
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&DEFAULT_ACCOUNT_ADDR.as_bytes()),
+        base16::encode_lower(&DEFAULT_ACCOUNT_ADDR.as_bytes()),
+        BOND_AMOUNT.to_string()
+    )
+    .to_string()];
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
     let result = InMemoryWasmTestBuilder::default()
         .run_genesis(&genesis_config)
         .commit()
@@ -296,7 +303,24 @@ fn should_invoke_successful_delegation_methods() {
         ),
     ];
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
     let result = InMemoryWasmTestBuilder::default()
         .run_genesis(&genesis_config)
         .commit()
@@ -470,9 +494,26 @@ fn should_invoke_successful_vote_and_unvote() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .finish();
 
     let client_api_proxy_hash = get_client_api_proxy_hash(result.builder());
@@ -626,9 +667,26 @@ fn should_invoke_successful_step() {
         ),
     ];
 
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
+            GENESIS_VALIDATOR_STAKE.to_string()
+        )
+        .to_string(),
+    ];
+
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts))
+        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .finish();
 
     let pos_uref = builder.get_pos_contract_uref();

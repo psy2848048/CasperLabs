@@ -48,24 +48,26 @@ fn should_run_genesis() {
         )
     };
 
-    let name = CHAIN_NAME.to_string();
-    let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL);
-    let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL);
-    let standard_payment_installer_bytes = utils::read_wasm_file_bytes(STANDARD_PAYMENT_INSTALL);
-    let accounts = vec![account_1, account_2];
-    let protocol_version = ProtocolVersion::V1_0_0;
-    let wasm_costs = *DEFAULT_WASM_COSTS;
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            ACCOUNT_2_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+    ];
 
-    let genesis_config = GenesisConfig::new(
-        name,
-        TIMESTAMP,
-        protocol_version,
-        mint_installer_bytes,
-        pos_installer_bytes,
-        standard_payment_installer_bytes,
-        accounts,
-        wasm_costs,
-    );
+    let accounts = vec![account_1, account_2];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let mut builder = InMemoryWasmTestBuilder::default();
 
@@ -132,6 +134,24 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
                 account_2_bonded_amount,
             )
         };
+
+        let state_infos = vec![
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                ACCOUNT_1_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                ACCOUNT_2_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+        ];
+
         let name = CHAIN_NAME.to_string();
         let mint_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
         let pos_installer_bytes = utils::read_wasm_file_bytes(POS_INSTALL);
@@ -149,6 +169,7 @@ fn should_fail_if_bad_mint_install_contract_is_provided() {
             pos_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         )
     };
@@ -183,6 +204,24 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
                 account_2_bonded_amount,
             )
         };
+
+        let state_infos = vec![
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+                ACCOUNT_1_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+            format_args!(
+                "d_{}_{}_{}",
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+                ACCOUNT_2_BONDED_AMOUNT.to_string()
+            )
+            .to_string(),
+        ];
+
         let name = CHAIN_NAME.to_string();
         let mint_installer_bytes = utils::read_wasm_file_bytes(MINT_INSTALL);
         let pos_installer_bytes = utils::read_wasm_file_bytes(BAD_INSTALL);
@@ -200,9 +239,230 @@ fn should_fail_if_bad_pos_install_contract_is_provided() {
             pos_installer_bytes,
             standard_payment_installer_bytes,
             accounts,
+            state_infos,
             wasm_costs,
         )
     };
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+
+    builder.run_genesis(&genesis_config);
+}
+
+#[ignore]
+#[should_panic]
+#[test]
+fn should_fail_delegate_is_more_than_stake() {
+    let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
+    let account_1 = {
+        let account_1_public_key = ACCOUNT_1_ADDR;
+        let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_1_public_key,
+            account_1_balance,
+            account_1_bonded_amount,
+        )
+    };
+
+    let account_2_balance = Motes::new(ACCOUNT_2_BALANCE.into());
+    let account_2 = {
+        let account_2_public_key = ACCOUNT_2_ADDR;
+        let account_2_bonded_amount = Motes::new(ACCOUNT_2_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_2_public_key,
+            account_2_balance,
+            account_2_bonded_amount,
+        )
+    };
+
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            2_000_001.to_string()
+        )
+        .to_string(),
+    ];
+
+    let accounts = vec![account_1, account_2];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+
+    builder.run_genesis(&genesis_config);
+}
+
+#[ignore]
+#[should_panic]
+#[test]
+fn should_fail_delegate_is_less_than_stake() {
+    let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
+    let account_1 = {
+        let account_1_public_key = ACCOUNT_1_ADDR;
+        let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_1_public_key,
+            account_1_balance,
+            account_1_bonded_amount,
+        )
+    };
+
+    let account_2_balance = Motes::new(ACCOUNT_2_BALANCE.into());
+    let account_2 = {
+        let account_2_public_key = ACCOUNT_2_ADDR;
+        let account_2_bonded_amount = Motes::new(ACCOUNT_2_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_2_public_key,
+            account_2_balance,
+            account_2_bonded_amount,
+        )
+    };
+
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
+            1_000_000.to_string()
+        )
+        .to_string(),
+    ];
+
+    let accounts = vec![account_1, account_2];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+
+    builder.run_genesis(&genesis_config);
+}
+
+#[ignore]
+#[test]
+fn should_vote_is_less_than_delegate() {
+    let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
+    let account_1 = {
+        let account_1_public_key = ACCOUNT_1_ADDR;
+        let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_1_public_key,
+            account_1_balance,
+            account_1_bonded_amount,
+        )
+    };
+
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "a_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            1_000_000.to_string()
+        )
+        .to_string(),
+    ];
+
+    let accounts = vec![account_1];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+
+    builder.run_genesis(&genesis_config);
+}
+
+#[ignore]
+#[should_panic]
+#[test]
+fn should_fail_vote_is_more_than_delegate() {
+    let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
+    let account_1 = {
+        let account_1_public_key = ACCOUNT_1_ADDR;
+        let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_1_public_key,
+            account_1_balance,
+            account_1_bonded_amount,
+        )
+    };
+
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!(
+            "a_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            2_000_001.to_string()
+        )
+        .to_string(),
+    ];
+
+    let accounts = vec![account_1];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+
+    let mut builder = InMemoryWasmTestBuilder::default();
+
+    builder.run_genesis(&genesis_config);
+}
+
+#[ignore]
+#[should_panic]
+#[test]
+fn should_fail_address_is_less_than_64() {
+    let account_1_balance = Motes::new(ACCOUNT_1_BALANCE.into());
+    let account_1 = {
+        let account_1_public_key = ACCOUNT_1_ADDR;
+        let account_1_bonded_amount = Motes::new(ACCOUNT_1_BONDED_AMOUNT.into());
+        GenesisAccount::new(
+            account_1_public_key,
+            account_1_balance,
+            account_1_bonded_amount,
+        )
+    };
+
+    let state_infos = vec![
+        format_args!(
+            "d_{}_{}_{}",
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            ACCOUNT_1_BONDED_AMOUNT.to_string()
+        )
+        .to_string(),
+        format_args!("c_{}_{}", "0000", 200.to_string()).to_string(),
+    ];
+
+    let accounts = vec![account_1];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let mut builder = InMemoryWasmTestBuilder::default();
 

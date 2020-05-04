@@ -58,7 +58,15 @@ fn should_run_successful_bond_and_unbond() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder.run_genesis(&genesis_config).finish();
@@ -424,7 +432,15 @@ fn should_fail_bonding_with_insufficient_funds() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
@@ -479,7 +495,15 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
 
     let exec_request = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,

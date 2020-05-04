@@ -2,7 +2,11 @@
 
 extern crate alloc;
 
-use alloc::{collections::BTreeMap, string::String};
+use alloc::{
+    collections::BTreeMap,
+    string::{String, ToString},
+    vec::Vec,
+};
 use core::fmt::Write;
 
 use contract::{
@@ -10,8 +14,9 @@ use contract::{
     unwrap_or_revert::UnwrapOrRevert,
 };
 use types::{
-    account::PublicKey, system_contract_errors::mint, AccessRights, ApiError, CLValue, ContractRef,
-    Key, URef, U512,
+    account::PublicKey,
+    system_contract_errors::{mint, pos::Error},
+    AccessRights, ApiError, CLValue, ContractRef, Key, URef, U512,
 };
 
 const PLACEHOLDER_KEY: Key = Key::Hash([0u8; 32]);
@@ -25,6 +30,7 @@ const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
+    StateInformations = 2,
 }
 
 #[no_mangle]
@@ -47,6 +53,7 @@ pub extern "C" fn call() {
     // For now, we are storing validators in `named_keys` map of the PoP contract
     // in the form: key: "v_{validator_pk}_{validator_stake}", value: doesn't
     // matter.
+    let mut validators: BTreeMap<String, U512> = BTreeMap::new();
     let mut named_keys: BTreeMap<String, Key> = genesis_validators
         .iter()
         .map(|(pub_key, balance)| {
@@ -55,6 +62,7 @@ pub extern "C" fn call() {
             for byte in &key_bytes[..32] {
                 write!(hex_key, "{:02x}", byte).unwrap();
             }
+            validators.insert(hex_key.clone(), *balance);
             let mut uref = String::new();
             uref.write_fmt(format_args!("v_{}_{}", hex_key, balance))
                 .unwrap();
@@ -63,25 +71,103 @@ pub extern "C" fn call() {
         .map(|key| (key, PLACEHOLDER_KEY))
         .collect();
 
-    // Insert genesis validator's delegations.
-    // We also store delegations in the form key:
-    // "d_{delegator_pk}_{validator_pk}_{delegation_amount}", value: doesn't matter
-    genesis_validators
-        .iter()
-        .map(|(pub_key, balance)| {
-            let key_bytes = pub_key.value();
-            let mut hex_key = String::with_capacity(64);
-            for byte in &key_bytes[..32] {
-                write!(hex_key, "{:02x}", byte).unwrap();
+    let mut delegators: BTreeMap<String, U512> = BTreeMap::new();
+    let mut voters: BTreeMap<String, U512> = BTreeMap::new();
+    let mut total_delegates: U512 = U512::zero();
+    // Insert genesis state information.
+    // We also store in the form key:
+    let state_informations: Vec<String> = runtime::get_arg(Args::StateInformations as u32)
+        .unwrap_or_revert_with(ApiError::MissingArgument)
+        .unwrap_or_revert_with(ApiError::InvalidArgument);
+    state_informations.iter().for_each(|key| {
+        let split_key: Vec<&str> = key.split('_').collect();
+        match split_key[0] {
+            "c" => {
+                if split_key.len() != 3 {
+                    runtime::revert(Error::CommissionKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 {
+                    runtime::revert(Error::CommissionKeyDeserializationFailed);
+                }
             }
-            let mut uref = String::new();
-            uref.write_fmt(format_args!("d_{}_{}_{}", hex_key, hex_key, balance))
-                .unwrap();
-            uref
-        })
-        .for_each(|key| {
-            named_keys.insert(key, PLACEHOLDER_KEY);
-        });
+            "r" => {
+                if split_key.len() != 3 {
+                    runtime::revert(Error::RewardKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 {
+                    runtime::revert(Error::RewardKeyDeserializationFailed);
+                }
+            }
+            "d" => {
+                if split_key.len() != 4 {
+                    runtime::revert(Error::DelegationsKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 && split_key[2].len() != 64 {
+                    runtime::revert(Error::DelegationsKeyDeserializationFailed);
+                }
+                match U512::from_dec_str(split_key[3]) {
+                    Ok(amount) => {
+                        if !validators.contains_key(split_key[2]) {
+                            runtime::revert(Error::DelegationsKeyDeserializationFailed);
+                        }
+                        match validators.get_mut(split_key[2]) {
+                            Some(a) => *a -= amount,
+                            None => runtime::revert(Error::DelegationsNotFound),
+                        }
+
+                        match delegators.get_mut(split_key[1]) {
+                            Some(a) => *a += amount,
+                            None => {
+                                delegators.insert(split_key[1].to_string(), amount);
+                            }
+                        };
+
+                        total_delegates += amount;
+                    }
+                    Err(_) => runtime::revert(Error::DelegationsDeserializationFailed),
+                }
+            }
+            "a" => {
+                if split_key.len() != 4 {
+                    runtime::revert(Error::VoteKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 && split_key[2].len() != 64 {
+                    runtime::revert(Error::VoteKeyDeserializationFailed);
+                }
+                match U512::from_dec_str(split_key[3]) {
+                    Ok(amount) => {
+                        match voters.get_mut(split_key[1]) {
+                            Some(a) => *a += amount,
+                            None => {
+                                voters.insert(split_key[1].to_string(), amount);
+                            }
+                        };
+                    }
+                    Err(_) => runtime::revert(Error::UintParsingError),
+                };
+            }
+            _ => runtime::revert(Error::VotesDeserializationFailed),
+        }
+        named_keys.insert(key.to_string(), PLACEHOLDER_KEY);
+    });
+
+    // check validate state information
+    for (_, amount) in validators.iter() {
+        if *amount != U512::zero() {
+            runtime::revert(Error::NotMatchedTotalBondAndDelegate);
+        }
+    }
+
+    for (voter_address, voter_amount) in voters.iter() {
+        match delegators.get(voter_address) {
+            Some(a) => {
+                if *a < *voter_amount {
+                    runtime::revert(Error::VoteTooLarge);
+                }
+            }
+            None => runtime::revert(Error::VotesNotFound),
+        }
+    }
 
     // Insert total supply
     let mut total_supply_uref = String::new();
@@ -94,6 +180,10 @@ pub extern "C" fn call() {
     named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
 
     let total_bonds: U512 = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
+
+    if total_bonds != total_delegates {
+        runtime::revert(Error::NotMatchedTotalBondAndDelegate);
+    }
 
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());

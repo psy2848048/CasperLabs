@@ -142,6 +142,10 @@ pub enum Error {
     NoCommission, // = 55
     /// Internal error: No reward object
     NoReward, // = 56
+    /// Internal error: Not matched total bond and total delegate amount
+    NotMatchedTotalBondAndDelegate, // = 57
+    /// Internal error: Invalid state information
+    InvalidStateInformation, // = 58
 }
 
 impl CLTyped for Error {

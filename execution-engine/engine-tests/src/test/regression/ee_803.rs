@@ -61,7 +61,15 @@ fn should_not_be_able_to_unbond_reward() {
         tmp
     };
 
-    let genesis_config = utils::create_genesis_config(accounts);
+    let state_infos = vec![format_args!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
+        GENESIS_VALIDATOR_STAKE.to_string()
+    )
+    .to_string()];
+
+    let genesis_config = utils::create_genesis_config(accounts, state_infos);
     builder.run_genesis(&genesis_config);
 
     // First request to put some funds in the reward purse
