@@ -8,6 +8,7 @@ pub mod execution_result;
 pub mod genesis;
 pub mod op;
 pub mod query;
+pub mod step_delegations;
 pub mod system_contract_cache;
 pub mod upgrade;
 pub mod utils;
@@ -60,6 +61,7 @@ use crate::{
             POS_PAYMENT_PURSE, POS_REWARDS_PURSE,
         },
         query::{QueryRequest, QueryResult},
+        step_delegations::{StepDelegationsRequest, StepDelegationsResult},
         system_contract_cache::SystemContractCache,
         upgrade::{UpgradeConfig, UpgradeResult},
     },
@@ -1561,5 +1563,12 @@ where
             .collect::<HashMap<PublicKey, U512>>();
 
         Ok(bonded_validators)
+    }
+    pub fn step_delegations(
+        &self,
+        _correlation_id: CorrelationId,
+        _step_request: StepDelegationsRequest,
+    ) -> Result<StepDelegationsResult, Error> {
+        unimplemented!();
     }
 }

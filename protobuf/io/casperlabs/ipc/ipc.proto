@@ -449,11 +449,13 @@ message UnbondPayoutResponse {
 
 message StepDelegationsRequest {
     bytes parent_state_hash = 1;
-    io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 2;
+    uint64 block_time = 2;
+    io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 3;
 }
 
 message StepDelegationsResult {
-    bytes poststate_hash = 1;
+    bytes post_state_hash = 1;
+    ExecutionEffect effect = 2;
 }
 
 message StepDelegationsError {

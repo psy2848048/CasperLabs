@@ -33,6 +33,7 @@ use engine_core::engine_state::{
     execute_request::ExecuteRequest,
     genesis::{GenesisConfig, GenesisResult},
     query::{QueryRequest, QueryResult},
+    step_delegations::{StepDelegationsRequest, StepDelegationsResult},
     upgrade::{UpgradeConfig, UpgradeResult},
     EngineState, Error as EngineError,
 };
@@ -47,9 +48,8 @@ use self::{
     ipc::{
         BidStateRequest, BidStateResponse, ChainSpec_GenesisConfig, CommitRequest, CommitResponse,
         DistributeRewardsRequest, DistributeRewardsResponse, ExecuteResponse, GenesisResponse,
-        QueryResponse, SlashRequest, SlashResponse, StepDelegationsRequest,
-        StepDelegationsResponse, UnbondPayoutRequest, UnbondPayoutResponse, UpgradeRequest,
-        UpgradeResponse,
+        QueryResponse, SlashRequest, SlashResponse, StepDelegationsResponse, UnbondPayoutRequest,
+        UnbondPayoutResponse, UpgradeRequest, UpgradeResponse,
     },
     ipc_grpc::{ExecutionEngineService, ExecutionEngineServiceServer},
     mappings::{ParsingError, TransformMap},
@@ -60,12 +60,14 @@ const METRIC_DURATION_EXEC: &str = "exec_duration";
 const METRIC_DURATION_QUERY: &str = "query_duration";
 const METRIC_DURATION_GENESIS: &str = "genesis_duration";
 const METRIC_DURATION_UPGRADE: &str = "upgrade_duration";
+const METRIC_DURATION_STEP_DELEGATIONS: &str = "step_delegations_duration";
 
 const TAG_RESPONSE_COMMIT: &str = "commit_response";
 const TAG_RESPONSE_EXEC: &str = "exec_response";
 const TAG_RESPONSE_QUERY: &str = "query_response";
 const TAG_RESPONSE_GENESIS: &str = "genesis_response";
 const TAG_RESPONSE_UPGRADE: &str = "upgrade_response";
+const TAG_RESPONSE_STEP_DELEGATIONS: &str = "step_delegations_response";
 
 const UNIMPLEMENTED: &str = "unimplemented";
 
@@ -481,9 +483,48 @@ where
     fn step_delegations(
         &self,
         _request_options: RequestOptions,
-        _step_delegations_request: StepDelegationsRequest,
+        step_request: ipc::StepDelegationsRequest,
     ) -> SingleResponse<StepDelegationsResponse> {
-        SingleResponse::err(GrpcError::Panic(UNIMPLEMENTED.to_string()))
+        let start = Instant::now();
+        let correlation_id = CorrelationId::new();
+
+        let step_request: StepDelegationsRequest = match step_request.try_into() {
+            Ok(ret) => ret,
+            Err(err) => {
+                return SingleResponse::completed(err);
+            }
+        };
+
+        let step_response = match self.step_delegations(correlation_id, step_request) {
+            Ok(StepDelegationsResult::Success {
+                post_state_hash,
+                effect,
+            }) => {
+                let mut response = StepDelegationsResponse::new();
+                let result = response.mut_success();
+                result.set_post_state_hash(post_state_hash.to_vec());
+                result.set_effect(effect.into());
+                response
+            }
+            Ok(StepDelegationsResult::RootNotFound(hash)) => {
+                let mut response = StepDelegationsResponse::new();
+                response.mut_missing_parent().set_hash(hash.to_vec());
+                response
+            }
+            Err(error) => {
+                let mut response = StepDelegationsResponse::new();
+                response.mut_error().set_message(error.to_string());
+                response
+            }
+        };
+
+        log_duration(
+            correlation_id,
+            METRIC_DURATION_STEP_DELEGATIONS,
+            TAG_RESPONSE_STEP_DELEGATIONS,
+            start.elapsed(),
+        );
+        SingleResponse::completed(step_response)
     }
 }
 
