@@ -33,7 +33,7 @@ use engine_core::engine_state::{
     execute_request::ExecuteRequest,
     genesis::{GenesisConfig, GenesisResult},
     query::{QueryRequest, QueryResult},
-    step_delegations::{StepDelegationsRequest, StepDelegationsResult},
+    step::{StepRequest, StepResult},
     upgrade::{UpgradeConfig, UpgradeResult},
     EngineState, Error as EngineError,
 };
@@ -48,7 +48,7 @@ use self::{
     ipc::{
         BidStateRequest, BidStateResponse, ChainSpec_GenesisConfig, CommitRequest, CommitResponse,
         DistributeRewardsRequest, DistributeRewardsResponse, ExecuteResponse, GenesisResponse,
-        QueryResponse, SlashRequest, SlashResponse, StepDelegationsResponse, UnbondPayoutRequest,
+        QueryResponse, SlashRequest, SlashResponse, StepResponse, UnbondPayoutRequest,
         UnbondPayoutResponse, UpgradeRequest, UpgradeResponse,
     },
     ipc_grpc::{ExecutionEngineService, ExecutionEngineServiceServer},
@@ -60,14 +60,14 @@ const METRIC_DURATION_EXEC: &str = "exec_duration";
 const METRIC_DURATION_QUERY: &str = "query_duration";
 const METRIC_DURATION_GENESIS: &str = "genesis_duration";
 const METRIC_DURATION_UPGRADE: &str = "upgrade_duration";
-const METRIC_DURATION_STEP_DELEGATIONS: &str = "step_delegations_duration";
+const METRIC_DURATION_STEP: &str = "step_duration";
 
 const TAG_RESPONSE_COMMIT: &str = "commit_response";
 const TAG_RESPONSE_EXEC: &str = "exec_response";
 const TAG_RESPONSE_QUERY: &str = "query_response";
 const TAG_RESPONSE_GENESIS: &str = "genesis_response";
 const TAG_RESPONSE_UPGRADE: &str = "upgrade_response";
-const TAG_RESPONSE_STEP_DELEGATIONS: &str = "step_delegations_response";
+const TAG_RESPONSE_STEP: &str = "step_response";
 
 const UNIMPLEMENTED: &str = "unimplemented";
 
@@ -480,44 +480,44 @@ where
         SingleResponse::err(GrpcError::Panic(UNIMPLEMENTED.to_string()))
     }
 
-    fn step_delegations(
+    fn step(
         &self,
         _request_options: RequestOptions,
-        step_request: ipc::StepDelegationsRequest,
-    ) -> SingleResponse<StepDelegationsResponse> {
+        step_request: ipc::StepRequest,
+    ) -> SingleResponse<StepResponse> {
         let start = Instant::now();
         let correlation_id = CorrelationId::new();
 
-        let step_request: StepDelegationsRequest = match step_request.try_into() {
+        let step_request: StepRequest = match step_request.try_into() {
             Ok(ret) => ret,
             Err(err) => {
                 return SingleResponse::completed(err);
             }
         };
 
-        let step_response = match self.step_delegations(correlation_id, step_request) {
-            Ok(StepDelegationsResult::Success {
+        let step_response = match self.step(correlation_id, step_request) {
+            Ok(StepResult::Success {
                 post_state_hash,
                 effect,
             }) => {
-                let mut response = StepDelegationsResponse::new();
+                let mut response = StepResponse::new();
                 let result = response.mut_success();
                 result.set_post_state_hash(post_state_hash.to_vec());
                 result.set_effect(effect.into());
                 response
             }
-            Ok(StepDelegationsResult::RootNotFound(hash)) => {
-                let mut response = StepDelegationsResponse::new();
+            Ok(StepResult::RootNotFound(hash)) => {
+                let mut response = StepResponse::new();
                 response.mut_missing_parent().set_hash(hash.to_vec());
                 response
             }
             Ok(result) => {
-                let mut response = StepDelegationsResponse::new();
+                let mut response = StepResponse::new();
                 response.mut_error().set_message(result.to_string());
                 response
             }
             Err(error) => {
-                let mut response = StepDelegationsResponse::new();
+                let mut response = StepResponse::new();
                 response.mut_error().set_message(error.to_string());
                 response
             }
@@ -525,8 +525,8 @@ where
 
         log_duration(
             correlation_id,
-            METRIC_DURATION_STEP_DELEGATIONS,
-            TAG_RESPONSE_STEP_DELEGATIONS,
+            METRIC_DURATION_STEP,
+            TAG_RESPONSE_STEP,
             start.elapsed(),
         );
         SingleResponse::completed(step_response)

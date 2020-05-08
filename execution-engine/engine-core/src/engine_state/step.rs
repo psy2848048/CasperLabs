@@ -6,13 +6,13 @@ use types::{bytesrepr, Key, ProtocolVersion};
 
 use crate::engine_state::execution_effect::ExecutionEffect;
 
-pub struct StepDelegationsRequest {
+pub struct StepRequest {
     pub parent_state_hash: Blake2bHash,
     pub block_time: u64,
     pub protocol_version: ProtocolVersion,
 }
 
-impl StepDelegationsRequest {
+impl StepRequest {
     pub fn new(
         parent_state_hash: Blake2bHash,
         block_time: u64,
@@ -26,7 +26,7 @@ impl StepDelegationsRequest {
     }
 }
 
-impl Default for StepDelegationsRequest {
+impl Default for StepRequest {
     fn default() -> Self {
         Self {
             parent_state_hash: [0u8; 32].into(),
@@ -36,7 +36,7 @@ impl Default for StepDelegationsRequest {
     }
 }
 
-pub enum StepDelegationsResult {
+pub enum StepResult {
     RootNotFound(Blake2bHash),
     KeyNotFound(Key),
     TypeMismatch(TypeMismatch),
@@ -47,7 +47,7 @@ pub enum StepDelegationsResult {
     },
 }
 
-impl fmt::Display for StepDelegationsResult {
+impl fmt::Display for StepResult {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             Self::RootNotFound(hash) => write!(f, "Root not found: {}", hash),
@@ -62,7 +62,7 @@ impl fmt::Display for StepDelegationsResult {
     }
 }
 
-impl StepDelegationsResult {
+impl StepResult {
     pub fn from_commit_result(
         commit_result: CommitResult,
         parent_state_hash: Blake2bHash,

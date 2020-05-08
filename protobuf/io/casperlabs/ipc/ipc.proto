@@ -447,26 +447,26 @@ message UnbondPayoutResponse {
     }
 }
 
-message StepDelegationsRequest {
+message StepRequest {
     bytes parent_state_hash = 1;
     uint64 block_time = 2;
     io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 3;
 }
 
-message StepDelegationsResult {
+message StepResult {
     bytes post_state_hash = 1;
     ExecutionEffect effect = 2;
 }
 
-message StepDelegationsError {
+message StepError {
     string message = 1;
 }
 
-message StepDelegationsResponse {
+message StepResponse {
     oneof result {
-        StepDelegationsResult success = 1;
+        StepResult success = 1;
         RootNotFound missing_parent = 2;
-        StepDelegationsError error = 3;
+        StepError error = 3;
     }
 }
 
@@ -486,5 +486,5 @@ service ExecutionEngineService {
     rpc distribute_rewards(DistributeRewardsRequest) returns (DistributeRewardsResponse) {}
     rpc slash(SlashRequest) returns (SlashResponse) {}
     rpc unbond_payout(UnbondPayoutRequest) returns (UnbondPayoutResponse) {}
-    rpc step_delegations(StepDelegationsRequest) returns (StepDelegationsResponse) {}
+    rpc step(StepRequest) returns (StepResponse) {}
 }

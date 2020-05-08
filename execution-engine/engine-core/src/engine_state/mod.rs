@@ -8,7 +8,7 @@ pub mod execution_result;
 pub mod genesis;
 pub mod op;
 pub mod query;
-pub mod step_delegations;
+pub mod step;
 pub mod system_contract_cache;
 pub mod upgrade;
 pub mod utils;
@@ -61,7 +61,7 @@ use crate::{
             POS_PAYMENT_PURSE, POS_REWARDS_PURSE,
         },
         query::{QueryRequest, QueryResult},
-        step_delegations::{StepDelegationsRequest, StepDelegationsResult},
+        step::{StepRequest, StepResult},
         system_contract_cache::SystemContractCache,
         upgrade::{UpgradeConfig, UpgradeResult},
     },
@@ -1565,16 +1565,16 @@ where
         Ok(bonded_validators)
     }
 
-    pub fn step_delegations(
+    pub fn step(
         &self,
         correlation_id: CorrelationId,
-        step_request: StepDelegationsRequest,
-    ) -> Result<StepDelegationsResult, Error> {
+        step_request: StepRequest,
+    ) -> Result<StepResult, Error> {
         // retrieve tracking copy by parent state hash
         let parent_state_hash = step_request.parent_state_hash;
         let tracking_copy = match self.tracking_copy(parent_state_hash)? {
             Some(tracking_copy) => Rc::new(RefCell::new(tracking_copy)),
-            None => return Ok(StepDelegationsResult::RootNotFound(parent_state_hash)),
+            None => return Ok(StepResult::RootNotFound(parent_state_hash)),
         };
 
         // retrieve protocol data by protocol version
@@ -1620,7 +1620,7 @@ where
             Blake2bHash::new(&bytes).into()
         };
 
-        // step_delegations has no gas limit; approximating with MAX
+        // `step` has no gas limit; approximating with MAX
         let gas_limit = Gas::new(std::u64::MAX.into());
         let phase = Phase::System;
         let address_generator = {
@@ -1698,7 +1698,7 @@ where
             .map_err(Into::into)?;
 
         // return result and effects
-        Ok(StepDelegationsResult::from_commit_result(
+        Ok(StepResult::from_commit_result(
             commit_result,
             parent_state_hash,
             effect,
