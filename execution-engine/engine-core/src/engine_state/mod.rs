@@ -1564,11 +1564,144 @@ where
 
         Ok(bonded_validators)
     }
+
     pub fn step_delegations(
         &self,
-        _correlation_id: CorrelationId,
-        _step_request: StepDelegationsRequest,
+        correlation_id: CorrelationId,
+        step_request: StepDelegationsRequest,
     ) -> Result<StepDelegationsResult, Error> {
-        unimplemented!();
+        // retrieve tracking copy by parent state hash
+        let parent_state_hash = step_request.parent_state_hash;
+        let tracking_copy = match self.tracking_copy(parent_state_hash)? {
+            Some(tracking_copy) => Rc::new(RefCell::new(tracking_copy)),
+            None => return Ok(StepDelegationsResult::RootNotFound(parent_state_hash)),
+        };
+
+        // retrieve protocol data by protocol version
+        let protocol_version = step_request.protocol_version;
+        let protocol_data = match self.state.get_protocol_data(protocol_version) {
+            Ok(Some(protocol_data)) => protocol_data,
+            Ok(None) => {
+                return Err(Error::InvalidProtocolVersion(protocol_version));
+            }
+            Err(error) => {
+                return Err(Error::Exec(error.into()));
+            }
+        };
+
+        // retrieve the system account from tracking copy
+        let system_account = {
+            let key = Key::Account(SYSTEM_ACCOUNT_ADDR);
+            match tracking_copy.borrow_mut().read(correlation_id, &key) {
+                Ok(Some(StoredValue::Account(account))) => account,
+                Ok(_) => panic!("system account must exist"),
+                Err(error) => return Err(Error::Exec(error.into())),
+            }
+        };
+
+        let authorization_keys = {
+            let mut ret = BTreeSet::new();
+            ret.insert(SYSTEM_ACCOUNT_ADDR);
+            ret
+        };
+
+        let deploy_hash = {
+            let parent_state_hash: &[u8] = &step_request.parent_state_hash.value();
+            let blocktime: &[u8] = &step_request.block_time.to_le_bytes();
+            let protocol_version: &[u8] = &step_request.protocol_version.into_bytes()?;
+
+            let bytes: Vec<u8> = {
+                let mut ret = Vec::new();
+                ret.extend_from_slice(parent_state_hash);
+                ret.extend_from_slice(blocktime);
+                ret.extend_from_slice(protocol_version);
+                ret
+            };
+            Blake2bHash::new(&bytes).into()
+        };
+
+        // step_delegations has no gas limit; approximating with MAX
+        let gas_limit = Gas::new(std::u64::MAX.into());
+        let phase = Phase::System;
+        let address_generator = {
+            let generator = AddressGenerator::new(&parent_state_hash.value(), phase);
+            Rc::new(RefCell::new(generator))
+        };
+
+        // get proof_of_stake contract
+        let proof_of_stake_reference = protocol_data.proof_of_stake();
+        let proof_of_stake_contract = match tracking_copy
+            .borrow_mut()
+            .get_contract(correlation_id, Key::from(proof_of_stake_reference))
+        {
+            Ok(contract) => contract,
+            Err(_) => {
+                return Err(Error::MissingSystemContract(
+                    "proof of profession".to_string(),
+                ));
+            }
+        };
+        let mut proof_of_stake_keys = proof_of_stake_contract.named_keys().to_owned();
+        let proof_of_stake_module = match self.system_contract_cache.get(&proof_of_stake_reference)
+        {
+            Some(module) => module,
+            None => {
+                let module = match engine_wasm_prep::deserialize(proof_of_stake_contract.bytes()) {
+                    Ok(module) => module,
+                    Err(error) => {
+                        return Err(Error::WasmPreprocessing(error));
+                    }
+                };
+                self.system_contract_cache
+                    .insert(proof_of_stake_reference, module.clone());
+                module
+            }
+        };
+        let base_key = Key::from(proof_of_stake_reference);
+        let state = Rc::clone(&tracking_copy);
+        let system_contract_cache = SystemContractCache::clone(&self.system_contract_cache);
+        let executor = Executor::new(self.config);
+        let args = ArgsParser::parse(("step",))
+            .expect("args should convert to `Vec<CLValue>`")
+            .into_bytes()
+            .expect("args should serialize");
+
+        executor.exec_system(
+            proof_of_stake_module,
+            args,
+            &mut proof_of_stake_keys,
+            base_key,
+            &system_account,
+            authorization_keys,
+            BlockTime::new(step_request.block_time),
+            deploy_hash,
+            gas_limit,
+            address_generator,
+            protocol_version,
+            correlation_id,
+            state,
+            phase,
+            protocol_data,
+            system_contract_cache,
+        )?;
+
+        let effect = tracking_copy.borrow().effect();
+
+        // commit
+        let commit_result = self
+            .state
+            .commit(
+                correlation_id,
+                parent_state_hash,
+                effect.transforms.to_owned(),
+            )
+            .map_err(Into::into)?;
+
+        // return result and effects
+        Ok(StepDelegationsResult::from_commit_result(
+            commit_result,
+            parent_state_hash,
+            effect,
+        ))
     }
 }

@@ -511,6 +511,11 @@ where
                 response.mut_missing_parent().set_hash(hash.to_vec());
                 response
             }
+            Ok(result) => {
+                let mut response = StepDelegationsResponse::new();
+                response.mut_error().set_message(result.to_string());
+                response
+            }
             Err(error) => {
                 let mut response = StepDelegationsResponse::new();
                 response.mut_error().set_message(error.to_string());
