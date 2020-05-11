@@ -75,7 +75,6 @@ pub const CONV_RATE: u64 = 1_000_000_000;
 
 pub const SYSTEM_ACCOUNT_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
 
-const GENESIS_INITIAL_BLOCKTIME: u64 = 0;
 const MINT_METHOD_NAME: &str = "mint";
 
 #[derive(Debug)]
@@ -131,7 +130,7 @@ where
     ) -> Result<GenesisResult, Error> {
         // Preliminaries
         let executor = Executor::new(self.config);
-        let blocktime = BlockTime::new(GENESIS_INITIAL_BLOCKTIME);
+        let blocktime = BlockTime::new(genesis_config.timestamp());
         let gas_limit = Gas::new(std::u64::MAX.into());
         let phase = Phase::System;
 
