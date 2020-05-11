@@ -225,6 +225,42 @@ impl ContractClaim {
             runtime::put_key(&name, Key::Hash([0; 32]));
         }
     }
+
+    // prefix: "ld"
+    // ld_{last_distribute_time}
+    pub fn _read_last_distribute() -> Result<u64> {
+        let mut last_distribute = 0u64;
+        for (name, _) in runtime::list_named_keys() {
+            let mut split_name = name.split('_');
+            if Some("ld") != split_name.next() {
+                continue;
+            }
+
+            last_distribute = split_name
+                .next()
+                .and_then(|b| b.parse().ok())
+                .ok_or(Error::LastDistributeDeserializationFailed)?;
+
+            break;
+        }
+
+        Ok(last_distribute)
+    }
+
+    // prefix: "ld"
+    // ld_{last_distribute_time}
+    pub fn _write_last_distribute(last_distribute: u64) {
+        for (name, _) in runtime::list_named_keys() {
+            if name.starts_with("ld_") {
+                runtime::remove_key(&name);
+                break;
+            }
+        }
+        let mut uref = String::new();
+        uref.write_fmt(format_args!("ld_{}", last_distribute))
+            .expect("Writing to a string cannot fail");
+        runtime::put_key(&uref, Key::Hash([0; 32]));
+    }
 }
 
 impl TotalSupply {

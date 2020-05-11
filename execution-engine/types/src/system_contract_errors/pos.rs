@@ -146,6 +146,8 @@ pub enum Error {
     NotMatchedTotalBondAndDelegate, // = 57
     /// Internal error: Invalid state information
     InvalidStateInformation, // = 58
+    /// Internal error: Deserialization failed about last distribute time
+    LastDistributeDeserializationFailed, // = 59
 }
 
 impl CLTyped for Error {
