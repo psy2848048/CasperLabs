@@ -70,10 +70,17 @@ fn should_transfer_to_account() {
     let gas_cost =
         Motes::from_gas(builder.exec_costs(0)[0], CONV_RATE).expect("should convert gas to motes");
 
-    assert_eq!(
-        genesis_balance,
-        initial_genesis_amount - gas_cost.value() - transfer_amount
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - *DEFAULT_PAYMENT - transfer_amount
+        );
+    } else {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - gas_cost.value() - transfer_amount
+        );
+    }
 
     // Check account 1 balance
 
@@ -125,10 +132,17 @@ fn should_transfer_from_account_to_account() {
     let gas_cost = Motes::from_gas(utils::get_exec_costs(exec_1_response)[0], CONV_RATE)
         .expect("should convert");
 
-    assert_eq!(
-        genesis_balance,
-        initial_genesis_amount - gas_cost.value() - transfer_1_amount
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - *DEFAULT_PAYMENT - transfer_1_amount
+        );
+    } else {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - gas_cost.value() - transfer_1_amount
+        );
+    }
 
     // Check account 1 balance
     let account_1 = builder
@@ -167,10 +181,17 @@ fn should_transfer_from_account_to_account() {
     let gas_cost = Motes::from_gas(utils::get_exec_costs(exec_2_response)[0], CONV_RATE)
         .expect("should convert");
 
-    assert_eq!(
-        account_1_balance,
-        transfer_1_amount - gas_cost.value() - transfer_2_amount
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            account_1_balance,
+            transfer_1_amount - *DEFAULT_PAYMENT - transfer_2_amount
+        );
+    } else {
+        assert_eq!(
+            account_1_balance,
+            transfer_1_amount - gas_cost.value() - transfer_2_amount
+        );
+    }
 
     let account_2_balance = builder.get_purse_balance(account_2_purse);
 
@@ -226,10 +247,17 @@ fn should_transfer_to_existing_account() {
     let gas_cost =
         Motes::from_gas(builder.exec_costs(0)[0], CONV_RATE).expect("should convert gas to motes");
 
-    assert_eq!(
-        genesis_balance,
-        initial_genesis_amount - gas_cost.value() - transfer_1_amount
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - *DEFAULT_PAYMENT - transfer_1_amount
+        );
+    } else {
+        assert_eq!(
+            genesis_balance,
+            initial_genesis_amount - gas_cost.value() - transfer_1_amount
+        );
+    }
 
     // Check account 1 balance
 
@@ -260,10 +288,17 @@ fn should_transfer_to_existing_account() {
     let gas_cost =
         Motes::from_gas(builder.exec_costs(1)[0], CONV_RATE).expect("should convert gas to motes");
 
-    assert_eq!(
-        account_1_balance,
-        transfer_1_amount - gas_cost.value() - transfer_2_amount,
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            account_1_balance,
+            transfer_1_amount - *DEFAULT_PAYMENT - transfer_2_amount,
+        );
+    } else {
+        assert_eq!(
+            account_1_balance,
+            transfer_1_amount - gas_cost.value() - transfer_2_amount,
+        );
+    }
 
     // Check account 2 balance
 

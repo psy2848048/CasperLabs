@@ -140,7 +140,12 @@ fn should_charge_non_main_purse() {
     let gas = result.cost();
     let motes = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
 
-    let expected_resting_balance = account_1_purse_funding_amount - motes.value();
+    let mut expected_resting_balance = account_1_purse_funding_amount;
+    if cfg!(feature = "use-system-contracts") {
+        expected_resting_balance -= *DEFAULT_PAYMENT;
+    } else {
+        expected_resting_balance -= motes.value();
+    }
 
     let purse_final_balance = {
         let purse_bytes = purse

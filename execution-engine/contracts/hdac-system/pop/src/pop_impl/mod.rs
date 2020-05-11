@@ -550,6 +550,32 @@ impl ProofOfProfessionContract {
         ContractQueue::write_claim_requests(Default::default());
         Ok(())
     }
+
+    pub fn finalize_payment(&mut self, amount_spent: U512, _account: PublicKey) -> Result<()> {
+        let caller = self.get_caller();
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
+        let payment_purse =
+            get_purse(self, uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
+        let total = match self.balance(payment_purse) {
+            Some(balance) => balance,
+            None => return Err(Error::PaymentPurseBalanceNotFound),
+        };
+        if total < amount_spent {
+            return Err(Error::InsufficientPaymentForAmountSpent);
+        }
+
+        // In the fare system, the fee is taken by the validator.
+        let reward_purse =
+            get_purse(self, uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+
+        self.transfer_purse_to_purse(payment_purse, reward_purse, total)
+            .map_err(|_| Error::FailedTransferToRewardsPurse)?;
+
+        Ok(())
+    }
 }
 
 fn get_purse<R: RuntimeProvider>(

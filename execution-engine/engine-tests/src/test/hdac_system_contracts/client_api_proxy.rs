@@ -2,9 +2,9 @@ use num_traits::identities::Zero;
 
 use engine_core::engine_state::{
     genesis::{GenesisAccount, POS_BONDING_PURSE},
-    CONV_RATE, SYSTEM_ACCOUNT_ADDR,
+    SYSTEM_ACCOUNT_ADDR,
 };
-use engine_shared::{motes::Motes, stored_value::StoredValue, transform::Transform};
+use engine_shared::{motes::Motes, stored_value::StoredValue};
 use types::{account::PublicKey, Key, U512};
 
 use engine_test_support::{
@@ -129,16 +129,7 @@ fn should_invoke_successful_standard_payment() {
         "balance should be less than initial balance"
     );
 
-    let response = transfer_result
-        .builder()
-        .get_exec_response(0)
-        .expect("there should be a response")
-        .clone();
-
-    let success_result = utils::get_success_result(&response);
-    let fee_in_motes =
-        Motes::from_gas(success_result.cost(), CONV_RATE).expect("should have motes");
-    let total_consumed = fee_in_motes.value() + U512::from(transferred_amount);
+    let total_consumed = *DEFAULT_PAYMENT + U512::from(transferred_amount);
     let tally = total_consumed + modified_balance;
 
     assert_eq!(
@@ -200,20 +191,7 @@ fn should_invoke_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let pos_uref = bonding_result.builder().get_pos_contract_uref();
-
-    // retrieve transform of bond request.
-    let transforms = &bonding_result.builder().get_transforms()[1];
-    let pos_transform = &transforms[&Key::from(pos_uref).normalize()];
-
-    let pos_contract = if let Transform::Write(StoredValue::Contract(contract)) = pos_transform {
-        contract
-    } else {
-        panic!(
-            "pos transform is expected to be of AddKeys variant but received {:?}",
-            pos_transform
-        );
-    };
+    let pos_contract = bonding_result.builder().get_pos_contract();
 
     let lookup_key = format!(
         "v_{}_{}",
@@ -235,17 +213,7 @@ fn should_invoke_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let transforms = &unbonding_result.builder().get_transforms()[0];
-    let pos_transform = &transforms[&Key::from(pos_uref).normalize()];
-
-    let pos_contract = if let Transform::Write(StoredValue::Contract(contract)) = pos_transform {
-        contract
-    } else {
-        panic!(
-            "pos transform is expected to be of AddKeys variant but received {:?}",
-            pos_transform
-        );
-    };
+    let pos_contract = unbonding_result.builder().get_pos_contract();
 
     // ensure that ACCOUNT_1_ADDR is not in validator queue.
     assert_eq!(

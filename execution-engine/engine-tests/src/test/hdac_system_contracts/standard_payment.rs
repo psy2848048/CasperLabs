@@ -1,7 +1,7 @@
 use lazy_static::lazy_static;
 
-use engine_core::engine_state::{genesis::POS_REWARDS_PURSE, CONV_RATE, MAX_PAYMENT};
-use engine_shared::{motes::Motes, transform::Transform};
+use engine_core::engine_state::{genesis::POS_REWARDS_PURSE, MAX_PAYMENT};
+use engine_shared::transform::Transform;
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
@@ -418,11 +418,7 @@ fn should_correctly_charge_when_session_code_runs_out_of_gas() {
         .get_exec_response(0)
         .expect("there should be a response");
 
-    let success_result = utils::get_success_result(&response);
-    let gas = success_result.cost();
-    let motes = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
-
-    let tally = motes.value() + modified_balance;
+    let tally = modified_balance + payment_purse_amount;
 
     assert_eq!(
         initial_balance, tally,
@@ -476,15 +472,7 @@ fn should_correctly_charge_when_session_code_fails() {
         "balance should be less than initial balance"
     );
 
-    let response = builder
-        .get_exec_response(0)
-        .expect("there should be a response")
-        .clone();
-
-    let success_result = utils::get_success_result(&response);
-    let gas = success_result.cost();
-    let motes = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
-    let tally = motes.value() + modified_balance;
+    let tally = modified_balance + payment_purse_amount;
 
     assert_eq!(
         initial_balance, tally,
@@ -534,15 +522,7 @@ fn should_correctly_charge_when_session_code_succeeds() {
         "balance should be less than initial balance"
     );
 
-    let response = builder
-        .get_exec_response(0)
-        .expect("there should be a response")
-        .clone();
-
-    let success_result = utils::get_success_result(&response);
-    let gas = success_result.cost();
-    let motes = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
-    let total = motes.value() + U512::from(transferred_amount);
+    let total = U512::from(transferred_amount) + payment_purse_amount;
     let tally = total + modified_balance;
 
     assert_eq!(

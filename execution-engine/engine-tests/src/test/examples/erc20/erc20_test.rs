@@ -4,6 +4,7 @@ use engine_core::engine_state::{execution_result::ExecutionResult, CONV_RATE};
 use engine_shared::motes::Motes;
 use engine_test_support::internal::{
     utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder as TestBuilder, DEFAULT_GENESIS_CONFIG,
+    DEFAULT_PAYMENT,
 };
 use types::{account::PublicKey, bytesrepr::ToBytes, CLValue, Key, U512};
 
@@ -239,7 +240,11 @@ impl ERC20Test {
             .map(|i| self.builder.get_exec_response(i).unwrap())
             .map(|response| get_cost(response))
             .fold(U512::zero(), |sum, cost| sum + cost);
-        account_balance += execution_costs;
+        if cfg!(feature = "use-system-contracts") {
+            account_balance += *DEFAULT_PAYMENT * last_deploy_index;
+        } else {
+            account_balance += execution_costs;
+        }
         assert_eq!(account_balance, expected);
         self
     }

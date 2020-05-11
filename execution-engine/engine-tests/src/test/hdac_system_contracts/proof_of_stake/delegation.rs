@@ -1,12 +1,9 @@
 use num_traits::identities::Zero;
 
-use engine_core::engine_state::{
-    genesis::{GenesisAccount, POS_BONDING_PURSE},
-    CONV_RATE,
-};
+use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
 use engine_test_support::{
-    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
+    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_PAYMENT},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 use types::{account::PublicKey, ApiError, Key, U512};
@@ -148,21 +145,12 @@ fn should_run_successful_delegate_and_undelegate() {
         U512::from(GENESIS_VALIDATOR_STAKE + ACCOUNT_2_DELEGATE_AMOUNT)
     );
 
-    // validate ACCOUNT_2's balance
-    let delegate_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    let gas_cost = utils::get_exec_costs(delegate_response)[0];
-
     let account_2 = builder
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
     assert_eq!(
         result.builder().get_purse_balance(account_2.main_purse()),
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_2_DELEGATE_AMOUNT)
-            - Motes::from_gas(gas_cost, CONV_RATE)
-                .expect("should convert")
-                .value()
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_2_DELEGATE_AMOUNT) - *DEFAULT_PAYMENT
     );
 
     // execute undelegate
@@ -224,26 +212,17 @@ fn should_run_successful_delegate_and_undelegate() {
         )
     );
 
-    // validate ACCOUNT_2's balance
-    let undelegate_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    // gas cost of (delegate_request + undelegate_request)
-    let gas_cost = gas_cost + utils::get_exec_costs(undelegate_response)[0];
-
     let account_2 = builder
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
+
     assert_eq!(
         result.builder().get_purse_balance(account_2.main_purse()),
         U512::from(
             DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_2_DELEGATE_AMOUNT
                 + ACCOUNT_2_UNDELEGATE_AMOUNT
-        ) - Motes::from_gas(gas_cost, CONV_RATE)
-            .expect("should convert")
-            .value()
+        ) - *DEFAULT_PAYMENT * 2
     );
-
     // execute undelegate all with None
     // undelegate {ACCOUNT_2}_{ACCOUNT_1} all
     let undelegate_all_request = ExecuteRequestBuilder::standard(
@@ -305,22 +284,12 @@ fn should_run_successful_delegate_and_undelegate() {
         U512::from(GENESIS_VALIDATOR_STAKE)
     );
 
-    // validate ACCOUNT_2's balance
-    let undelegate_all_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    // gas cost of (delegate_request + undelegate_request + undelegate_all_request)
-    let gas_cost = gas_cost + utils::get_exec_costs(undelegate_all_response)[0];
-
     let account_2 = builder
         .get_account(ACCOUNT_2_ADDR)
         .expect("should get account 2");
     assert_eq!(
         result.builder().get_purse_balance(account_2.main_purse()),
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
-            - Motes::from_gas(gas_cost, CONV_RATE)
-                .expect("should convert")
-                .value()
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE) - *DEFAULT_PAYMENT * 3
     );
 }
 
@@ -410,18 +379,6 @@ fn should_run_successful_redelegate() {
     let pos_contract = builder
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
-
-    // gas cost of (delegate_request + undelegate_request)
-    let gas_cost = {
-        let response = builder
-            .get_exec_response(0)
-            .expect("should have exec response");
-        let gas_cost = utils::get_exec_costs(response)[0];
-        let response = builder
-            .get_exec_response(1)
-            .expect("should have exec response");
-        gas_cost + utils::get_exec_costs(response)[0]
-    };
 
     // validate stakes
     let expected_account_1_stake = format!(
@@ -536,22 +493,13 @@ fn should_run_successful_redelegate() {
         U512::from(GENESIS_VALIDATOR_STAKE * 2 + ACCOUNT_3_DELEGATE_AMOUNT)
     );
 
-    // validate ACCOUNT_3's balance
-    let undelegate_all_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    // gas cost of (delegate_request + undelegate_request + undelegate_all_request)
-    let gas_cost = gas_cost + utils::get_exec_costs(undelegate_all_response)[0];
-
     let account_3 = builder
         .get_account(ACCOUNT_3_ADDR)
         .expect("should get account 3");
     assert_eq!(
         result.builder().get_purse_balance(account_3.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_3_DELEGATE_AMOUNT)
-            - Motes::from_gas(gas_cost, CONV_RATE)
-                .expect("should convert")
-                .value()
+            - *DEFAULT_PAYMENT * 3
     );
 }
 

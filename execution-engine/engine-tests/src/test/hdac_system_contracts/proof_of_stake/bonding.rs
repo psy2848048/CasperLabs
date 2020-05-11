@@ -1,7 +1,4 @@
-use engine_core::engine_state::{
-    genesis::{GenesisAccount, POS_BONDING_PURSE},
-    CONV_RATE,
-};
+use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
@@ -91,11 +88,6 @@ fn should_run_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    let mut genesis_gas_cost = utils::get_exec_costs(exec_response)[0];
-
     let contract = builder
         .get_contract(pos.remove_access_rights())
         .expect("should have contract");
@@ -146,11 +138,6 @@ fn should_run_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    genesis_gas_cost = genesis_gas_cost + utils::get_exec_costs(exec_response)[0];
-
     let account_1 = builder
         .get_account(ACCOUNT_1_ADDR)
         .expect("should get account 1");
@@ -199,15 +186,10 @@ fn should_run_successful_bond_and_unbond() {
         .finish();
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    let gas_cost_b = Motes::from_gas(utils::get_exec_costs(exec_response)[0], CONV_RATE)
-        .expect("should convert");
 
     assert_eq!(
         account_1_bal_after,
-        account_1_bal_before - gas_cost_b.value() + ACCOUNT_1_UNBOND_1,
+        account_1_bal_before - *DEFAULT_PAYMENT + ACCOUNT_1_UNBOND_1,
     );
 
     // POS bonding purse is decreased
@@ -255,17 +237,10 @@ fn should_run_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    genesis_gas_cost = genesis_gas_cost + utils::get_exec_costs(exec_response)[0];
-
     assert_eq!(
         builder.get_purse_balance(default_account.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
-            - Motes::from_gas(genesis_gas_cost, CONV_RATE)
-                .expect("should convert")
-                .value()
+            - *DEFAULT_PAYMENT * 3
             - account_1_seed_amount
             - GENESIS_ACCOUNT_UNBOND_2,
     );
@@ -299,15 +274,10 @@ fn should_run_successful_bond_and_unbond() {
         .finish();
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    let gas_cost_b = Motes::from_gas(utils::get_exec_costs(exec_response)[0], CONV_RATE)
-        .expect("should convert");
 
     assert_eq!(
         account_1_bal_after,
-        account_1_bal_before - gas_cost_b.value() + ACCOUNT_1_UNBOND_2,
+        account_1_bal_before - *DEFAULT_PAYMENT + ACCOUNT_1_UNBOND_2,
     );
 
     // POS bonding purse contains now genesis validator (50k) + genesis account
@@ -346,21 +316,12 @@ fn should_run_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let exec_response = builder
-        .get_exec_response(0)
-        .expect("should have exec response");
-    genesis_gas_cost = genesis_gas_cost + utils::get_exec_costs(exec_response)[0];
-
     // Back to original after funding account1's pursee
     assert_eq!(
         result
             .builder()
             .get_purse_balance(default_account.main_purse()),
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
-            - Motes::from_gas(genesis_gas_cost, CONV_RATE)
-                .expect("should convert")
-                .value()
-            - account_1_seed_amount
+        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE) - *DEFAULT_PAYMENT * 4 - account_1_seed_amount
     );
 
     // Final balance after two full unbonds is the initial bond valuee
