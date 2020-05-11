@@ -99,7 +99,13 @@ fn should_exec_non_stored_code() {
     let success_result = utils::get_success_result(&response);
     let gas = success_result.cost();
     let motes = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
-    let tally = motes.value() + U512::from(transferred_amount) + modified_balance;
+    let mut tally = U512::from(transferred_amount) + modified_balance;
+
+    if cfg!(feature = "use-system-contracts") {
+        tally += payment_purse_amount;
+    } else {
+        tally += motes.value();
+    }
 
     assert_eq!(
         initial_balance, tally,
@@ -182,10 +188,13 @@ fn should_exec_stored_code_by_hash() {
     let gas = result.cost();
     let motes_bravo = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
 
-    let tally = motes_alpha.value()
-        + motes_bravo.value()
-        + U512::from(transferred_amount)
-        + modified_balance_bravo;
+    let mut tally = U512::from(transferred_amount) + modified_balance_bravo;
+
+    if cfg!(feature = "use-system-contracts") {
+        tally += payment_purse_amount * 2;
+    } else {
+        tally += motes_alpha.value() + motes_bravo.value();
+    }
 
     assert!(
         modified_balance_alpha < initial_balance,
@@ -274,10 +283,13 @@ fn should_exec_stored_code_by_named_hash() {
     let gas = result.cost();
     let motes_bravo = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
 
-    let tally = motes_alpha.value()
-        + motes_bravo.value()
-        + U512::from(transferred_amount)
-        + modified_balance_bravo;
+    let mut tally = U512::from(transferred_amount) + modified_balance_bravo;
+
+    if cfg!(feature = "use-system-contracts") {
+        tally += payment_purse_amount * 2;
+    } else {
+        tally += motes_alpha.value() + motes_bravo.value();
+    }
 
     assert!(
         modified_balance_alpha < initial_balance,
@@ -377,10 +389,13 @@ fn should_exec_stored_code_by_named_uref() {
     let gas = result.cost();
     let motes_bravo = Motes::from_gas(gas, CONV_RATE).expect("should have motes");
 
-    let tally = motes_alpha.value()
-        + motes_bravo.value()
-        + U512::from(transferred_amount)
-        + modified_balance_bravo;
+    let mut tally = U512::from(transferred_amount) + modified_balance_bravo;
+
+    if cfg!(feature = "use-system-contracts") {
+        tally += payment_purse_amount * 2;
+    } else {
+        tally += motes_alpha.value() + motes_bravo.value();
+    }
 
     assert!(
         modified_balance_alpha < initial_balance,
@@ -493,11 +508,13 @@ fn should_exec_payment_and_session_stored_code() {
 
     let initial_balance: U512 = U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE);
 
-    let tally = motes_alpha.value()
-        + motes_bravo.value()
-        + motes_charlie.value()
-        + U512::from(transferred_amount)
-        + modified_balance;
+    let mut tally = U512::from(transferred_amount) + modified_balance;
+
+    if cfg!(feature = "use-system-contracts") {
+        tally += *DEFAULT_PAYMENT + payment_purse_amount * 2;
+    } else {
+        tally += motes_alpha.value() + motes_bravo.value() + motes_charlie.value();
+    }
 
     assert_eq!(
         initial_balance, tally,

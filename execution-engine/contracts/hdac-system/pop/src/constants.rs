@@ -8,6 +8,7 @@ pub(crate) mod local_keys {
 pub(crate) mod uref_names {
     pub const POS_BONDING_PURSE: &str = "pos_bonding_purse";
     pub const POS_REWARD_PURSE: &str = "pos_rewards_purse";
+    pub const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 }
 
 pub(crate) mod methods {

@@ -107,10 +107,17 @@ fn should_not_be_able_to_transfer_funds_with_transfer_purse_to_purse() {
         .builder()
         .get_purse_balance(victim_account.main_purse());
 
-    assert_eq!(
-        *VICTIM_INITIAL_FUNDS - gas_cost.value(),
-        victim_balance_after
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - *DEFAULT_PAYMENT,
+            victim_balance_after
+        );
+    } else {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - gas_cost.value(),
+            victim_balance_after
+        );
+    }
 
     assert_eq!(
         result_2.builder().get_purse_balance(donation_purse_copy),
@@ -179,10 +186,18 @@ fn should_not_be_able_to_transfer_funds_with_transfer_from_purse_to_account() {
         .builder()
         .get_purse_balance(victim_account.main_purse());
 
-    assert_eq!(
-        *VICTIM_INITIAL_FUNDS - gas_cost.value(),
-        victim_balance_after
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - *DEFAULT_PAYMENT,
+            victim_balance_after
+        );
+    } else {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - gas_cost.value(),
+            victim_balance_after
+        );
+    }
+
     // In this variant of test `donation_purse` is left unchanged i.e. zero balance
     assert_eq!(
         result_2.builder().get_purse_balance(donation_purse_copy),
@@ -260,11 +275,17 @@ fn should_not_be_able_to_transfer_funds_with_transfer_to_account() {
     let victim_balance_after = result_2
         .builder()
         .get_purse_balance(victim_account.main_purse());
-
-    assert_eq!(
-        *VICTIM_INITIAL_FUNDS - gas_cost.value(),
-        victim_balance_after
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - *DEFAULT_PAYMENT,
+            victim_balance_after
+        );
+    } else {
+        assert_eq!(
+            *VICTIM_INITIAL_FUNDS - gas_cost.value(),
+            victim_balance_after
+        );
+    }
 
     // In this variant of test `donation_purse` is left unchanged i.e. zero balance
     assert_eq!(
@@ -337,8 +358,15 @@ fn should_not_be_able_to_get_main_purse_in_invalid_context() {
         .builder()
         .get_purse_balance(victim_account.main_purse());
 
-    assert_eq!(
-        victim_balance_before - gas_cost.value(),
-        victim_balance_after
-    );
+    if cfg!(feature = "use-system-contracts") {
+        assert_eq!(
+            victim_balance_before - *DEFAULT_PAYMENT,
+            victim_balance_after
+        );
+    } else {
+        assert_eq!(
+            victim_balance_before - gas_cost.value(),
+            victim_balance_after
+        );
+    }
 }

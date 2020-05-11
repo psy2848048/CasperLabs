@@ -1,14 +1,11 @@
 use std::convert::TryInto;
 
-use engine_core::engine_state::{
-    genesis::{POS_PAYMENT_PURSE, POS_REWARDS_PURSE},
-    CONV_RATE,
-};
-use engine_shared::{account::Account, motes::Motes};
+use engine_core::engine_state::genesis::{POS_PAYMENT_PURSE, POS_REWARDS_PURSE};
+use engine_shared::account::Account;
 use engine_test_support::{
     internal::{
-        utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
+        DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG,
+        DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR,
 };
@@ -79,7 +76,7 @@ fn finalize_payment_should_not_be_run_by_non_system_accounts() {
 
 #[ignore]
 #[test]
-fn finalize_payment_should_refund_to_specified_purse() {
+fn finalize_payment_should_reward_to_specified_purse() {
     let mut builder = InMemoryWasmTestBuilder::default();
     let payment_amount = *DEFAULT_PAYMENT;
     let refund_purse_flag: u8 = 1;
@@ -120,40 +117,15 @@ fn finalize_payment_should_refund_to_specified_purse() {
     };
     builder.exec(exec_request).expect_success().commit();
 
-    let spent_amount: U512 = {
-        let response = builder
-            .get_exec_response(0)
-            .expect("there should be a response");
-
-        let success_result = utils::get_success_result(response);
-        Motes::from_gas(success_result.cost(), CONV_RATE)
-            .expect("should have motes")
-            .value()
-    };
-
     let payment_post_balance = get_pos_payment_purse_balance(&builder);
     let rewards_post_balance = get_pos_rewards_purse_balance(&builder);
-    let refund_post_balance =
-        get_named_account_balance(&builder, DEFAULT_ACCOUNT_ADDR, LOCAL_REFUND_PURSE)
-            .expect("should have refund balance");
-    let expected_amount = rewards_pre_balance + spent_amount;
+    let expected_amount = rewards_pre_balance + *DEFAULT_PAYMENT;
     assert_eq!(
         expected_amount, rewards_post_balance,
         "validators should get paid; expected: {}, actual: {}",
         expected_amount, rewards_post_balance
     );
 
-    // user gets refund
-    assert_eq!(
-        refund_pre_balance + payment_amount - spent_amount,
-        refund_post_balance,
-        "user should get refund"
-    );
-
-    assert!(
-        get_pos_refund_purse(&builder).is_none(),
-        "refund_purse always ends unset"
-    );
     assert!(
         payment_post_balance.is_zero(),
         "payment purse should ends with zero balance"
