@@ -228,7 +228,7 @@ impl ContractClaim {
 
     // prefix: "ld"
     // ld_{last_distribute_time}
-    pub fn _read_last_distribute() -> Result<u64> {
+    pub fn read_last_distribute() -> Result<u64> {
         let mut last_distribute = 0u64;
         for (name, _) in runtime::list_named_keys() {
             let mut split_name = name.split('_');
@@ -249,7 +249,7 @@ impl ContractClaim {
 
     // prefix: "ld"
     // ld_{last_distribute_time}
-    pub fn _write_last_distribute(last_distribute: u64) {
+    pub fn write_last_distribute(last_distribute: u64) {
         for (name, _) in runtime::list_named_keys() {
             if name.starts_with("ld_") {
                 runtime::remove_key(&name);

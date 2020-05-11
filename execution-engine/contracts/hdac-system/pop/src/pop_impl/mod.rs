@@ -126,7 +126,6 @@ impl ProofOfProfessionContract {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
-        self.distribute()?;
         self.step_claim()?;
 
         Ok(())
@@ -168,6 +167,7 @@ impl ProofOfProfessionContract {
         ContractQueue::write_requests(local_keys::DELEGATE_REQUEST_QUEUE, request_queue);
 
         // TODO: this should be factored out to ProofOfStake::step.
+        self.distribute()?;
         self.step_delegation(self.get_block_time())?;
         Ok(())
     }
@@ -221,6 +221,7 @@ impl ProofOfProfessionContract {
         ContractQueue::write_requests(local_keys::UNDELEGATE_REQUEST_QUEUE, request_queue);
 
         // TODO: this should be factored out to ProofOfStake::step.
+        self.distribute()?;
         self.step_undelegation(self.get_block_time())?;
         Ok(())
     }
@@ -283,6 +284,7 @@ impl ProofOfProfessionContract {
         ContractQueue::write_requests(local_keys::REDELEGATE_REQUEST_QUEUE, request_queue);
 
         // TODO: this should be factored out to ProofOfStake::step.
+        self.distribute()?;
         self.step_redelegation(self.get_block_time())?;
 
         Ok(())
@@ -385,19 +387,27 @@ impl ProofOfProfessionContract {
         let mut commissions = ContractClaim::read_commission()?;
         let mut rewards = ContractClaim::read_reward()?;
 
+        // We should calculate how much time passed from last distribute
+        let current_blocktime: u64 = runtime::get_blocktime().into();
+        let last_distribute_time: u64 = ContractClaim::read_last_distribute()?;
+        let time_passed: u64 = if current_blocktime <= last_distribute_time {
+            0
+        } else {
+            current_blocktime - last_distribute_time
+        };
+
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
         //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
-        //         * consts::BLOCK_PRODUCING_PER_SEC)
         //    -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply.0 * U512::from(5)
+        //   U512::from(time_passed) -> time passed from last distribute
+        let calculated_inflation_amount = total_supply.0 * U512::from(5)
             / U512::from(
                 100 * consts::DAYS_OF_YEAR
                     * consts::HOURS_OF_DAY
                     * consts::SECONDS_OF_HOUR
-                    * consts::BLOCK_PRODUCING_PER_SEC,
-            );
-        total_supply.add(&inflation_pool_per_block);
+            ) * U512::from(time_passed);
+        total_supply.add(&calculated_inflation_amount);
 
         // Check total supply meets max supply
         if total_supply.0 > U512::from(consts::MAX_SUPPLY) * U512::from(consts::BIGSUN_TO_HDAC) {
@@ -439,7 +449,7 @@ impl ProofOfProfessionContract {
         for (validator, unit_pop_score) in pop_score_table.iter() {
             let unit_commission = unit_pop_score
                 * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
-                * inflation_pool_per_block
+                * calculated_inflation_amount
                 / (total_pop_score * U512::from(100));
             commissions.insert_commission(validator, &unit_commission);
         }
@@ -467,18 +477,24 @@ impl ProofOfProfessionContract {
             let user_reward = user_delegation_amount
                 * pop_score_of_validator
                 * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
-                * inflation_pool_per_block
+                * calculated_inflation_amount
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
             rewards.insert_rewards(&delegation_key.delegator, &user_reward);
         }
         ContractClaim::write_reward(&rewards);
 
+        // record current blocktime as last distributed time
+        ContractClaim::write_last_distribute(current_blocktime);
+
         Ok(())
     }
 
     // For validator
     pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
+        // distribute first
+        self.distribute()?;
+
         // Processing commission claim table
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions
@@ -504,6 +520,9 @@ impl ProofOfProfessionContract {
 
     // For user
     pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
+        // distribute first
+        self.distribute()?;
+
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards
             .0
