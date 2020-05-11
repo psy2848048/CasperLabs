@@ -185,6 +185,15 @@ pub extern "C" fn call() {
         runtime::revert(Error::NotMatchedTotalBondAndDelegate);
     }
 
+    // Insert genesis blocktime to last distribute time
+    // "ld_{last_distribute_time}"
+    let genesis_blocktime: u64 = runtime::get_blocktime().into();
+    let mut last_distribute_uref = String::new();
+    last_distribute_uref
+        .write_fmt(format_args!("ld_{}", genesis_blocktime))
+        .unwrap();
+    named_keys.insert(last_distribute_uref, PLACEHOLDER_KEY);
+
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
     // let rewards_purse = mint_purse(&mint, U512::zero());
