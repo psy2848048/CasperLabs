@@ -67,6 +67,10 @@ fn claim_reward(pos: &ContractRef) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_CLAIM_REWARD,));
 }
 
+fn distribute(pos: &ContractRef) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_DISTRIBUTE,));
+}
+
 const POS_BOND: &str = "bond";
 const POS_UNBOND: &str = "unbond";
 const POS_STEP: &str = "step";
@@ -78,6 +82,7 @@ const POS_UNVOTE: &str = "unvote";
 const POS_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
 const POS_CLAIM_COMMISSION: &str = "claim_commission";
 const POS_CLAIM_REWARD: &str = "claim_reward";
+const POS_DISTRIBUTE: &str = "distribute";
 
 #[no_mangle]
 pub extern "C" fn call() {
@@ -171,6 +176,9 @@ pub extern "C" fn call() {
         }
         POS_CLAIM_REWARD => {
             claim_reward(&pos_pointer);
+        }
+        POS_DISTRIBUTE=> {
+            distribute(&pos_pointer);
         }
         _ => runtime::revert(ApiError::User(Error::UnknownCommand as u16)),
     }

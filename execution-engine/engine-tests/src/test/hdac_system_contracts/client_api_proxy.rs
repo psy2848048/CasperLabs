@@ -31,6 +31,7 @@ const UNVOTE_METHOD: &str = "unvote";
 // const WRITE_GENESIS_TOTAL_SUPPLY_METHOD: &str = "write_genesis_total_supply";
 const CLAIM_COMMISSION_METHOD: &str = "claim_commission";
 const CLAIM_REWARD_METHOD: &str = "claim_reward";
+const DISTRIBUTE_METHOD: &str = "distribute";
 
 fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
     // query client_api_proxy_hash from SYSTEM_ACCOUNT
@@ -755,7 +756,7 @@ fn should_invoke_successful_step() {
     let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
         SYSTEM_ADDR,
         client_api_proxy_hash,
-        (String::from(STEP_METHOD),),
+        (String::from(DISTRIBUTE_METHOD),),
     )
     .build();
 

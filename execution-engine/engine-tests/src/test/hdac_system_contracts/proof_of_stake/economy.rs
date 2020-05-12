@@ -16,6 +16,7 @@ const METHOD_STEP: &str = "step";
 const METHOD_CLAIM_COMMISSION: &str = "claim_commission";
 const METHOD_CLAIM_REWARD: &str = "claim_reward";
 const METHOD_DELEGATE: &str = "delegate";
+const METHOD_DISTRIBUTE: &str = "distribute";
 
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
@@ -177,7 +178,7 @@ fn should_run_successful_step() {
     let distribution_request = ExecuteRequestBuilder::standard(
         SYSTEM_ADDR,
         CONTRACT_POS_VOTE,
-        (String::from(METHOD_STEP),),
+        (String::from(METHOD_DISTRIBUTE),),
     )
     .build();
 
