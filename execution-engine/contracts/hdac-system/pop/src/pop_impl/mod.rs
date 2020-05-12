@@ -397,13 +397,13 @@ impl ProofOfProfessionContract {
         };
 
         // 1. Increase total supply
-        //   U512::from(5) / U512::from(100) -> total inflation 5% per year
+        //   U512::from(488) / U512::from(10000) -> total inflation about 5% per year
         //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
         //    -> divider for deriving inflation per block
         //   U512::from(time_passed) -> time passed from last distribute
-        let calculated_inflation_amount = total_supply.0 * U512::from(5)
+        let calculated_inflation_amount = total_supply.0 * U512::from(consts::INFLATION_RATE)
             / U512::from(
-                100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR,
+                10000 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR,
             )
             * U512::from(time_passed);
         total_supply.add(&calculated_inflation_amount);

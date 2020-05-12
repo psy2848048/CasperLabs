@@ -39,4 +39,5 @@ pub(crate) mod consts {
     pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce
     pub const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
     pub const VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE: i64 = 30_i64;
+    pub const INFLATION_RATE: i64 = 488_i64;
 }
