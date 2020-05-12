@@ -15,8 +15,8 @@ use proof_of_stake::{
 use types::{
     account::PublicKey,
     system_contract_errors::{
-        pos::{Error, PurseLookupError, Result},
         mint,
+        pos::{Error, PurseLookupError, Result},
     },
     BlockTime, Key, Phase, TransferResult, URef, U512,
 };
