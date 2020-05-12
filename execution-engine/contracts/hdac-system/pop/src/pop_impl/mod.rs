@@ -14,7 +14,10 @@ use proof_of_stake::{
 };
 use types::{
     account::PublicKey,
-    system_contract_errors::pos::{Error, PurseLookupError, Result},
+    system_contract_errors::{
+        pos::{Error, PurseLookupError, Result},
+        mint,
+    },
     BlockTime, Key, Phase, TransferResult, URef, U512,
 };
 
@@ -529,17 +532,19 @@ impl ProofOfProfessionContract {
         let claim_requests = ContractQueue::read_claim_requests();
 
         for request in claim_requests.0.iter() {
-            let reward_purse =
-                get_purse(self, uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
-
             let (pubkey, amount) = match request {
                 ClaimRequest::Commission(pubkey, amount) | ClaimRequest::Reward(pubkey, amount) => {
                     (*pubkey, *amount)
                 }
             };
 
+            let mint_contract = system::get_mint();
+            let minted_purse_res: core::result::Result<URef, mint::Error> =
+                runtime::call_contract(mint_contract.clone(), ("mint", amount));
+            let minted_purse = minted_purse_res.unwrap_or_revert();
+
             let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(reward_purse, pubkey, amount);
+                system::transfer_from_purse_to_account(minted_purse, pubkey, amount);
 
             if let Err(err) = transfer_res {
                 runtime::revert(err);
