@@ -89,9 +89,6 @@ fn finalize_payment_should_reward_to_specified_purse() {
 
     let payment_pre_balance = get_pos_payment_purse_balance(&builder);
     let rewards_pre_balance = get_pos_rewards_purse_balance(&builder);
-    let refund_pre_balance =
-        get_named_account_balance(&builder, DEFAULT_ACCOUNT_ADDR, LOCAL_REFUND_PURSE)
-            .unwrap_or_else(U512::zero);
 
     assert!(
         get_pos_refund_purse(&builder).is_none(),
