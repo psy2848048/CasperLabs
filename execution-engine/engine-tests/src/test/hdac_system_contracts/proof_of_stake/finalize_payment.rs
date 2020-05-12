@@ -1,7 +1,4 @@
-use std::convert::TryInto;
-
 use engine_core::engine_state::genesis::{POS_PAYMENT_PURSE, POS_REWARDS_PURSE};
-use engine_shared::account::Account;
 use engine_test_support::{
     internal::{
         DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG,
@@ -14,7 +11,6 @@ use types::{account::PublicKey, Key, URef, U512};
 const CONTRACT_FINALIZE_PAYMENT: &str = "pos_finalize_payment.wasm";
 const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_purse_to_account.wasm";
 const FINALIZE_PAYMENT: &str = "pos_finalize_payment.wasm";
-const LOCAL_REFUND_PURSE: &str = "local_refund_purse";
 const POS_REFUND_PURSE_NAME: &str = "pos_refund_purse";
 
 const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
@@ -160,25 +156,4 @@ fn get_pos_purse_id_by_name(builder: &InMemoryWasmTestBuilder, purse_name: &str)
         .get(purse_name)
         .and_then(Key::as_uref)
         .cloned()
-}
-
-fn get_named_account_balance(
-    builder: &InMemoryWasmTestBuilder,
-    account_address: PublicKey,
-    name: &str,
-) -> Option<U512> {
-    let account_key = Key::Account(account_address);
-
-    let account: Account = builder
-        .query(None, account_key, &[])
-        .and_then(|v| v.try_into().map_err(|error| format!("{:?}", error)))
-        .expect("should find balance uref");
-
-    let purse = account
-        .named_keys()
-        .get(name)
-        .and_then(Key::as_uref)
-        .cloned();
-
-    purse.map(|uref| builder.get_purse_balance(uref))
 }
