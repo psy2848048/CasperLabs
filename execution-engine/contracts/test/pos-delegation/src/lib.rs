@@ -177,7 +177,7 @@ pub extern "C" fn call() {
         POS_CLAIM_REWARD => {
             claim_reward(&pos_pointer);
         }
-        POS_DISTRIBUTE=> {
+        POS_DISTRIBUTE => {
             distribute(&pos_pointer);
         }
         _ => runtime::revert(ApiError::User(Error::UnknownCommand as u16)),

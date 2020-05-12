@@ -403,10 +403,9 @@ impl ProofOfProfessionContract {
         //   U512::from(time_passed) -> time passed from last distribute
         let calculated_inflation_amount = total_supply.0 * U512::from(5)
             / U512::from(
-                100 * consts::DAYS_OF_YEAR
-                    * consts::HOURS_OF_DAY
-                    * consts::SECONDS_OF_HOUR
-            ) * U512::from(time_passed);
+                100 * consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR,
+            )
+            * U512::from(time_passed);
         total_supply.add(&calculated_inflation_amount);
 
         // Check total supply meets max supply
