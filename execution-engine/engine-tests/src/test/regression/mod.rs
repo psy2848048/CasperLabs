@@ -13,8 +13,6 @@ mod ee_572;
 mod ee_584;
 #[cfg(feature = "use-system-contracts")]
 mod ee_597;
-#[cfg(feature = "use-system-contracts")]
-mod ee_598;
 mod ee_599;
 mod ee_601;
 mod ee_803;

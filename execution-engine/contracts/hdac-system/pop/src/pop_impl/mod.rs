@@ -121,9 +121,6 @@ impl ProofOfStake for ProofOfProfessionContract {
 
 impl ProofOfProfessionContract {
     pub fn step(&mut self) -> Result<()> {
-        // let blocktime = runtime::get_blocktime();
-        // self.step_undelegation(blocktime);
-        // self.step_redelegation(blocktime);
         let caller = runtime::get_caller();
 
         if caller.value() != consts::SYSTEM_ACCOUNT {
@@ -210,6 +207,12 @@ impl ProofOfProfessionContract {
         validator: PublicKey,
         maybe_amount: Option<U512>,
     ) -> Result<()> {
+        // validate undelegation by simulating
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes: Stakes = self.read()?;
+        let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
+        let _ = stakes.unbond(&validator, Some(amount))?;
+
         let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
             DelegationKind::Undelegate,
         );
@@ -273,6 +276,11 @@ impl ProofOfProfessionContract {
         if src == dest {
             return Err(Error::SelfRedelegation);
         }
+        // validate redelegation by simulating
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes: Stakes = self.read()?;
+        let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
+        let _payout = stakes.unbond(&src, Some(amount))?;
 
         let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
             DelegationKind::Redelegate,

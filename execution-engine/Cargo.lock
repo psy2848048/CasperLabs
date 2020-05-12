@@ -924,14 +924,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ee-598-regression"
-version = "0.1.0"
-dependencies = [
- "casperlabs-contract 0.4.1",
- "casperlabs-types 0.4.1",
-]
-
-[[package]]
 name = "ee-599-regression"
 version = "0.1.0"
 dependencies = [
