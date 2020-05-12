@@ -1565,7 +1565,7 @@ where
         Ok(bonded_validators)
     }
 
-    pub fn step(
+    pub fn run_step(
         &self,
         correlation_id: CorrelationId,
         step_request: StepRequest,

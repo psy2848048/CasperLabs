@@ -495,7 +495,7 @@ where
             }
         };
 
-        let step_response = match self.step(correlation_id, step_request) {
+        let step_response = match self.run_step(correlation_id, step_request) {
             Ok(StepResult::Success {
                 post_state_hash,
                 effect,
