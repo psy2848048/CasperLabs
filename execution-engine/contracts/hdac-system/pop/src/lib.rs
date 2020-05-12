@@ -168,6 +168,10 @@ pub fn delegate() {
             let user: PublicKey = runtime::get_caller();
             pop_contract.claim_reward(&user).unwrap_or_revert();
         }
+        // fn distribute()
+        methods::METHOD_DISTRIBUTE => {
+            pop_contract.distribute().unwrap_or_revert();
+        }
         _ => {}
     }
 }
