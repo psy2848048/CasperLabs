@@ -1,5 +1,3 @@
-use lazy_static::lazy_static;
-
 use engine_core::engine_state::{genesis::POS_REWARDS_PURSE, MAX_PAYMENT};
 use engine_shared::transform::Transform;
 use engine_test_support::{
@@ -16,12 +14,6 @@ const DO_NOTHING_WASM: &str = "do_nothing.wasm";
 const TRANSFER_PURSE_TO_ACCOUNT_WASM: &str = "transfer_purse_to_account.wasm";
 const REVERT_WASM: &str = "revert.wasm";
 const ENDLESS_LOOP_WASM: &str = "endless_loop.wasm";
-
-// TODO: This should be removed after reward distribution refactoring.
-lazy_static! {
-    static ref INITIAL_REWARD_PURSE_BALANCE: U512 =
-        U512::from(999_999_999_999u64) * 1_000_000_000_000_000_000u64;
-}
 
 #[ignore]
 #[test]
@@ -119,8 +111,7 @@ fn should_raise_insufficient_payment_when_payment_code_does_not_pay_enough() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + *INITIAL_REWARD_PURSE_BALANCE,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -185,8 +176,7 @@ fn should_raise_insufficient_payment_error_when_out_of_gas() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + *INITIAL_REWARD_PURSE_BALANCE,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -250,8 +240,7 @@ fn should_forward_payment_execution_runtime_error() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + *INITIAL_REWARD_PURSE_BALANCE,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -315,8 +304,7 @@ fn should_forward_payment_execution_gas_limit_error() {
     );
 
     assert_eq!(
-        reward_balance,
-        expected_reward_balance + *INITIAL_REWARD_PURSE_BALANCE,
+        reward_balance, expected_reward_balance,
         "reward balance is incorrect"
     );
 
@@ -578,12 +566,12 @@ fn should_finalize_to_rewards_purse() {
     builder.run_genesis(&DEFAULT_GENESIS_CONFIG);
 
     let rewards_purse_balance = get_pos_rewards_purse_balance(&builder);
-    assert_eq!(rewards_purse_balance, *INITIAL_REWARD_PURSE_BALANCE);
+    assert_eq!(rewards_purse_balance, U512::zero());
 
     builder.exec(exec_request).expect_success().commit();
 
     let rewards_purse_balance = get_pos_rewards_purse_balance(&builder);
-    assert_ne!(rewards_purse_balance, *INITIAL_REWARD_PURSE_BALANCE);
+    assert_ne!(rewards_purse_balance, U512::zero());
 }
 
 #[ignore]

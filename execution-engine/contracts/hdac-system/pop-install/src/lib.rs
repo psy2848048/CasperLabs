@@ -189,10 +189,7 @@ pub extern "C" fn call() {
     let payment_purse = mint_purse(&mint, U512::zero());
     // let rewards_purse = mint_purse(&mint, U512::zero());
     // Charge unreachable amount of token into inaccessible wallet
-    let rewards_purse = mint_purse(
-        &mint,
-        U512::from(999_999_999_999_u64) * U512::from(BIGSUN_TO_HDAC),
-    );
+    let rewards_purse = mint_purse(&mint, U512::zero());
 
     // Include PoP purses in its named_keys
     [
