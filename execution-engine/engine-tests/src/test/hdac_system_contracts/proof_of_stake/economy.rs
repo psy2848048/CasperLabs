@@ -218,7 +218,6 @@ fn should_run_successful_step() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = builder

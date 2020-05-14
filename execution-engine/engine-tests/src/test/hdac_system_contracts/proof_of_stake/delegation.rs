@@ -98,7 +98,6 @@ fn should_run_successful_delegate_and_undelegate() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = builder
@@ -376,7 +375,6 @@ fn should_run_successful_redelegate() {
         .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(delegate_request)
         .commit()
-        .step(StepRequestBuilder::default().build())
         .exec(redelegate_request)
         .commit()
         .step(StepRequestBuilder::default().build())
@@ -574,7 +572,6 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .exec(unbond_request)
         .commit()
         .step(StepRequestBuilder::default().build())
@@ -798,7 +795,6 @@ fn should_fail_to_self_redelegate() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .exec(redelegate_request)
         .commit()
         .step(StepRequestBuilder::default().build())
@@ -899,7 +895,6 @@ fn should_fail_to_redelegate_more_than_own_shares() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .exec(redelegate_request)
         .commit()
         .step(StepRequestBuilder::default().build())

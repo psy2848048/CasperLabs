@@ -87,7 +87,6 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_1)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let contract = builder
@@ -138,7 +137,6 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_3)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let account_1 = builder

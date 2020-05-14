@@ -9,8 +9,6 @@ use types::{
 
 use super::request_queue::RequestKey;
 
-pub type DelegateRequestKey = UndelegateRequestKey;
-
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UndelegateRequestKey {
     pub delegator: PublicKey,

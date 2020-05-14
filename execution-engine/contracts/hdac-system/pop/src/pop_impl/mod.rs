@@ -26,8 +26,7 @@ use crate::constants::{consts, uref_names};
 use delegations::ContractDelegations;
 use economy::{pop_score_calculation, ContractClaim};
 use request_pool::{
-    ClaimRequest, ContractQueue, DelegateRequestKey, DelegationKind, RedelegateRequestKey,
-    UndelegateRequestKey,
+    ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
 };
 use votes::{ContractVotes, VoteStat, Votes};
 
@@ -128,7 +127,6 @@ impl ProofOfProfessionContract {
         }
 
         let current = self.get_block_time();
-        self.step_delegation(current)?;
         self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
         self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
 
@@ -156,48 +154,20 @@ impl ProofOfProfessionContract {
             .map_err(|_| Error::BondTransferFailed)?;
 
         // check validator is bonded
-        let stakes = self.read()?;
+        let mut stakes = self.read()?;
         // if this is not self-delegation and target validator is not bonded
         if delegator != validator && !stakes.0.contains_key(&validator) {
             return Err(Error::NotBonded);
         }
 
-        let mut request_queue =
-            ContractQueue::read_delegation_requests::<DelegateRequestKey>(DelegationKind::Delegate);
-
-        request_queue.push(
-            DelegateRequestKey::new(delegator, validator),
-            amount,
-            self.get_block_time(),
-        )?;
-
-        ContractQueue::write_delegation_requests(DelegationKind::Delegate, request_queue);
-
-        Ok(())
-    }
-
-    fn step_delegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue =
-            ContractQueue::read_delegation_requests::<DelegateRequestKey>(DelegationKind::Delegate);
-        let requests = request_queue.pop_due(timestamp);
-
-        let mut stakes: Stakes = self.read()?;
         let mut delegations = ContractDelegations::read()?;
 
-        for request in requests {
-            let DelegateRequestKey {
-                delegator,
-                validator,
-            } = request.request_key;
-
-            stakes.bond(&validator, request.amount);
-            delegations.delegate(&delegator, &validator, request.amount);
-        }
+        stakes.bond(&validator, amount);
+        delegations.delegate(&delegator, &validator, amount);
 
         self.write(&stakes);
         ContractDelegations::write(&delegations);
 
-        ContractQueue::write_delegation_requests(DelegationKind::Delegate, request_queue);
         Ok(())
     }
 

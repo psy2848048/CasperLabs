@@ -188,7 +188,6 @@ fn should_invoke_successful_bond_and_unbond() {
         .exec(exec_request_bonding)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = bonding_result.builder().get_pos_contract();
@@ -335,7 +334,6 @@ fn should_invoke_successful_delegation_methods() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .exec(redelegate_request)
         .expect_success()
         .commit()
@@ -801,7 +799,6 @@ fn should_invoke_successful_step() {
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = builder
