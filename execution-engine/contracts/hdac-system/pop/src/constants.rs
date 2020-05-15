@@ -15,8 +15,6 @@ pub(crate) mod methods {
     pub const METHOD_UNBOND: &str = "unbond";
     pub const METHOD_STEP: &str = "step";
     pub const METHOD_GET_PAYMENT_PURSE: &str = "get_payment_purse";
-    pub const METHOD_SET_REFUND_PURSE: &str = "set_refund_purse";
-    pub const METHOD_GET_REFUND_PURSE: &str = "get_refund_purse";
     pub const METHOD_FINALIZE_PAYMENT: &str = "finalize_payment";
 
     pub const METHOD_DELEGATE: &str = "delegate";

@@ -1,6 +1,8 @@
 mod delegations;
 mod economy;
 mod request_pool;
+#[allow(dead_code)] // stakes mod comes from CasperLabs
+mod stakes;
 mod stakes_provider;
 mod votes;
 
@@ -9,16 +11,14 @@ use contract::{
     contract_api::{runtime, system},
     unwrap_or_revert::UnwrapOrRevert,
 };
-use proof_of_stake::{
-    MintProvider, ProofOfStake, Queue, QueueProvider, RuntimeProvider, Stakes, StakesProvider,
-};
+
 use types::{
     account::PublicKey,
     system_contract_errors::{
         mint,
         pos::{Error, PurseLookupError, Result},
     },
-    BlockTime, Key, Phase, TransferResult, URef, U512,
+    AccessRights, BlockTime, Key, TransferResult, URef, U512,
 };
 
 use crate::constants::{consts, uref_names};
@@ -32,111 +32,44 @@ use votes::{ContractVotes, VoteStat, Votes};
 
 pub struct ProofOfProfessionContract;
 
-impl StakesProvider for ProofOfProfessionContract {
-    fn read(&self) -> Result<Stakes> {
-        self.read_stakes()
-    }
+pub trait ProofOfProfession: Delegatable + Votable {}
 
-    fn write(&mut self, stakes: &Stakes) {
-        self.write_stakes(stakes);
-    }
-}
-impl QueueProvider for ProofOfProfessionContract {
-    // TODO: remove QueueProvider
-    // Currently, we are utilizing the default implemention of the Proof-of-Stake crate,
-    // so we need to add a dummy implemention to meet trait contraint.
-
-    fn read_bonding(&mut self) -> Queue {
-        unimplemented!()
-    }
-    fn read_unbonding(&mut self) -> Queue {
-        unimplemented!()
-    }
-    fn write_bonding(&mut self, _: Queue) {
-        unimplemented!()
-    }
-    fn write_unbonding(&mut self, _: Queue) {
-        unimplemented!()
-    }
-}
-impl RuntimeProvider for ProofOfProfessionContract {
-    fn get_key(&self, name: &str) -> Option<Key> {
-        runtime::get_key(name)
-    }
-
-    fn put_key(&mut self, name: &str, key: Key) {
-        runtime::put_key(name, key)
-    }
-
-    fn remove_key(&mut self, name: &str) {
-        runtime::remove_key(name)
-    }
-
-    fn get_phase(&self) -> Phase {
-        runtime::get_phase()
-    }
-
-    fn get_block_time(&self) -> BlockTime {
-        runtime::get_blocktime()
-    }
-
-    fn get_caller(&self) -> PublicKey {
-        runtime::get_caller()
-    }
-}
-impl MintProvider for ProofOfProfessionContract {
-    fn transfer_purse_to_account(
+pub trait Delegatable {
+    fn delegate(
         &mut self,
-        source: URef,
-        target: PublicKey,
+        delegator: PublicKey,
+        validator: PublicKey,
         amount: U512,
-    ) -> TransferResult {
-        system::transfer_from_purse_to_account(source, target, amount)
-    }
+        source_purse: URef,
+    ) -> Result<()>;
 
-    fn transfer_purse_to_purse(
+    fn undelegate(
         &mut self,
-        source: URef,
-        target: URef,
+        delegator: PublicKey,
+        validator: PublicKey,
+        maybe_amount: Option<U512>,
+    ) -> Result<()>;
+
+    fn redelegate(
+        &mut self,
+        delegator: PublicKey,
+        src: PublicKey,
+        dest: PublicKey,
         amount: U512,
-    ) -> core::result::Result<(), ()> {
-        system::transfer_from_purse_to_purse(source, target, amount).map_err(|_| ())
-    }
+    ) -> Result<()>;
 
-    fn balance(&mut self, purse: URef) -> Option<U512> {
-        system::get_balance(purse)
-    }
+    fn step(&mut self) -> Result<()>;
 }
 
-impl ProofOfStake for ProofOfProfessionContract {
-    fn bond(&mut self, _: PublicKey, _: U512, _: URef) -> Result<()> {
-        Err(Error::NotSupportedFunc)
-    }
-
-    fn unbond(&mut self, _: PublicKey, _: Option<U512>) -> Result<()> {
-        Err(Error::NotSupportedFunc)
-    }
+pub trait Votable {
+    fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()>;
+    fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()>;
 }
 
-impl ProofOfProfessionContract {
-    pub fn step(&mut self) -> Result<()> {
-        let caller = runtime::get_caller();
+impl ProofOfProfession for ProofOfProfessionContract {}
 
-        if caller.value() != consts::SYSTEM_ACCOUNT {
-            return Err(Error::SystemFunctionCalledByUserAccount);
-        }
-
-        let current = self.get_block_time();
-        self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
-        self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
-
-        self.distribute()?;
-        self.step_claim()?;
-
-        Ok(())
-    }
-
-    pub fn delegate(
+impl Delegatable for ProofOfProfessionContract {
+    fn delegate(
         &mut self,
         delegator: PublicKey,
         validator: PublicKey,
@@ -148,13 +81,13 @@ impl ProofOfProfessionContract {
             return Err(Error::BondTooSmall);
         }
         let pos_purse =
-            get_purse(self, uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
+            get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
 
-        self.transfer_purse_to_purse(source_purse, pos_purse, amount)
+        system::transfer_from_purse_to_purse(source_purse, pos_purse, amount)
             .map_err(|_| Error::BondTransferFailed)?;
 
         // check validator is bonded
-        let mut stakes = self.read()?;
+        let mut stakes = self.read_stakes()?;
         // if this is not self-delegation and target validator is not bonded
         if delegator != validator && !stakes.0.contains_key(&validator) {
             return Err(Error::NotBonded);
@@ -165,13 +98,13 @@ impl ProofOfProfessionContract {
         stakes.bond(&validator, amount);
         delegations.delegate(&delegator, &validator, amount);
 
-        self.write(&stakes);
+        self.write_stakes(&stakes);
         ContractDelegations::write(&delegations);
 
         Ok(())
     }
 
-    pub fn undelegate(
+    fn undelegate(
         &mut self,
         delegator: PublicKey,
         validator: PublicKey,
@@ -179,7 +112,7 @@ impl ProofOfProfessionContract {
     ) -> Result<()> {
         // validate undelegation by simulating
         let mut delegations = ContractDelegations::read()?;
-        let mut stakes: Stakes = self.read()?;
+        let mut stakes = self.read_stakes()?;
         let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
         let _ = stakes.unbond(&validator, Some(amount))?;
 
@@ -195,48 +128,14 @@ impl ProofOfProfessionContract {
         request_queue.push(
             UndelegateRequestKey::new(delegator, validator),
             amount,
-            self.get_block_time(),
+            runtime::get_blocktime(),
         )?;
 
         ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
         Ok(())
     }
 
-    fn step_undelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
-            DelegationKind::Undelegate,
-        );
-        let requests = request_queue.pop_due(timestamp);
-
-        let mut delegations = ContractDelegations::read()?;
-        let mut stakes: Stakes = self.read()?;
-        let pos_purse =
-            get_purse(self, uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
-
-        for request in requests {
-            let UndelegateRequestKey {
-                delegator,
-                validator,
-            } = request.request_key;
-
-            let maybe_amount = match request.amount {
-                val if val == U512::from(0) => None,
-                _ => Some(request.amount),
-            };
-
-            let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
-            let payout = stakes.unbond(&validator, Some(amount))?;
-            self.transfer_purse_to_account(pos_purse, delegator, payout)
-                .map_err(|_| Error::UnbondTransferFailed)?;
-        }
-
-        ContractDelegations::write(&delegations);
-        self.write(&stakes);
-        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
-        Ok(())
-    }
-
-    pub fn redelegate(
+    fn redelegate(
         &mut self,
         delegator: PublicKey,
         src: PublicKey,
@@ -248,7 +147,7 @@ impl ProofOfProfessionContract {
         }
         // validate redelegation by simulating
         let mut delegations = ContractDelegations::read()?;
-        let mut stakes: Stakes = self.read()?;
+        let mut stakes = self.read_stakes()?;
         let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
         let _payout = stakes.unbond(&src, Some(amount))?;
 
@@ -259,43 +158,33 @@ impl ProofOfProfessionContract {
         request_queue.push(
             RedelegateRequestKey::new(delegator, src, dest),
             amount,
-            self.get_block_time(),
+            runtime::get_blocktime(),
         )?;
 
         ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
     }
 
-    fn step_redelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
-            DelegationKind::Redelegate,
-        );
+    fn step(&mut self) -> Result<()> {
+        let caller = runtime::get_caller();
 
-        let requests = request_queue.pop_due(timestamp);
-        let mut delegations = ContractDelegations::read()?;
-        let mut stakes: Stakes = self.read()?;
-
-        for request in requests {
-            let RedelegateRequestKey {
-                delegator,
-                src_validator,
-                dest_validator,
-            } = request.request_key;
-
-            let amount =
-                delegations.undelegate(&delegator, &src_validator, Some(request.amount))?;
-            delegations.delegate(&delegator, &dest_validator, amount);
-            let payout = stakes.unbond(&src_validator, Some(amount))?;
-            stakes.bond(&dest_validator, payout);
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
-        ContractDelegations::write(&delegations);
-        self.write(&stakes);
-        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
+        let current = runtime::get_blocktime();
+        self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
+        self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
+
+        self.distribute()?;
+        self.step_claim()?;
+
         Ok(())
     }
+}
 
-    pub fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
+impl Votable for ProofOfProfessionContract {
+    fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
         // staked balance check
         if amount.is_zero() {
             return Err(Error::BondTooSmall);
@@ -329,11 +218,76 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
+    fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
         let mut votes = ContractVotes::read()?;
         votes.unvote(&user, &dapp, maybe_amount)?;
         ContractVotes::write(&votes);
 
+        Ok(())
+    }
+}
+
+impl ProofOfProfessionContract {
+    fn step_undelegation(&mut self, timestamp: BlockTime) -> Result<()> {
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+            DelegationKind::Undelegate,
+        );
+        let requests = request_queue.pop_due(timestamp);
+
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes = self.read_stakes()?;
+        let pos_purse =
+            get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
+
+        for request in requests {
+            let UndelegateRequestKey {
+                delegator,
+                validator,
+            } = request.request_key;
+
+            let maybe_amount = match request.amount {
+                val if val == U512::from(0) => None,
+                _ => Some(request.amount),
+            };
+
+            let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
+            let payout = stakes.unbond(&validator, Some(amount))?;
+            system::transfer_from_purse_to_account(pos_purse, delegator, payout)
+                .map_err(|_| Error::UnbondTransferFailed)?;
+        }
+
+        ContractDelegations::write(&delegations);
+        self.write_stakes(&stakes);
+        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
+        Ok(())
+    }
+
+    fn step_redelegation(&mut self, timestamp: BlockTime) -> Result<()> {
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+            DelegationKind::Redelegate,
+        );
+
+        let requests = request_queue.pop_due(timestamp);
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes = self.read_stakes()?;
+
+        for request in requests {
+            let RedelegateRequestKey {
+                delegator,
+                src_validator,
+                dest_validator,
+            } = request.request_key;
+
+            let amount =
+                delegations.undelegate(&delegator, &src_validator, Some(request.amount))?;
+            delegations.delegate(&delegator, &dest_validator, amount);
+            let payout = stakes.unbond(&src_validator, Some(amount))?;
+            stakes.bond(&dest_validator, payout);
+        }
+
+        ContractDelegations::write(&delegations);
+        self.write_stakes(&stakes);
+        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
     }
 
@@ -351,7 +305,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn distribute(&self) -> Result<()> {
+    fn distribute(&self) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -503,7 +457,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn step_claim(&self) -> Result<()> {
+    fn step_claim(&self) -> Result<()> {
         let claim_requests = ContractQueue::read_claim_requests();
 
         for request in claim_requests.0.iter() {
@@ -531,15 +485,21 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
+    pub fn get_payment_purse(&self) -> Result<URef> {
+        let purse = get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
+        // Limit the access rights so only balance query and deposit are allowed.
+        Ok(URef::new(purse.addr(), AccessRights::READ_ADD))
+    }
+
     pub fn finalize_payment(&mut self, amount_spent: U512, _account: PublicKey) -> Result<()> {
-        let caller = self.get_caller();
+        let caller = runtime::get_caller();
         if caller.value() != consts::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
         let payment_purse =
-            get_purse(self, uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
-        let total = match self.balance(payment_purse) {
+            get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
+        let total = match system::get_balance(payment_purse) {
             Some(balance) => balance,
             None => return Err(Error::PaymentPurseBalanceNotFound),
         };
@@ -549,21 +509,17 @@ impl ProofOfProfessionContract {
 
         // In the fare system, the fee is taken by the validator.
         let reward_purse =
-            get_purse(self, uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+            get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
 
-        self.transfer_purse_to_purse(payment_purse, reward_purse, total)
+        system::transfer_from_purse_to_purse(payment_purse, reward_purse, total)
             .map_err(|_| Error::FailedTransferToRewardsPurse)?;
 
         Ok(())
     }
 }
 
-fn get_purse<R: RuntimeProvider>(
-    runtime_provider: &R,
-    name: &str,
-) -> core::result::Result<URef, PurseLookupError> {
-    runtime_provider
-        .get_key(name)
+fn get_purse(name: &str) -> core::result::Result<URef, PurseLookupError> {
+    runtime::get_key(name)
         .ok_or(PurseLookupError::KeyNotFound)
         .and_then(|key| match key {
             Key::URef(uref) => Ok(uref),

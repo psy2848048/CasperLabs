@@ -5,14 +5,13 @@ use alloc::{
 use core::fmt::Write;
 
 use contract::contract_api::runtime;
-use proof_of_stake::Stakes;
 use types::{
     account::PublicKey,
     system_contract_errors::pos::{Error, Result},
     Key, U512,
 };
 
-use super::ProofOfProfessionContract;
+use super::{stakes::Stakes, ProofOfProfessionContract};
 
 /// A `StakesProvider` that reads and writes the stakes to/from the contract's
 /// known urefs.
