@@ -192,69 +192,6 @@ impl Votable for ProofOfProfessionContract {
 }
 
 impl ProofOfProfessionContract {
-    fn step_undelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
-            DelegationKind::Undelegate,
-        );
-        let requests = request_queue.pop_due(timestamp);
-
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
-        let pos_purse =
-            get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
-
-        for request in requests {
-            let UndelegateRequestKey {
-                delegator,
-                validator,
-            } = request.request_key;
-
-            let maybe_amount = match request.amount {
-                val if val == U512::from(0) => None,
-                _ => Some(request.amount),
-            };
-
-            let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
-            let payout = stakes.unbond(&validator, Some(amount))?;
-            system::transfer_from_purse_to_account(pos_purse, delegator, payout)
-                .map_err(|_| Error::UnbondTransferFailed)?;
-        }
-
-        self.write_delegations(&delegations);
-        self.write_stakes(&stakes);
-        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
-        Ok(())
-    }
-
-    fn step_redelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
-            DelegationKind::Redelegate,
-        );
-
-        let requests = request_queue.pop_due(timestamp);
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
-
-        for request in requests {
-            let RedelegateRequestKey {
-                delegator,
-                src_validator,
-                dest_validator,
-            } = request.request_key;
-
-            let amount =
-                delegations.undelegate(&delegator, &src_validator, Some(request.amount))?;
-            delegations.delegate(&delegator, &dest_validator, amount);
-            let payout = stakes.unbond(&src_validator, Some(amount))?;
-            stakes.bond(&dest_validator, payout);
-        }
-
-        self.write_delegations(&delegations);
-        self.write_stakes(&stakes);
-        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
-        Ok(())
-    }
-
     pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
         let caller = runtime::get_caller();
 
@@ -265,6 +202,86 @@ impl ProofOfProfessionContract {
         let mut total_supply = ContractClaim::read_total_supply()?;
         total_supply.add(genesis_total_supply);
         ContractClaim::write_total_supply(&total_supply);
+
+        Ok(())
+    }
+
+    // For validator
+    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
+        // Processing commission claim table
+        let mut commissions = ContractClaim::read_commission()?;
+        let validator_commission = commissions
+            .0
+            .get(validator)
+            .cloned()
+            .unwrap_or_revert_with(Error::RewardNotFound);
+
+        commissions.claim_commission(validator, &validator_commission);
+        ContractClaim::write_commission(&commissions);
+
+        let mut claim_requests = ContractQueue::read_claim_requests();
+
+        claim_requests
+            .0
+            .push(ClaimRequest::Commission(*validator, validator_commission));
+
+        ContractQueue::write_claim_requests(claim_requests);
+
+        // Actual mint & transfer will be done at client-proxy
+        Ok(())
+    }
+
+    // For user
+    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
+        let mut rewards = ContractClaim::read_reward()?;
+        let user_reward = rewards
+            .0
+            .get(user)
+            .cloned()
+            .unwrap_or_revert_with(Error::RewardNotFound);
+        rewards.claim_rewards(user, &user_reward);
+        ContractClaim::write_reward(&rewards);
+
+        let mut claim_requests = ContractQueue::read_claim_requests();
+
+        claim_requests
+            .0
+            .push(ClaimRequest::Reward(*user, user_reward));
+
+        ContractQueue::write_claim_requests(claim_requests);
+
+        // Actual mint & transfer will be done at client-proxy
+        Ok(())
+    }
+
+    pub fn get_payment_purse(&self) -> Result<URef> {
+        let purse = get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
+        // Limit the access rights so only balance query and deposit are allowed.
+        Ok(URef::new(purse.addr(), AccessRights::READ_ADD))
+    }
+
+    pub fn finalize_payment(&mut self, amount_spent: U512, _account: PublicKey) -> Result<()> {
+        let caller = runtime::get_caller();
+        if caller.value() != consts::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
+        let payment_purse =
+            get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
+        let total = match system::get_balance(payment_purse) {
+            Some(balance) => balance,
+            None => return Err(Error::PaymentPurseBalanceNotFound),
+        };
+        if total < amount_spent {
+            return Err(Error::InsufficientPaymentForAmountSpent);
+        }
+
+        // In the fare system, the fee is taken by the validator.
+        let reward_purse =
+            get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+
+        system::transfer_from_purse_to_purse(payment_purse, reward_purse, total)
+            .map_err(|_| Error::FailedTransferToRewardsPurse)?;
 
         Ok(())
     }
@@ -373,51 +390,66 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    // For validator
-    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
-        // Processing commission claim table
-        let mut commissions = ContractClaim::read_commission()?;
-        let validator_commission = commissions
-            .0
-            .get(validator)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
+    fn step_undelegation(&mut self, due: BlockTime) -> Result<()> {
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+            DelegationKind::Undelegate,
+        );
+        let requests = request_queue.pop_due(due);
 
-        commissions.claim_commission(validator, &validator_commission);
-        ContractClaim::write_commission(&commissions);
+        let mut delegations = self.read_delegations()?;
+        let mut stakes = self.read_stakes()?;
+        let pos_purse =
+            get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
 
-        let mut claim_requests = ContractQueue::read_claim_requests();
+        for request in requests {
+            let UndelegateRequestKey {
+                delegator,
+                validator,
+            } = request.request_key;
 
-        claim_requests
-            .0
-            .push(ClaimRequest::Commission(*validator, validator_commission));
+            let maybe_amount = match request.amount {
+                val if val == U512::from(0) => None,
+                _ => Some(request.amount),
+            };
 
-        ContractQueue::write_claim_requests(claim_requests);
+            let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
+            let payout = stakes.unbond(&validator, Some(amount))?;
+            system::transfer_from_purse_to_account(pos_purse, delegator, payout)
+                .map_err(|_| Error::UnbondTransferFailed)?;
+        }
 
-        // Actual mint & transfer will be done at client-proxy
+        self.write_delegations(&delegations);
+        self.write_stakes(&stakes);
+        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
         Ok(())
     }
 
-    // For user
-    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
-        let mut rewards = ContractClaim::read_reward()?;
-        let user_reward = rewards
-            .0
-            .get(user)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
-        rewards.claim_rewards(user, &user_reward);
-        ContractClaim::write_reward(&rewards);
+    fn step_redelegation(&mut self, due: BlockTime) -> Result<()> {
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+            DelegationKind::Redelegate,
+        );
 
-        let mut claim_requests = ContractQueue::read_claim_requests();
+        let requests = request_queue.pop_due(due);
+        let mut delegations = self.read_delegations()?;
+        let mut stakes = self.read_stakes()?;
 
-        claim_requests
-            .0
-            .push(ClaimRequest::Reward(*user, user_reward));
+        for request in requests {
+            let RedelegateRequestKey {
+                delegator,
+                src_validator,
+                dest_validator,
+            } = request.request_key;
 
-        ContractQueue::write_claim_requests(claim_requests);
+            let amount =
+                delegations.undelegate(&delegator, &src_validator, Some(request.amount))?;
+            delegations.delegate(&delegator, &dest_validator, amount);
+            let payout = stakes.unbond(&src_validator, Some(amount))?;
+            stakes.bond(&dest_validator, payout);
+        }
 
-        // Actual mint & transfer will be done at client-proxy
+        self.write_delegations(&delegations);
+        self.write_stakes(&stakes);
+        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
     }
 
@@ -446,38 +478,6 @@ impl ProofOfProfessionContract {
 
         // write an empty list.
         ContractQueue::write_claim_requests(Default::default());
-        Ok(())
-    }
-
-    pub fn get_payment_purse(&self) -> Result<URef> {
-        let purse = get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
-        // Limit the access rights so only balance query and deposit are allowed.
-        Ok(URef::new(purse.addr(), AccessRights::READ_ADD))
-    }
-
-    pub fn finalize_payment(&mut self, amount_spent: U512, _account: PublicKey) -> Result<()> {
-        let caller = runtime::get_caller();
-        if caller.value() != consts::SYSTEM_ACCOUNT {
-            return Err(Error::SystemFunctionCalledByUserAccount);
-        }
-
-        let payment_purse =
-            get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
-        let total = match system::get_balance(payment_purse) {
-            Some(balance) => balance,
-            None => return Err(Error::PaymentPurseBalanceNotFound),
-        };
-        if total < amount_spent {
-            return Err(Error::InsufficientPaymentForAmountSpent);
-        }
-
-        // In the fare system, the fee is taken by the validator.
-        let reward_purse =
-            get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
-
-        system::transfer_from_purse_to_purse(payment_purse, reward_purse, total)
-            .map_err(|_| Error::FailedTransferToRewardsPurse)?;
-
         Ok(())
     }
 }
