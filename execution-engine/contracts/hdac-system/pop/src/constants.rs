@@ -27,13 +27,9 @@ pub(crate) mod methods {
     pub const METHOD_CLAIM_REWARD: &str = "claim_reward";
 }
 
-pub(crate) mod consts {
-    pub const SYSTEM_ACCOUNT: [u8; 32] = [0u8; 32];
+pub(crate) mod sys_params {
     pub const UNBONDING_DELAY: u64 = 0;
 
-    pub const DAYS_OF_YEAR: i64 = 365_i64;
-    pub const HOURS_OF_DAY: i64 = 24_i64;
-    pub const SECONDS_OF_HOUR: i64 = 3600_i64;
     pub const BLOCK_PRODUCING_PER_SEC: i64 = 2_i64;
     pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce
     pub const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;

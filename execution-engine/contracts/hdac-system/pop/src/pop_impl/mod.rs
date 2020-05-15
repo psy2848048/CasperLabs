@@ -19,13 +19,18 @@ use types::{
     AccessRights, BlockTime, Key, TransferResult, URef, U512,
 };
 
-use crate::constants::{consts, uref_names};
+use crate::constants::{sys_params, uref_names};
 
 use economy::{pop_score_calculation, ContractClaim};
 use pop_actions::ProofOfProfession;
 use request_pool::{
     ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
 };
+
+const SYSTEM_ACCOUNT: [u8; 32] = [0u8; 32];
+const DAYS_OF_YEAR: i64 = 365_i64;
+const HOURS_OF_DAY: i64 = 24_i64;
+const SECONDS_OF_HOUR: i64 = 3600_i64;
 
 pub struct ProofOfProfessionContract;
 
@@ -131,13 +136,17 @@ impl Delegatable for ProofOfProfessionContract {
     fn step(&mut self) -> Result<()> {
         let caller = runtime::get_caller();
 
-        if caller.value() != consts::SYSTEM_ACCOUNT {
+        if caller.value() != SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
         let current = runtime::get_blocktime();
-        self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
-        self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
+        self.step_undelegation(
+            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
+        )?;
+        self.step_redelegation(
+            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
+        )?;
 
         // TODO: separate to another function
         self.distribute()?;
@@ -195,7 +204,7 @@ impl ProofOfProfessionContract {
     pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
         let caller = runtime::get_caller();
 
-        if caller.value() != consts::SYSTEM_ACCOUNT {
+        if caller.value() != SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
@@ -262,7 +271,7 @@ impl ProofOfProfessionContract {
 
     pub fn finalize_payment(&mut self, amount_spent: U512, _account: PublicKey) -> Result<()> {
         let caller = runtime::get_caller();
-        if caller.value() != consts::SYSTEM_ACCOUNT {
+        if caller.value() != SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
@@ -300,20 +309,22 @@ impl ProofOfProfessionContract {
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
-        //   U512::from(consts::DAYS_OF_YEAR * consts::HOURS_OF_DAY * consts::SECONDS_OF_HOUR
-        //         * consts::BLOCK_PRODUCING_PER_SEC)
+        //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
+        //         * sys_params::BLOCK_PRODUCING_PER_SEC)
         //    -> divider for deriving inflation per block
         let inflation_pool_per_block = total_supply.0 * U512::from(5)
             / U512::from(
-                100 * consts::DAYS_OF_YEAR
-                    * consts::HOURS_OF_DAY
-                    * consts::SECONDS_OF_HOUR
-                    * consts::BLOCK_PRODUCING_PER_SEC,
+                100 * DAYS_OF_YEAR
+                    * HOURS_OF_DAY
+                    * SECONDS_OF_HOUR
+                    * sys_params::BLOCK_PRODUCING_PER_SEC,
             );
         total_supply.add(&inflation_pool_per_block);
 
         // Check total supply meets max supply
-        if total_supply.0 > U512::from(consts::MAX_SUPPLY) * U512::from(consts::BIGSUN_TO_HDAC) {
+        if total_supply.0
+            > U512::from(sys_params::MAX_SUPPLY) * U512::from(sys_params::BIGSUN_TO_HDAC)
+        {
             // No inflation anymore
             return Ok(());
         }
@@ -351,7 +362,7 @@ impl ProofOfProfessionContract {
 
         for (validator, unit_pop_score) in pop_score_table.iter() {
             let unit_commission = unit_pop_score
-                * consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
+                * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100));
             commissions.insert_commission(validator, &unit_commission);
@@ -379,7 +390,7 @@ impl ProofOfProfessionContract {
                 .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
             let user_reward = user_delegation_amount
                 * pop_score_of_validator
-                * U512::from(100 - consts::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
+                * U512::from(100 - sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
