@@ -7,7 +7,7 @@ use types::{
     CLType, CLTyped, U512,
 };
 
-use super::request_queue::RequestKey;
+use super::delegation_queue::RequestKey;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UndelegateRequestKey {

@@ -1,13 +1,13 @@
-mod claim_request_list;
-mod request_queue;
+mod claim_list;
+mod delegation_queue;
 mod requests;
 
 use contract::contract_api::storage;
 
 use crate::constants::local_keys;
 
-use claim_request_list::ClaimRequestList;
-use request_queue::{RequestKey, RequestQueue};
+use claim_list::ClaimRequestList;
+use delegation_queue::{RequestKey, RequestQueue};
 pub use requests::{ClaimRequest, RedelegateRequestKey, UndelegateRequestKey};
 
 pub struct ContractQueue;
@@ -55,8 +55,7 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{RequestQueue, UndelegateRequestKey};
-    use crate::pop_impl::request_pool::request_queue::RequestQueueEntry;
+    use super::{delegation_queue::RequestQueueEntry, RequestQueue, UndelegateRequestKey};
 
     const KEY1: [u8; 32] = [1; 32];
     const KEY2: [u8; 32] = [2; 32];
