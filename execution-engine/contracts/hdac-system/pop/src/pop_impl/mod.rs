@@ -1,10 +1,8 @@
-mod delegations;
 mod economy;
+mod pop_actions;
 mod request_pool;
-#[allow(dead_code)] // stakes mod comes from CasperLabs
-mod stakes;
-mod stakes_provider;
-mod votes;
+
+pub use pop_actions::{Delegatable, Votable};
 
 use alloc::collections::BTreeMap;
 use contract::{
@@ -23,48 +21,13 @@ use types::{
 
 use crate::constants::{consts, uref_names};
 
-use delegations::ContractDelegations;
 use economy::{pop_score_calculation, ContractClaim};
+use pop_actions::ProofOfProfession;
 use request_pool::{
     ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
 };
-use votes::{ContractVotes, VoteStat, Votes};
 
 pub struct ProofOfProfessionContract;
-
-pub trait ProofOfProfession: Delegatable + Votable {}
-
-pub trait Delegatable {
-    fn delegate(
-        &mut self,
-        delegator: PublicKey,
-        validator: PublicKey,
-        amount: U512,
-        source_purse: URef,
-    ) -> Result<()>;
-
-    fn undelegate(
-        &mut self,
-        delegator: PublicKey,
-        validator: PublicKey,
-        maybe_amount: Option<U512>,
-    ) -> Result<()>;
-
-    fn redelegate(
-        &mut self,
-        delegator: PublicKey,
-        src: PublicKey,
-        dest: PublicKey,
-        amount: U512,
-    ) -> Result<()>;
-
-    fn step(&mut self) -> Result<()>;
-}
-
-pub trait Votable {
-    fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()>;
-    fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()>;
-}
 
 impl ProofOfProfession for ProofOfProfessionContract {}
 
@@ -93,13 +56,13 @@ impl Delegatable for ProofOfProfessionContract {
             return Err(Error::NotBonded);
         }
 
-        let mut delegations = ContractDelegations::read()?;
+        let mut delegations = self.read_delegations()?;
 
         stakes.bond(&validator, amount);
         delegations.delegate(&delegator, &validator, amount);
 
         self.write_stakes(&stakes);
-        ContractDelegations::write(&delegations);
+        self.write_delegations(&delegations);
 
         Ok(())
     }
@@ -111,7 +74,7 @@ impl Delegatable for ProofOfProfessionContract {
         maybe_amount: Option<U512>,
     ) -> Result<()> {
         // validate undelegation by simulating
-        let mut delegations = ContractDelegations::read()?;
+        let mut delegations = self.read_delegations()?;
         let mut stakes = self.read_stakes()?;
         let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
         let _ = stakes.unbond(&validator, Some(amount))?;
@@ -146,7 +109,7 @@ impl Delegatable for ProofOfProfessionContract {
             return Err(Error::SelfRedelegation);
         }
         // validate redelegation by simulating
-        let mut delegations = ContractDelegations::read()?;
+        let mut delegations = self.read_delegations()?;
         let mut stakes = self.read_stakes()?;
         let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
         let _payout = stakes.unbond(&src, Some(amount))?;
@@ -176,6 +139,7 @@ impl Delegatable for ProofOfProfessionContract {
         self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
         self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
 
+        // TODO: separate to another function
         self.distribute()?;
         self.step_claim()?;
 
@@ -191,7 +155,7 @@ impl Votable for ProofOfProfessionContract {
         }
 
         // check validator's staked token amount
-        let delegation_user_stat = ContractDelegations::read_user_stat()?;
+        let delegation_user_stat = self.read_delegation_user_stat()?;
         // if an user has no staked amount, he cannot do anything
         let delegated_balance: U512 = match delegation_user_stat.0.get(&user) {
             Some(balance) => *balance,
@@ -199,7 +163,7 @@ impl Votable for ProofOfProfessionContract {
         };
 
         // check user's vote stat
-        let vote_stat: VoteStat = ContractVotes::read_stat()?;
+        let vote_stat = self.read_vote_stat()?;
         let vote_stat_per_user: U512 = vote_stat
             .0
             .get(&user)
@@ -211,17 +175,17 @@ impl Votable for ProofOfProfessionContract {
         }
 
         // check vote table
-        let mut votes: Votes = ContractVotes::read()?; // <- here
+        let mut votes = self.read_votes()?; // <- here
         votes.vote(&user, &dapp, amount);
-        ContractVotes::write(&votes);
+        self.write_votes(&votes);
 
         Ok(())
     }
 
     fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
-        let mut votes = ContractVotes::read()?;
+        let mut votes = self.read_votes()?;
         votes.unvote(&user, &dapp, maybe_amount)?;
-        ContractVotes::write(&votes);
+        self.write_votes(&votes);
 
         Ok(())
     }
@@ -234,7 +198,7 @@ impl ProofOfProfessionContract {
         );
         let requests = request_queue.pop_due(timestamp);
 
-        let mut delegations = ContractDelegations::read()?;
+        let mut delegations = self.read_delegations()?;
         let mut stakes = self.read_stakes()?;
         let pos_purse =
             get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
@@ -256,7 +220,7 @@ impl ProofOfProfessionContract {
                 .map_err(|_| Error::UnbondTransferFailed)?;
         }
 
-        ContractDelegations::write(&delegations);
+        self.write_delegations(&delegations);
         self.write_stakes(&stakes);
         ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
         Ok(())
@@ -268,7 +232,7 @@ impl ProofOfProfessionContract {
         );
 
         let requests = request_queue.pop_due(timestamp);
-        let mut delegations = ContractDelegations::read()?;
+        let mut delegations = self.read_delegations()?;
         let mut stakes = self.read_stakes()?;
 
         for request in requests {
@@ -285,7 +249,7 @@ impl ProofOfProfessionContract {
             stakes.bond(&dest_validator, payout);
         }
 
-        ContractDelegations::write(&delegations);
+        self.write_delegations(&delegations);
         self.write_stakes(&stakes);
         ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
@@ -310,9 +274,9 @@ impl ProofOfProfessionContract {
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
 
-        let delegations = ContractDelegations::read()?;
-        let delegation_stat = ContractDelegations::read_stat()?;
-        let delegation_sorted_stat = ContractDelegations::get_sorted_stat(&delegation_stat)?;
+        let delegations = self.read_delegations()?;
+        let delegation_stat = self.read_delegation_stat()?;
+        let delegation_sorted_stat = self.get_sorted_delegation_stat(&delegation_stat)?;
 
         let mut commissions = ContractClaim::read_commission()?;
         let mut rewards = ContractClaim::read_reward()?;

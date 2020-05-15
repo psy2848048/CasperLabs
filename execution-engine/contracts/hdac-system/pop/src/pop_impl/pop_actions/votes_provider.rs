@@ -11,18 +11,11 @@ use types::{
     Key, U512,
 };
 
-pub struct ContractVotes;
-pub struct Votes(pub BTreeMap<VoteKey, U512>);
-pub struct VoteStat(pub BTreeMap<PublicKey, U512>);
+use super::votes::{VoteKey, VoteStat, Votes};
+use crate::pop_impl::ProofOfProfessionContract;
 
-#[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
-pub struct VoteKey {
-    user: PublicKey,
-    dapp: Key,
-}
-
-impl ContractVotes {
-    pub fn read() -> Result<Votes> {
+impl ProofOfProfessionContract {
+    pub fn read_votes(&self) -> Result<Votes> {
         let mut votes = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
             let mut split_name = name.split('_');
@@ -81,7 +74,7 @@ impl ContractVotes {
     }
 
     /// Writes the current stakes to the contract's known urefs.
-    pub fn write(votes: &Votes) {
+    pub fn write_votes(&self, votes: &Votes) {
         // Encode the stakes as a set of uref names.
         let mut new_urefs: BTreeSet<String> = votes
             .0
@@ -124,7 +117,7 @@ impl ContractVotes {
         }
     }
 
-    pub fn read_stat() -> Result<VoteStat> {
+    pub fn read_vote_stat(&self) -> Result<VoteStat> {
         let mut vote_stat = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
             let mut split_name = name.split('_');
@@ -158,49 +151,5 @@ impl ContractVotes {
         }
 
         Ok(VoteStat(vote_stat))
-    }
-}
-
-impl Votes {
-    pub fn vote(&mut self, user: &PublicKey, dapp: &Key, amount: U512) {
-        let key = VoteKey {
-            user: *user,
-            dapp: *dapp,
-        };
-        self.0
-            .entry(key)
-            .and_modify(|x| *x += amount)
-            .or_insert(amount);
-    }
-
-    pub fn unvote(
-        &mut self,
-        user: &PublicKey,
-        dapp: &Key,
-        maybe_amount: Option<U512>,
-    ) -> Result<U512> {
-        let key = VoteKey {
-            user: *user,
-            dapp: *dapp,
-        };
-
-        match maybe_amount {
-            // undelegate all
-            None => self.0.remove(&key).ok_or(Error::NotVoted),
-            Some(amount) => {
-                let vote = self.0.get_mut(&key);
-                match vote {
-                    Some(vote) if *vote > amount => {
-                        *vote -= amount;
-                        Ok(amount)
-                    }
-                    Some(vote) if *vote == amount => {
-                        self.0.remove(&key).ok_or(Error::VotesNotFound)
-                    }
-                    Some(_) => Err(Error::UnvoteTooLarge),
-                    None => Err(Error::NotVoted),
-                }
-            }
-        }
     }
 }

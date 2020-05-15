@@ -11,7 +11,8 @@ use types::{
     Key, U512,
 };
 
-use super::{stakes::Stakes, ProofOfProfessionContract};
+use super::stakes::Stakes;
+use crate::pop_impl::ProofOfProfessionContract;
 
 /// A `StakesProvider` that reads and writes the stakes to/from the contract's
 /// known urefs.
