@@ -3,7 +3,9 @@ use num_traits::identities::Zero;
 use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
 use engine_test_support::{
-    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_PAYMENT},
+    internal::{
+        utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder, DEFAULT_PAYMENT,
+    },
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 use types::{account::PublicKey, ApiError, Key, U512};
@@ -171,6 +173,7 @@ fn should_run_successful_delegate_and_undelegate() {
         .exec(undelegate_request)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = builder
@@ -241,6 +244,7 @@ fn should_run_successful_delegate_and_undelegate() {
         .exec(undelegate_all_request)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = builder
@@ -373,6 +377,7 @@ fn should_run_successful_redelegate() {
         .commit()
         .exec(redelegate_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_uref = builder.get_pos_contract_uref();
@@ -439,7 +444,11 @@ fn should_run_successful_redelegate() {
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder.exec_commit_finish(redelegate_all_request);
+    let result = builder
+        .exec(redelegate_all_request)
+        .commit()
+        .step(StepRequestBuilder::default().build())
+        .finish();
 
     let pos_uref = builder.get_pos_contract_uref();
     let pos_contract = builder
@@ -565,6 +574,7 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         .commit()
         .exec(unbond_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let response = result
@@ -704,6 +714,7 @@ fn should_fail_to_redelegate_non_existent_delegation() {
         .run_genesis(&utils::create_genesis_config(accounts, state_infos))
         .exec(redelegate_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let response = result
@@ -786,6 +797,7 @@ fn should_fail_to_self_redelegate() {
         .commit()
         .exec(redelegate_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let response = result
@@ -885,6 +897,7 @@ fn should_fail_to_redelegate_more_than_own_shares() {
         .commit()
         .exec(redelegate_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let response = result

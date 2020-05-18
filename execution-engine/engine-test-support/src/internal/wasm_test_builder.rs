@@ -21,8 +21,8 @@ use engine_core::{
 };
 use engine_grpc_server::engine_server::{
     ipc::{
-        CommitRequest, CommitResponse, GenesisResponse, QueryRequest, UpgradeRequest,
-        UpgradeResponse,
+        CommitRequest, CommitResponse, GenesisResponse, QueryRequest, StepRequest, StepResponse,
+        UpgradeRequest, UpgradeResponse,
     },
     ipc_grpc::ExecutionEngineService,
     mappings::{MappingError, TransformMap},
@@ -72,6 +72,7 @@ pub struct WasmTestBuilder<S> {
     /// [`ExecutionResult`] is wrapped in [`Rc`] to work around a missing [`Clone`] implementation
     exec_responses: Vec<Vec<Rc<ExecutionResult>>>,
     upgrade_responses: Vec<UpgradeResponse>,
+    step_responses: Vec<StepResponse>,
     genesis_hash: Option<Vec<u8>>,
     post_state_hash: Option<Vec<u8>>,
     /// Cached transform maps after subsequent successful runs i.e. `transforms[0]` is for first
@@ -111,6 +112,7 @@ impl Default for InMemoryWasmTestBuilder {
             engine_state: Rc::new(engine_state),
             exec_responses: Vec::new(),
             upgrade_responses: Vec::new(),
+            step_responses: Vec::new(),
             genesis_hash: None,
             post_state_hash: None,
             transforms: Vec::new(),
@@ -132,6 +134,7 @@ impl<S> Clone for WasmTestBuilder<S> {
             engine_state: Rc::clone(&self.engine_state),
             exec_responses: self.exec_responses.clone(),
             upgrade_responses: self.upgrade_responses.clone(),
+            step_responses: self.step_responses.clone(),
             genesis_hash: self.genesis_hash.clone(),
             post_state_hash: self.post_state_hash.clone(),
             transforms: self.transforms.clone(),
@@ -200,6 +203,7 @@ impl LmdbWasmTestBuilder {
             engine_state: Rc::new(engine_state),
             exec_responses: Vec::new(),
             upgrade_responses: Vec::new(),
+            step_responses: Vec::new(),
             genesis_hash: None,
             post_state_hash: None,
             transforms: Vec::new(),
@@ -261,6 +265,7 @@ impl LmdbWasmTestBuilder {
             engine_state: Rc::new(engine_state),
             exec_responses: Vec::new(),
             upgrade_responses: Vec::new(),
+            step_responses: Vec::new(),
             genesis_hash: None,
             post_state_hash: Some(post_state_hash),
             transforms: Vec::new(),
@@ -297,6 +302,7 @@ where
             engine_state: result.0.engine_state,
             exec_responses: Vec::new(),
             upgrade_responses: Vec::new(),
+            step_responses: Vec::new(),
             genesis_hash: result.0.genesis_hash,
             post_state_hash: result.0.post_state_hash,
             transforms: Vec::new(),
@@ -486,6 +492,33 @@ where
         self.post_state_hash = Some(upgrade_success.get_post_state_hash().to_vec());
 
         self.upgrade_responses.push(upgrade_response.clone());
+        self
+    }
+
+    pub fn step(&mut self, mut step_request: StepRequest) -> &mut Self {
+        let step_request = {
+            let hash = self
+                .post_state_hash
+                .clone()
+                .expect("Should have parent state hash");
+            step_request.parent_state_hash =
+                hash.as_slice().try_into().expect("expected a valid hash");
+            step_request
+        };
+
+        let step_response = self
+            .engine_state
+            .step(RequestOptions::new(), step_request)
+            .wait_drop_metadata()
+            .expect("should step");
+
+        if !step_response.has_success() {
+            panic!("Step failure: {:?}", step_response);
+        }
+
+        let step_success = step_response.get_success();
+        self.post_state_hash = Some(step_success.get_post_state_hash().to_vec());
+        self.step_responses.push(step_response.clone());
         self
     }
 

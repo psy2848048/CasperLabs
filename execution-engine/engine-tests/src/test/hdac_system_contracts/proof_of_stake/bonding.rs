@@ -2,7 +2,8 @@ use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
-        utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_ACCOUNTS, DEFAULT_PAYMENT,
+        utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder,
+        DEFAULT_ACCOUNTS, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -183,6 +184,7 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_4)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
@@ -235,6 +237,7 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_5)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     assert_eq!(
@@ -271,6 +274,7 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_6)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
@@ -314,6 +318,7 @@ fn should_run_successful_bond_and_unbond() {
         .exec(exec_request_7)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     // Back to original after funding account1's pursee
@@ -477,6 +482,7 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         .run_genesis(&genesis_config)
         .exec(exec_request)
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let response = result

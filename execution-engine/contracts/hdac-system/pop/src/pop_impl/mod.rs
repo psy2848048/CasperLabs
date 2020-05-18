@@ -21,12 +21,12 @@ use types::{
     BlockTime, Key, Phase, TransferResult, URef, U512,
 };
 
-use crate::constants::{consts, local_keys, uref_names};
+use crate::constants::{consts, uref_names};
 
 use delegations::ContractDelegations;
 use economy::{pop_score_calculation, ContractClaim};
 use request_pool::{
-    ClaimRequest, ContractQueue, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey,
+    ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
 };
 use votes::{ContractVotes, VoteStat, Votes};
 
@@ -119,15 +119,16 @@ impl ProofOfStake for ProofOfProfessionContract {
 }
 
 impl ProofOfProfessionContract {
-    pub fn step(&self) -> Result<()> {
-        // let blocktime = runtime::get_blocktime();
-        // self.step_undelegation(blocktime);
-        // self.step_redelegation(blocktime);
+    pub fn step(&mut self) -> Result<()> {
         let caller = runtime::get_caller();
 
         if caller.value() != consts::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
+
+        let current = self.get_block_time();
+        self.step_undelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
+        self.step_redelegation(current.saturating_sub(BlockTime::new(consts::UNBONDING_DELAY)))?;
 
         self.distribute()?;
         self.step_claim()?;
@@ -153,50 +154,20 @@ impl ProofOfProfessionContract {
             .map_err(|_| Error::BondTransferFailed)?;
 
         // check validator is bonded
-        let stakes = self.read()?;
+        let mut stakes = self.read()?;
         // if this is not self-delegation and target validator is not bonded
         if delegator != validator && !stakes.0.contains_key(&validator) {
             return Err(Error::NotBonded);
         }
 
-        let mut request_queue =
-            ContractQueue::read_requests::<DelegateRequestKey>(local_keys::DELEGATE_REQUEST_QUEUE);
-
-        request_queue.push(
-            DelegateRequestKey::new(delegator, validator),
-            amount,
-            self.get_block_time(),
-        )?;
-
-        ContractQueue::write_requests(local_keys::DELEGATE_REQUEST_QUEUE, request_queue);
-
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_delegation(self.get_block_time())?;
-        Ok(())
-    }
-
-    fn step_delegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue =
-            ContractQueue::read_requests::<DelegateRequestKey>(local_keys::DELEGATE_REQUEST_QUEUE);
-        let requests = request_queue.pop_due(timestamp);
-
-        let mut stakes: Stakes = self.read()?;
         let mut delegations = ContractDelegations::read()?;
 
-        for request in requests {
-            let DelegateRequestKey {
-                delegator,
-                validator,
-            } = request.request_key;
-
-            stakes.bond(&validator, request.amount);
-            delegations.delegate(&delegator, &validator, request.amount);
-        }
+        stakes.bond(&validator, amount);
+        delegations.delegate(&delegator, &validator, amount);
 
         self.write(&stakes);
         ContractDelegations::write(&delegations);
 
-        ContractQueue::write_requests(local_keys::DELEGATE_REQUEST_QUEUE, request_queue);
         Ok(())
     }
 
@@ -206,8 +177,14 @@ impl ProofOfProfessionContract {
         validator: PublicKey,
         maybe_amount: Option<U512>,
     ) -> Result<()> {
-        let mut request_queue = ContractQueue::read_requests::<UndelegateRequestKey>(
-            local_keys::UNDELEGATE_REQUEST_QUEUE,
+        // validate undelegation by simulating
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes: Stakes = self.read()?;
+        let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
+        let _ = stakes.unbond(&validator, Some(amount))?;
+
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+            DelegationKind::Undelegate,
         );
 
         let amount = match maybe_amount {
@@ -221,16 +198,13 @@ impl ProofOfProfessionContract {
             self.get_block_time(),
         )?;
 
-        ContractQueue::write_requests(local_keys::UNDELEGATE_REQUEST_QUEUE, request_queue);
-
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_undelegation(self.get_block_time())?;
+        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
         Ok(())
     }
 
     fn step_undelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_requests::<UndelegateRequestKey>(
-            local_keys::UNDELEGATE_REQUEST_QUEUE,
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+            DelegationKind::Undelegate,
         );
         let requests = request_queue.pop_due(timestamp);
 
@@ -258,7 +232,7 @@ impl ProofOfProfessionContract {
 
         ContractDelegations::write(&delegations);
         self.write(&stakes);
-        ContractQueue::write_requests(local_keys::UNDELEGATE_REQUEST_QUEUE, request_queue);
+        ContractQueue::write_delegation_requests(DelegationKind::Undelegate, request_queue);
         Ok(())
     }
 
@@ -272,9 +246,14 @@ impl ProofOfProfessionContract {
         if src == dest {
             return Err(Error::SelfRedelegation);
         }
+        // validate redelegation by simulating
+        let mut delegations = ContractDelegations::read()?;
+        let mut stakes: Stakes = self.read()?;
+        let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
+        let _payout = stakes.unbond(&src, Some(amount))?;
 
-        let mut request_queue = ContractQueue::read_requests::<RedelegateRequestKey>(
-            local_keys::REDELEGATE_REQUEST_QUEUE,
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+            DelegationKind::Redelegate,
         );
 
         request_queue.push(
@@ -283,17 +262,13 @@ impl ProofOfProfessionContract {
             self.get_block_time(),
         )?;
 
-        ContractQueue::write_requests(local_keys::REDELEGATE_REQUEST_QUEUE, request_queue);
-
-        // TODO: this should be factored out to ProofOfStake::step.
-        self.step_redelegation(self.get_block_time())?;
-
+        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
     }
 
     fn step_redelegation(&mut self, timestamp: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_requests::<RedelegateRequestKey>(
-            local_keys::REDELEGATE_REQUEST_QUEUE,
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+            DelegationKind::Redelegate,
         );
 
         let requests = request_queue.pop_due(timestamp);
@@ -316,7 +291,7 @@ impl ProofOfProfessionContract {
 
         ContractDelegations::write(&delegations);
         self.write(&stakes);
-        ContractQueue::write_requests(local_keys::REDELEGATE_REQUEST_QUEUE, request_queue);
+        ContractQueue::write_delegation_requests(DelegationKind::Redelegate, request_queue);
         Ok(())
     }
 

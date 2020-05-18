@@ -10,7 +10,7 @@ use types::{account::PublicKey, Key, U512};
 use engine_test_support::{
     internal::{
         utils, DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder,
-        DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
+        StepRequestBuilder, DEFAULT_ACCOUNT_KEY, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -20,7 +20,6 @@ const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 const TRANSFER_TO_ACCOUNT_METHOD: &str = "transfer_to_account";
-const STEP_METHOD: &str = "step";
 const BOND_METHOD: &str = "bond";
 const UNBOND_METHOD: &str = "unbond";
 const DELEGATE_METHOD: &str = "delegate";
@@ -211,6 +210,7 @@ fn should_invoke_successful_bond_and_unbond() {
         .exec(exec_request_unbonding)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_contract = unbonding_result.builder().get_pos_contract();
@@ -337,10 +337,12 @@ fn should_invoke_successful_delegation_methods() {
         .exec(redelegate_request)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .expect_success()
         .exec(undelegate_request)
         .expect_success()
         .commit()
+        .step(StepRequestBuilder::default().build())
         .finish();
 
     let pos_uref = builder.get_pos_contract_uref();
@@ -751,22 +753,8 @@ fn should_invoke_successful_step() {
     // setup done. start distribute
 
     println!("2. distribute");
-
-    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
-        SYSTEM_ADDR,
-        client_api_proxy_hash,
-        (String::from(STEP_METHOD),),
-    )
-    .build();
-
-    println!("Build Tx OK");
-
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 
@@ -832,22 +820,10 @@ fn should_invoke_successful_step() {
     println!("**** Dummy output ends here ****");
 
     println!("Delegation done");
-
-    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
-        SYSTEM_ADDR,
-        client_api_proxy_hash,
-        (String::from(STEP_METHOD),),
-    )
-    .build();
-
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 
@@ -978,21 +954,10 @@ fn should_invoke_successful_step() {
     println!("System balance: {}", system_balance);
 
     println!("5. Step again and check balance of the accounts");
-    let distribution_request = ExecuteRequestBuilder::contract_call_by_hash(
-        SYSTEM_ADDR,
-        client_api_proxy_hash,
-        (String::from(STEP_METHOD),),
-    )
-    .build();
-
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let _result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let _result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 

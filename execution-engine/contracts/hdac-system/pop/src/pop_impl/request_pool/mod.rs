@@ -8,17 +8,34 @@ use crate::constants::local_keys;
 
 use claim_request_list::ClaimRequestList;
 use request_queue::{RequestKey, RequestQueue};
-pub use requests::{ClaimRequest, DelegateRequestKey, RedelegateRequestKey, UndelegateRequestKey};
+pub use requests::{ClaimRequest, RedelegateRequestKey, UndelegateRequestKey};
 
 pub struct ContractQueue;
+pub enum DelegationKind {
+    Undelegate,
+    Redelegate,
+}
 
 impl ContractQueue {
-    pub fn read_requests<T: RequestKey + Default>(key: u8) -> RequestQueue<T> {
+    pub fn read_delegation_requests<T: RequestKey + Default>(
+        kind: DelegationKind,
+    ) -> RequestQueue<T> {
+        let key = match kind {
+            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
+            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
+        };
         storage::read_local(&key)
             .unwrap_or_default()
             .unwrap_or_default()
     }
-    pub fn write_requests<T: RequestKey + Default>(key: u8, queue: RequestQueue<T>) {
+    pub fn write_delegation_requests<T: RequestKey + Default>(
+        kind: DelegationKind,
+        queue: RequestQueue<T>,
+    ) {
+        let key = match kind {
+            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
+            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
+        };
         storage::write_local(key, queue);
     }
 
@@ -38,7 +55,7 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{DelegateRequestKey, RequestQueue, UndelegateRequestKey};
+    use super::{RequestQueue, UndelegateRequestKey};
     use crate::pop_impl::request_pool::request_queue::RequestQueueEntry;
 
     const KEY1: [u8; 32] = [1; 32];
@@ -53,11 +70,11 @@ mod tests {
         let validator_2 = PublicKey::ed25519_from(KEY3);
         let validator_3 = PublicKey::ed25519_from(KEY4);
 
-        let mut queue: RequestQueue<DelegateRequestKey> = Default::default();
+        let mut queue: RequestQueue<UndelegateRequestKey> = Default::default();
         assert_eq!(
             Ok(()),
             queue.push(
-                DelegateRequestKey::new(delegator, validator_1),
+                UndelegateRequestKey::new(delegator, validator_1),
                 U512::from(5),
                 BlockTime::new(100)
             )
@@ -65,7 +82,7 @@ mod tests {
         assert_eq!(
             Ok(()),
             queue.push(
-                DelegateRequestKey::new(delegator, validator_2),
+                UndelegateRequestKey::new(delegator, validator_2),
                 U512::from(5),
                 BlockTime::new(101)
             )
@@ -73,7 +90,7 @@ mod tests {
         assert_eq!(
             Err(Error::MultipleRequests),
             queue.push(
-                DelegateRequestKey::new(delegator, validator_1),
+                UndelegateRequestKey::new(delegator, validator_1),
                 U512::from(6),
                 BlockTime::new(102)
             )
@@ -81,7 +98,7 @@ mod tests {
         assert_eq!(
             Err(Error::TimeWentBackwards),
             queue.push(
-                DelegateRequestKey::new(delegator, validator_3),
+                UndelegateRequestKey::new(delegator, validator_3),
                 U512::from(5),
                 BlockTime::new(100)
             )

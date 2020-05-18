@@ -3,7 +3,7 @@ use num_traits::identities::Zero;
 use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
-    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
+    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 use types::{account::PublicKey, U512};
@@ -12,7 +12,6 @@ const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_to_account_u512.wasm";
 
 const METHOD_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
-const METHOD_STEP: &str = "step";
 const METHOD_CLAIM_COMMISSION: &str = "claim_commission";
 const METHOD_CLAIM_REWARD: &str = "claim_reward";
 const METHOD_DELEGATE: &str = "delegate";
@@ -173,22 +172,8 @@ fn should_run_successful_step() {
     // setup done. start distribute
 
     println!("2. distribute");
-
-    let distribution_request = ExecuteRequestBuilder::standard(
-        SYSTEM_ADDR,
-        CONTRACT_POS_VOTE,
-        (String::from(METHOD_STEP),),
-    )
-    .build();
-
-    println!("Build Tx OK");
-
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 
@@ -254,22 +239,10 @@ fn should_run_successful_step() {
     println!("**** Dummy output ends here ****");
 
     println!("Delegation done");
-
-    let distribution_request = ExecuteRequestBuilder::standard(
-        SYSTEM_ADDR,
-        CONTRACT_POS_VOTE,
-        (String::from(METHOD_STEP),),
-    )
-    .build();
-
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 
@@ -400,21 +373,10 @@ fn should_run_successful_step() {
     println!("System balance: {}", system_balance);
 
     println!("5. Step again and check balance of the accounts");
-    let distribution_request = ExecuteRequestBuilder::standard(
-        SYSTEM_ADDR,
-        CONTRACT_POS_VOTE,
-        (String::from(METHOD_STEP),),
-    )
-    .build();
-
     println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let _result = builder
-        .exec(distribution_request)
-        .expect_success()
-        .commit()
-        .finish();
+    let _result = builder.step(StepRequestBuilder::default().build()).finish();
 
     println!("Exec OK");
 

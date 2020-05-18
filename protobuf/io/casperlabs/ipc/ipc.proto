@@ -447,6 +447,29 @@ message UnbondPayoutResponse {
     }
 }
 
+message StepRequest {
+    bytes parent_state_hash = 1;
+    uint64 block_time = 2;
+    io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 3;
+}
+
+message StepResult {
+    bytes post_state_hash = 1;
+    ExecutionEffect effect = 2;
+}
+
+message StepError {
+    string message = 1;
+}
+
+message StepResponse {
+    oneof result {
+        StepResult success = 1;
+        RootNotFound missing_parent = 2;
+        StepError error = 3;
+    }
+}
+
 // --- END PROOF-OF-STAKE SERVICE DEFINITION --- //
 
 // Definition of the service.
@@ -463,4 +486,5 @@ service ExecutionEngineService {
     rpc distribute_rewards(DistributeRewardsRequest) returns (DistributeRewardsResponse) {}
     rpc slash(SlashRequest) returns (SlashResponse) {}
     rpc unbond_payout(UnbondPayoutRequest) returns (UnbondPayoutResponse) {}
+    rpc step(StepRequest) returns (StepResponse) {}
 }
