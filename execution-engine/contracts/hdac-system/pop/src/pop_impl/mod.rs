@@ -201,20 +201,6 @@ impl Votable for ProofOfProfessionContract {
 }
 
 impl ProofOfProfessionContract {
-    pub fn write_genesis_total_supply(&self, genesis_total_supply: &U512) -> Result<()> {
-        let caller = runtime::get_caller();
-
-        if caller.value() != SYSTEM_ACCOUNT {
-            return Err(Error::SystemFunctionCalledByUserAccount);
-        }
-
-        let mut total_supply = ContractClaim::read_total_supply()?;
-        total_supply.add(genesis_total_supply);
-        ContractClaim::write_total_supply(&total_supply);
-
-        Ok(())
-    }
-
     // For validator
     pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table

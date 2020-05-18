@@ -135,15 +135,6 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract.unvote(user, dapp, amount).unwrap_or_revert();
         }
-        methods::METHOD_WRITE_GENESIS_TOTAL_SUPPLY => {
-            let genesis_total_supply: U512 = runtime::get_arg(1)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
-
-            pop_contract
-                .write_genesis_total_supply(&genesis_total_supply)
-                .unwrap_or_revert();
-        }
         methods::METHOD_CLAIM_COMMISSION => {
             let validator: PublicKey = runtime::get_caller();
             pop_contract.claim_commission(&validator).unwrap_or_revert();
