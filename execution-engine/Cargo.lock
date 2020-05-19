@@ -877,13 +877,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ee-549-regression"
-version = "0.1.0"
-dependencies = [
- "casperlabs-contract 0.4.1",
-]
-
-[[package]]
 name = "ee-550-regression"
 version = "0.1.0"
 dependencies = [
@@ -1969,7 +1962,6 @@ version = "0.1.0"
 dependencies = [
  "base16 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "casperlabs-contract 0.4.1",
- "casperlabs-proof-of-stake 0.2.1",
  "casperlabs-types 0.4.1",
 ]
 

@@ -55,10 +55,6 @@ fn unvote(pos: &ContractRef, dapp_key: &Key, amount: &U512) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_UNVOTE, *dapp_key, *amount));
 }
 
-fn write_genesis_total_supply(pos: &ContractRef, amount: &U512) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_WRITE_GENESIS_TOTAL_SUPPLY, *amount));
-}
-
 fn claim_commission(pos: &ContractRef) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_CLAIM_COMMISSION,));
 }
@@ -75,7 +71,6 @@ const POS_UNDELEGATE: &str = "undelegate";
 const POS_REDELEGATE: &str = "redelegate";
 const POS_VOTE: &str = "vote";
 const POS_UNVOTE: &str = "unvote";
-const POS_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
 const POS_CLAIM_COMMISSION: &str = "claim_commission";
 const POS_CLAIM_REWARD: &str = "claim_reward";
 
@@ -159,12 +154,6 @@ pub extern "C" fn call() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             unvote(&pos_pointer, &dapp, &amount);
-        }
-        POS_WRITE_GENESIS_TOTAL_SUPPLY => {
-            let amount: U512 = runtime::get_arg(1)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
-            write_genesis_total_supply(&pos_pointer, &amount);
         }
         POS_CLAIM_COMMISSION => {
             claim_commission(&pos_pointer);

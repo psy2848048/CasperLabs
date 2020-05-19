@@ -25,7 +25,6 @@ mod method_names {
         pub const UNVOTE: &str = pos::UNVOTE;
         pub const CLAIM_COMMISSION: &str = pos::CLAIM_COMMISSION;
         pub const CLAIM_REWARD: &str = pos::CLAIM_REWARD;
-        pub const WRITE_GENESIS_TOTAL_SUPPLY: &str = pos::WRITE_GENESIS_TOTAL_SUPPLY;
     }
     pub mod pos {
         pub const BOND: &str = "bond";
@@ -39,7 +38,6 @@ mod method_names {
         pub const UNVOTE: &str = "unvote";
         pub const CLAIM_COMMISSION: &str = "claim_commission";
         pub const CLAIM_REWARD: &str = "claim_reward";
-        pub const WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
     }
 }
 
@@ -56,7 +54,6 @@ pub enum Api {
     Unvote(Key, Option<U512>),
     ClaimCommission(),
     ClaimReward(),
-    WriteGenesisTotalSupply(U512),
 }
 
 impl Api {
@@ -145,12 +142,6 @@ impl Api {
             }
             method_names::proxy::CLAIM_COMMISSION => Api::ClaimCommission(),
             method_names::proxy::CLAIM_REWARD => Api::ClaimReward(),
-            method_names::proxy::WRITE_GENESIS_TOTAL_SUPPLY => {
-                let amount: U512 = runtime::get_arg(1)
-                    .unwrap_or_revert_with(ApiError::MissingArgument)
-                    .unwrap_or_revert_with(ApiError::InvalidArgument);
-                Api::WriteGenesisTotalSupply(amount)
-            }
             _ => runtime::revert(Error::UnknownProxyApi),
         }
     }
@@ -235,13 +226,6 @@ impl Api {
             Self::ClaimReward() => {
                 let pos_ref = system::get_proof_of_stake();
                 runtime::call_contract(pos_ref, (method_names::pos::CLAIM_REWARD,))
-            }
-            Self::WriteGenesisTotalSupply(amount) => {
-                let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(
-                    pos_ref,
-                    (method_names::pos::WRITE_GENESIS_TOTAL_SUPPLY, *amount),
-                )
             }
         }
     }

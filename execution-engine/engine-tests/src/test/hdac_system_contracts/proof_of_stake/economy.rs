@@ -11,7 +11,6 @@ use types::{account::PublicKey, U512};
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_to_account_u512.wasm";
 
-const METHOD_WRITE_GENESIS_TOTAL_SUPPLY: &str = "write_genesis_total_supply";
 const METHOD_CLAIM_COMMISSION: &str = "claim_commission";
 const METHOD_CLAIM_REWARD: &str = "claim_reward";
 const METHOD_DELEGATE: &str = "delegate";
@@ -134,32 +133,6 @@ fn should_run_successful_step() {
     let system_account_balance_actual = builder.get_purse_balance(system_account.main_purse());
     println!("system account balance: {}", system_account_balance_actual);
 
-    println!("1. write genesis supply");
-
-    let write_genesis_supply_request = ExecuteRequestBuilder::standard(
-        SYSTEM_ADDR,
-        CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_WRITE_GENESIS_TOTAL_SUPPLY),
-            U512::from(2_000_000_000) * U512::from(BIGSUN_TO_HDAC),
-        ),
-    )
-    .build();
-
-    println!("Build Tx OK");
-
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(write_genesis_supply_request)
-        .expect_success()
-        .commit()
-        .finish();
-
-    let pos_uref = builder.get_pos_contract_uref();
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
     assert_eq!(
         pos_contract
             .named_keys()
@@ -181,7 +154,6 @@ fn should_run_successful_step() {
         .get_contract(pos_uref.remove_access_rights())
         .expect("should have contract");
 
-    // there should be a still only one validator.
     assert_eq!(
         pos_contract
             .named_keys()
