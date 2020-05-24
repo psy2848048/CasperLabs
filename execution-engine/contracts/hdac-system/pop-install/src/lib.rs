@@ -134,11 +134,7 @@ pub extern "C" fn call() {
                 if split_key[1].len() != 64 {
                     runtime::revert(Error::VoteKeyDeserializationFailed);
                 }
-                if !((split_key[2].len() == 66) // Account, Hash
-                    || (split_key[2].len() == 68) // Uref
-                    || (split_key[2].len() == 130))
-                // Local
-                {
+                if !((split_key[2].len() == 66) || (split_key[2].len() == 68)) {
                     runtime::revert(Error::VoteKeyDeserializationFailed);
                 }
 
