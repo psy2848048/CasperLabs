@@ -1,12 +1,14 @@
 use alloc::{
     collections::{BTreeMap, BTreeSet},
     string::String,
+    vec,
 };
 use core::fmt::Write;
 
 use contract::contract_api::runtime;
 use types::{
     account::PublicKey,
+    bytesrepr::{FromBytes, ToBytes},
     system_contract_errors::pos::{Error, Result},
     Key, U512,
 };
@@ -35,15 +37,15 @@ impl ProofOfProfessionContract {
             };
 
             let to_hash = |hex_str: &str| -> Result<Key> {
-                if hex_str.len() != 64 {
-                    return Err(Error::VoteKeyDeserializationFailed);
-                }
-                let mut hash_bytes = [0u8; 32];
+                let length = hex_str.len();
+
+                let mut hash_bytes = vec![0u8; length];
                 let _bytes_written = base16::decode_slice(hex_str, &mut hash_bytes)
                     .map_err(|_| Error::VoteKeyDeserializationFailed)?;
                 debug_assert!(_bytes_written == hash_bytes.len());
-                // TODO: How to convert hash to key
-                Ok(Key::Hash(hash_bytes))
+                let (key, _bytes) = Key::from_bytes(hash_bytes.as_slice())
+                    .map_err(|_| Error::VoteKeyDeserializationFailed)?;
+                Ok(key)
             };
 
             let hex_key = split_name
@@ -90,9 +92,10 @@ impl ProofOfProfessionContract {
                 };
 
                 let to_hex_string_from_hash = |hash: Key| -> String {
-                    let bytes = hash.into_hash().expect("VoteKey serialization cannot fail");
-                    let mut ret = String::with_capacity(64);
-                    for byte in &bytes[..32] {
+                    let bytes = Key::to_bytes(&hash).expect("VoteKey serialization cannot fail");
+                    let length = Key::serialized_length(&hash);
+                    let mut ret = String::with_capacity(length * 2);
+                    for byte in &bytes[..length] {
                         write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
                     }
                     ret

@@ -6,7 +6,7 @@ use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, ApiError, Key, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, ApiError, Key, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
@@ -135,10 +135,12 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
     );
 
     // that validator should be a_{dApp_pubkey}_{user_pubkey}_{voted_amount}
+    let hash = Key::to_bytes(&Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()))
+        .expect("VoteKey serialization cannot fail");
     let lookup_key_vote = format!(
         "a_{}_{}_{}",
         base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
-        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
+        base16::encode_lower(&hash),
         ACCOUNT_3_VOTE_AMOUNT
     );
     assert!(pos_contract.named_keys().contains_key(&lookup_key_vote));

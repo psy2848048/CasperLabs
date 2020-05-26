@@ -7,7 +7,7 @@ use engine_test_support::internal::{
     utils, InMemoryWasmTestBuilder, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
     POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
 };
-use types::{account::PublicKey, Key, ProtocolVersion, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, Key, ProtocolVersion, U512};
 
 const MINT_INSTALL: &str = MINT_INSTALL_CONTRACT;
 const POS_INSTALL: &str = POS_INSTALL_CONTRACT;
@@ -367,6 +367,8 @@ fn should_vote_is_less_than_delegate() {
         )
     };
 
+    let hash = Key::to_bytes(&Key::Hash(ACCOUNT_1_ADDR.value()))
+        .expect("VoteKey serialization cannot fail");
     let state_infos = vec![
         format_args!(
             "d_{}_{}_{}",
@@ -378,7 +380,7 @@ fn should_vote_is_less_than_delegate() {
         format_args!(
             "a_{}_{}_{}",
             base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&hash),
             1_000_000.to_string()
         )
         .to_string(),
@@ -408,6 +410,8 @@ fn should_fail_vote_is_more_than_delegate() {
         )
     };
 
+    let hash = Key::to_bytes(&Key::Hash(ACCOUNT_1_ADDR.value()))
+        .expect("VoteKey serialization cannot fail");
     let state_infos = vec![
         format_args!(
             "d_{}_{}_{}",
@@ -419,7 +423,7 @@ fn should_fail_vote_is_more_than_delegate() {
         format_args!(
             "a_{}_{}_{}",
             base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
+            base16::encode_lower(&hash),
             2_000_001.to_string()
         )
         .to_string(),
