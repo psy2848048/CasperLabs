@@ -14,7 +14,7 @@ use types::{
 };
 
 use super::votes::{VoteKey, VoteStat, Votes};
-use crate::pop_impl::ProofOfProfessionContract;
+use crate::pop_contract::ProofOfProfessionContract;
 
 impl ProofOfProfessionContract {
     pub fn read_votes(&self) -> Result<Votes> {

@@ -8,16 +8,15 @@ pub mod votes_provider;
 
 use types::{account::PublicKey, system_contract_errors::pos::Result, Key, URef, U512};
 
-pub trait ProofOfProfession: Delegatable + Votable {}
+pub trait ProofOfProfession: Delegatable + Votable + Stakable {}
+
+pub trait Stakable {
+    fn bond(&mut self, caller: PublicKey, amount: U512, source_purse: URef) -> Result<()>;
+    fn unbond(&mut self, caller: PublicKey, maybe_amount: Option<U512>) -> Result<()>;
+}
 
 pub trait Delegatable {
-    fn delegate(
-        &mut self,
-        delegator: PublicKey,
-        validator: PublicKey,
-        amount: U512,
-        source_purse: URef,
-    ) -> Result<()>;
+    fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()>;
 
     fn undelegate(
         &mut self,
@@ -33,12 +32,9 @@ pub trait Delegatable {
         dest: PublicKey,
         amount: U512,
     ) -> Result<()>;
-
-    // execute the mature (un,re)delegation requests
-    fn step(&mut self) -> Result<()>;
 }
 
 pub trait Votable {
-    fn vote(&self, user: PublicKey, dapp: Key, amount: U512) -> Result<()>;
-    fn unvote(&self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()>;
+    fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()>;
+    fn unvote(&mut self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()>;
 }

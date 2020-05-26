@@ -13,7 +13,7 @@ use types::{
 };
 
 use super::delegations::{DelegationKey, DelegationStat, DelegationUnitForOrder, Delegations};
-use crate::pop_impl::ProofOfProfessionContract;
+use crate::pop_contract::ProofOfProfessionContract;
 
 impl ProofOfProfessionContract {
     pub fn read_delegations(&self) -> Result<Delegations> {

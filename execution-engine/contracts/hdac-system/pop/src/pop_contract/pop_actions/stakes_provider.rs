@@ -12,7 +12,7 @@ use types::{
 };
 
 use super::stakes::Stakes;
-use crate::pop_impl::ProofOfProfessionContract;
+use crate::pop_contract::ProofOfProfessionContract;
 
 /// A `StakesProvider` that reads and writes the stakes to/from the contract's
 /// known urefs.
