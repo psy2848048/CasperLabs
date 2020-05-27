@@ -7,10 +7,12 @@ use types::{
 
 use super::{
     pop_actions::{Delegatable, ProofOfProfession, Stakable, Votable},
-    request_pool::{self, RedelegateRequest, UndelegateRequest},
     ProofOfProfessionContract,
 };
-use crate::constants::{local_keys, uref_names};
+use crate::{
+    constants::{local_keys, uref_names},
+    local_store::{self, RedelegateRequest, UndelegateRequest},
+};
 
 impl ProofOfProfession for ProofOfProfessionContract {}
 
@@ -75,7 +77,7 @@ impl Delegatable for ProofOfProfessionContract {
         let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
         let _ = stakes.unbond(&validator, Some(amount))?;
 
-        let mut request_queue = request_pool::read_undelegation_requests();
+        let mut request_queue = local_store::read_undelegation_requests();
 
         request_queue.push(
             UndelegateRequest {
@@ -86,7 +88,7 @@ impl Delegatable for ProofOfProfessionContract {
             runtime::get_blocktime(),
         )?;
 
-        request_pool::write_undelegation_requests(request_queue);
+        local_store::write_undelegation_requests(request_queue);
         Ok(())
     }
 
@@ -106,7 +108,7 @@ impl Delegatable for ProofOfProfessionContract {
         let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
         let _payout = stakes.unbond(&src, Some(amount))?;
 
-        let mut request_queue = request_pool::read_redelegation_requests();
+        let mut request_queue = local_store::read_redelegation_requests();
 
         request_queue.push(
             RedelegateRequest {
@@ -118,7 +120,7 @@ impl Delegatable for ProofOfProfessionContract {
             runtime::get_blocktime(),
         )?;
 
-        request_pool::write_redelegation_requests(request_queue);
+        local_store::write_redelegation_requests(request_queue);
         Ok(())
     }
 }

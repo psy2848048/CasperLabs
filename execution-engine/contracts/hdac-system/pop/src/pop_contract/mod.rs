@@ -1,7 +1,6 @@
 mod economy;
 mod pop_actions;
 mod pop_actions_impl;
-mod request_pool;
 
 pub use pop_actions::{Delegatable, Stakable, Votable};
 
@@ -20,10 +19,12 @@ use types::{
     AccessRights, BlockTime, Key, TransferResult, URef, U512,
 };
 
-use crate::constants::{sys_params, uref_names};
+use crate::{
+    constants::{sys_params, uref_names},
+    local_store::{self, ClaimRequest, RedelegateRequest, UndelegateRequest},
+};
 
 use economy::{pop_score_calculation, ContractClaim};
-use request_pool::{ClaimRequest, RedelegateRequest, UndelegateRequest};
 
 const DAYS_OF_YEAR: i64 = 365_i64;
 const HOURS_OF_DAY: i64 = 24_i64;
@@ -66,9 +67,9 @@ impl ProofOfProfessionContract {
         commissions.claim_commission(validator, &validator_commission);
         ContractClaim::write_commission(&commissions);
 
-        let mut claim_requests = request_pool::read_claim_requests();
+        let mut claim_requests = local_store::read_claim_requests();
         claim_requests.push(ClaimRequest::Commission(*validator, validator_commission));
-        request_pool::write_claim_requests(claim_requests);
+        local_store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
         Ok(())
@@ -85,9 +86,9 @@ impl ProofOfProfessionContract {
         rewards.claim_rewards(user, &user_reward);
         ContractClaim::write_reward(&rewards);
 
-        let mut claim_requests = request_pool::read_claim_requests();
+        let mut claim_requests = local_store::read_claim_requests();
         claim_requests.push(ClaimRequest::Reward(*user, user_reward));
-        request_pool::write_claim_requests(claim_requests);
+        local_store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
         Ok(())
@@ -253,7 +254,7 @@ impl ProofOfProfessionContract {
     }
 
     fn step_undelegation(&mut self, due: BlockTime) -> Result<()> {
-        let mut request_queue = request_pool::read_undelegation_requests();
+        let mut request_queue = local_store::read_undelegation_requests();
         let requests = request_queue.pop_due(due);
 
         let mut delegations = self.read_delegations()?;
@@ -276,12 +277,12 @@ impl ProofOfProfessionContract {
 
         self.write_delegations(&delegations);
         self.write_stakes(&stakes);
-        request_pool::write_undelegation_requests(request_queue);
+        local_store::write_undelegation_requests(request_queue);
         Ok(())
     }
 
     fn step_redelegation(&mut self, due: BlockTime) -> Result<()> {
-        let mut request_queue = request_pool::read_redelegation_requests();
+        let mut request_queue = local_store::read_redelegation_requests();
 
         let requests = request_queue.pop_due(due);
         let mut delegations = self.read_delegations()?;
@@ -303,12 +304,12 @@ impl ProofOfProfessionContract {
 
         self.write_delegations(&delegations);
         self.write_stakes(&stakes);
-        request_pool::write_redelegation_requests(request_queue);
+        local_store::write_redelegation_requests(request_queue);
         Ok(())
     }
 
     fn step_claim(&self) -> Result<()> {
-        let claim_requests = request_pool::read_claim_requests();
+        let claim_requests = local_store::read_claim_requests();
 
         for request in claim_requests.iter() {
             let (pubkey, amount) = match request {
@@ -331,7 +332,7 @@ impl ProofOfProfessionContract {
         }
 
         // write an empty list.
-        request_pool::write_claim_requests(Default::default());
+        local_store::write_claim_requests(Default::default());
         Ok(())
     }
 }

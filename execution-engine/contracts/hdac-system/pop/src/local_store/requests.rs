@@ -7,7 +7,7 @@ use types::{
     CLType, CLTyped, U512,
 };
 
-use super::duration_queue::DurationQueueItem;
+use crate::duration_queue::DurationQueueItem;
 
 #[derive(Clone, Copy)]
 pub struct UnbondRequest {
