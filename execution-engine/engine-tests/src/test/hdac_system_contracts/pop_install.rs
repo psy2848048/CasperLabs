@@ -16,12 +16,14 @@ const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
 const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 
-// one named_key for each validator and four for the purses and the total supply amount.
-const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 4;
+// one named_key for each validator and five for the purses and the total supply amount.
+const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 1;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
+const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
+const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 
 #[ignore]
 #[test]
@@ -106,6 +108,20 @@ fn should_run_pop_install_contract() {
 
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
     assert_eq!(rewards_purse_balance, U512::zero());
+
+    // commission purse has correct balance
+    let commission_purse = get_purse(named_keys, POS_COMMISSION_PURSE)
+        .expect("should find rewards purse in named_keys");
+
+    let commission_purse_balance = builder.get_purse_balance(commission_purse);
+    assert_eq!(commission_purse_balance, U512::zero());
+
+    // community purse has correct balance
+    let community_purse = get_purse(named_keys, POS_COMMUNITY_PURSE)
+        .expect("should find rewards purse in named_keys");
+
+    let community_purse_balance = builder.get_purse_balance(community_purse);
+    assert_eq!(community_purse_balance, U512::zero());
 
     // system account should have a client_api_proxy contract in named_keys as Key::Hash
     let query_result = builder
