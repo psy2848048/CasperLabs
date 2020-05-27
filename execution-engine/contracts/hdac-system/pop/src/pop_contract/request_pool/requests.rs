@@ -7,121 +7,126 @@ use types::{
     CLType, CLTyped, U512,
 };
 
-use super::delegation_queue::RequestKey;
+use super::duration_queue::DurationQueueItem;
+
+#[derive(Clone, Copy)]
+pub struct UnbondRequest {
+    requester: PublicKey,
+    maybe_amount: Option<U512>,
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct UndelegateRequestKey {
+pub struct UndelegateRequest {
     pub delegator: PublicKey,
     pub validator: PublicKey,
+    pub maybe_amount: Option<U512>,
 }
 
-impl UndelegateRequestKey {
-    pub fn new(delegator: PublicKey, validator: PublicKey) -> Self {
-        UndelegateRequestKey {
-            delegator,
-            validator,
-        }
-    }
-}
+impl DurationQueueItem for UndelegateRequest {}
 
-impl Default for UndelegateRequestKey {
+impl Default for UndelegateRequest {
     fn default() -> Self {
-        UndelegateRequestKey {
+        UndelegateRequest {
             delegator: PublicKey::ed25519_from([0u8; 32]),
             validator: PublicKey::ed25519_from([0u8; 32]),
+            maybe_amount: None,
         }
     }
 }
 
-impl RequestKey for UndelegateRequestKey {}
-
-impl FromBytes for UndelegateRequestKey {
+impl FromBytes for UndelegateRequest {
     fn from_bytes(bytes: &[u8]) -> result::Result<(Self, &[u8]), bytesrepr::Error> {
         let (delegator, bytes) = PublicKey::from_bytes(bytes)?;
         let (validator, bytes) = PublicKey::from_bytes(bytes)?;
-        let entry = UndelegateRequestKey {
-            delegator,
-            validator,
-        };
-        Ok((entry, bytes))
+        let (maybe_amount, bytes): (Option<U512>, &[u8]) = FromBytes::from_bytes(bytes)?;
+
+        Ok((
+            UndelegateRequest {
+                delegator,
+                validator,
+                maybe_amount,
+            },
+            bytes,
+        ))
     }
 }
 
-impl ToBytes for UndelegateRequestKey {
+impl ToBytes for UndelegateRequest {
     fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
         Ok((self.delegator.to_bytes()?.into_iter())
             .chain(self.validator.to_bytes()?)
+            .chain(self.maybe_amount.to_bytes()?)
             .collect())
     }
     fn serialized_length(&self) -> usize {
-        self.delegator.serialized_length() + self.validator.serialized_length()
+        self.delegator.serialized_length()
+            + self.validator.serialized_length()
+            + self.maybe_amount.serialized_length()
     }
 }
 
-impl CLTyped for UndelegateRequestKey {
+impl CLTyped for UndelegateRequest {
     fn cl_type() -> CLType {
         CLType::Any
     }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub struct RedelegateRequestKey {
+pub struct RedelegateRequest {
     pub delegator: PublicKey,
     pub src_validator: PublicKey,
     pub dest_validator: PublicKey,
+    pub maybe_amount: Option<U512>,
 }
 
-impl RedelegateRequestKey {
-    pub fn new(delegator: PublicKey, src_validator: PublicKey, dest_validator: PublicKey) -> Self {
-        RedelegateRequestKey {
-            delegator,
-            src_validator,
-            dest_validator,
-        }
-    }
-}
+impl DurationQueueItem for RedelegateRequest {}
 
-impl Default for RedelegateRequestKey {
+impl Default for RedelegateRequest {
     fn default() -> Self {
-        RedelegateRequestKey {
+        RedelegateRequest {
             delegator: PublicKey::ed25519_from([0u8; 32]),
             src_validator: PublicKey::ed25519_from([0u8; 32]),
             dest_validator: PublicKey::ed25519_from([0u8; 32]),
+            maybe_amount: None,
         }
     }
 }
 
-impl RequestKey for RedelegateRequestKey {}
-
-impl FromBytes for RedelegateRequestKey {
+impl FromBytes for RedelegateRequest {
     fn from_bytes(bytes: &[u8]) -> result::Result<(Self, &[u8]), bytesrepr::Error> {
         let (delegator, bytes) = PublicKey::from_bytes(bytes)?;
         let (src_validator, bytes) = PublicKey::from_bytes(bytes)?;
         let (dest_validator, bytes) = PublicKey::from_bytes(bytes)?;
-        let entry = RedelegateRequestKey {
-            delegator,
-            src_validator,
-            dest_validator,
-        };
-        Ok((entry, bytes))
+        let (maybe_amount, bytes): (Option<U512>, &[u8]) = FromBytes::from_bytes(bytes)?;
+        Ok((
+            RedelegateRequest {
+                delegator,
+                src_validator,
+                dest_validator,
+                maybe_amount,
+            },
+            bytes,
+        ))
     }
 }
 
-impl ToBytes for RedelegateRequestKey {
+impl ToBytes for RedelegateRequest {
     fn to_bytes(&self) -> result::Result<Vec<u8>, bytesrepr::Error> {
         Ok((self.delegator.to_bytes()?.into_iter())
             .chain(self.src_validator.to_bytes()?)
             .chain(self.dest_validator.to_bytes()?)
+            .chain(self.maybe_amount.to_bytes()?)
             .collect())
     }
     fn serialized_length(&self) -> usize {
         self.delegator.serialized_length()
             + self.src_validator.serialized_length()
             + self.dest_validator.serialized_length()
+            + self.maybe_amount.serialized_length()
     }
 }
 
-impl CLTyped for RedelegateRequestKey {
+impl CLTyped for RedelegateRequest {
     fn cl_type() -> CLType {
         CLType::Any
     }

@@ -7,7 +7,7 @@ use types::{
 
 use super::{
     pop_actions::{Delegatable, ProofOfProfession, Stakable, Votable},
-    request_pool::{ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey},
+    request_pool::{ContractQueue, DelegationKind, RedelegateRequest, UndelegateRequest},
     ProofOfProfessionContract,
 };
 use crate::constants::{local_keys, uref_names};
@@ -75,18 +75,16 @@ impl Delegatable for ProofOfProfessionContract {
         let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
         let _ = stakes.unbond(&validator, Some(amount))?;
 
-        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequest>(
             DelegationKind::Undelegate,
         );
 
-        let amount = match maybe_amount {
-            None => U512::from(0),
-            Some(amount) => amount,
-        };
-
         request_queue.push(
-            UndelegateRequestKey::new(delegator, validator),
-            amount,
+            UndelegateRequest {
+                delegator,
+                validator,
+                maybe_amount,
+            },
             runtime::get_blocktime(),
         )?;
 
@@ -110,13 +108,17 @@ impl Delegatable for ProofOfProfessionContract {
         let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
         let _payout = stakes.unbond(&src, Some(amount))?;
 
-        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequest>(
             DelegationKind::Redelegate,
         );
 
         request_queue.push(
-            RedelegateRequestKey::new(delegator, src, dest),
-            amount,
+            RedelegateRequest {
+                delegator: delegator,
+                src_validator: src,
+                dest_validator: dest,
+                maybe_amount: Some(amount),
+            },
             runtime::get_blocktime(),
         )?;
 

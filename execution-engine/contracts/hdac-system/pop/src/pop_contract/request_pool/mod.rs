@@ -1,5 +1,5 @@
 mod claim_list;
-mod delegation_queue;
+mod duration_queue;
 mod requests;
 
 use contract::contract_api::storage;
@@ -7,8 +7,8 @@ use contract::contract_api::storage;
 use crate::constants::local_keys;
 
 use claim_list::ClaimRequestList;
-use delegation_queue::{RequestKey, RequestQueue};
-pub use requests::{ClaimRequest, RedelegateRequestKey, UndelegateRequestKey};
+use duration_queue::{DurationQueue, DurationQueueItem};
+pub use requests::{ClaimRequest, RedelegateRequest, UndelegateRequest};
 
 pub struct ContractQueue;
 pub enum DelegationKind {
@@ -17,9 +17,9 @@ pub enum DelegationKind {
 }
 
 impl ContractQueue {
-    pub fn read_delegation_requests<T: RequestKey + Default>(
+    pub fn read_delegation_requests<T: DurationQueueItem + Default>(
         kind: DelegationKind,
-    ) -> RequestQueue<T> {
+    ) -> DurationQueue<T> {
         let key = match kind {
             DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
             DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
@@ -28,9 +28,9 @@ impl ContractQueue {
             .unwrap_or_default()
             .unwrap_or_default()
     }
-    pub fn write_delegation_requests<T: RequestKey + Default>(
+    pub fn write_delegation_requests<T: DurationQueueItem + Default>(
         kind: DelegationKind,
-        queue: RequestQueue<T>,
+        queue: DurationQueue<T>,
     ) {
         let key = match kind {
             DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
@@ -55,7 +55,7 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use super::{delegation_queue::RequestQueueEntry, RequestQueue, UndelegateRequestKey};
+    use super::{delegation_queue::DurationQueueEntry, DurationQueue, UndelegateRequest};
 
     const KEY1: [u8; 32] = [1; 32];
     const KEY2: [u8; 32] = [2; 32];
@@ -69,36 +69,48 @@ mod tests {
         let validator_2 = PublicKey::ed25519_from(KEY3);
         let validator_3 = PublicKey::ed25519_from(KEY4);
 
-        let mut queue: RequestQueue<UndelegateRequestKey> = Default::default();
+        let mut queue: DurationQueue<UndelegateRequest> = Default::default();
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_1),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_1,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(100)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_2),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_2,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(101)
             )
         );
         assert_eq!(
             Err(Error::MultipleRequests),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_1),
-                U512::from(6),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_1,
+                    maybe_amount: Some(U512::from(6))
+                },
                 BlockTime::new(102)
             )
         );
         assert_eq!(
             Err(Error::TimeWentBackwards),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_3),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_3,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(100)
             )
         );
@@ -111,50 +123,68 @@ mod tests {
         let validator_2 = PublicKey::ed25519_from(KEY3);
         let validator_3 = PublicKey::ed25519_from(KEY4);
 
-        let mut queue: RequestQueue<UndelegateRequestKey> = Default::default();
+        let mut queue: DurationQueue<UndelegateRequest> = Default::default();
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_1),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_1,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(100)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_2),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_2,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(101)
             )
         );
         assert_eq!(
             Ok(()),
             queue.push(
-                UndelegateRequestKey::new(delegator, validator_3),
-                U512::from(5),
+                UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_3,
+                    maybe_amount: Some(U512::from(5))
+                },
                 BlockTime::new(102)
             )
         );
         assert_eq!(
             vec![
-                RequestQueueEntry {
-                    request_key: UndelegateRequestKey::new(delegator, validator_1),
-                    amount: U512::from(5),
+                DurationQueueEntry {
+                    item: UndelegateRequest {
+                        delegator: delegator,
+                        validator: validator_1,
+                        maybe_amount: Some(U512::from(5))
+                    },
                     timestamp: BlockTime::new(100)
                 },
-                RequestQueueEntry {
-                    request_key: UndelegateRequestKey::new(delegator, validator_2),
-                    amount: U512::from(5),
+                DurationQueueEntry {
+                    item: UndelegateRequest {
+                        delegator: delegator,
+                        validator: validator_2,
+                        maybe_amount: Some(U512::from(5))
+                    },
                     timestamp: BlockTime::new(101)
                 },
             ],
             queue.pop_due(BlockTime::new(101))
         );
         assert_eq!(
-            vec![RequestQueueEntry {
-                request_key: UndelegateRequestKey::new(delegator, validator_3),
-                amount: U512::from(5),
+            vec![DurationQueueEntry {
+                item: UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_3,
+                    maybe_amount: Some(U512::from(5))
+                },
                 timestamp: BlockTime::new(102)
             },],
             queue.pop_due(BlockTime::new(105))

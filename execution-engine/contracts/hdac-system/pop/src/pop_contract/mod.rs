@@ -24,7 +24,7 @@ use crate::constants::{sys_params, uref_names};
 
 use economy::{pop_score_calculation, ContractClaim};
 use request_pool::{
-    ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
+    ClaimRequest, ContractQueue, DelegationKind, RedelegateRequest, UndelegateRequest,
 };
 
 const DAYS_OF_YEAR: i64 = 365_i64;
@@ -263,7 +263,7 @@ impl ProofOfProfessionContract {
     }
 
     fn step_undelegation(&mut self, due: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequestKey>(
+        let mut request_queue = ContractQueue::read_delegation_requests::<UndelegateRequest>(
             DelegationKind::Undelegate,
         );
         let requests = request_queue.pop_due(due);
@@ -274,15 +274,11 @@ impl ProofOfProfessionContract {
             get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
 
         for request in requests {
-            let UndelegateRequestKey {
+            let UndelegateRequest {
                 delegator,
                 validator,
-            } = request.request_key;
-
-            let maybe_amount = match request.amount {
-                val if val == U512::from(0) => None,
-                _ => Some(request.amount),
-            };
+                maybe_amount,
+            } = request.item;
 
             let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
             let payout = stakes.unbond(&validator, Some(amount))?;
@@ -297,7 +293,7 @@ impl ProofOfProfessionContract {
     }
 
     fn step_redelegation(&mut self, due: BlockTime) -> Result<()> {
-        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequestKey>(
+        let mut request_queue = ContractQueue::read_delegation_requests::<RedelegateRequest>(
             DelegationKind::Redelegate,
         );
 
@@ -306,14 +302,14 @@ impl ProofOfProfessionContract {
         let mut stakes = self.read_stakes()?;
 
         for request in requests {
-            let RedelegateRequestKey {
+            let RedelegateRequest {
                 delegator,
                 src_validator,
                 dest_validator,
-            } = request.request_key;
+                maybe_amount,
+            } = request.item;
 
-            let amount =
-                delegations.undelegate(&delegator, &src_validator, Some(request.amount))?;
+            let amount = delegations.undelegate(&delegator, &src_validator, maybe_amount)?;
             delegations.delegate(&delegator, &dest_validator, amount);
             let payout = stakes.unbond(&src_validator, Some(amount))?;
             stakes.bond(&dest_validator, payout);
