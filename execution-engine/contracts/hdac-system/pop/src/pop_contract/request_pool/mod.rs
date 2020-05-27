@@ -10,43 +10,33 @@ use claim_list::ClaimRequestList;
 use duration_queue::{DurationQueue, DurationQueueItem};
 pub use requests::{ClaimRequest, RedelegateRequest, UndelegateRequest};
 
-pub struct ContractQueue;
-pub enum DelegationKind {
-    Undelegate,
-    Redelegate,
+pub fn read_undelegation_requests() -> DurationQueue<UndelegateRequest> {
+    storage::read_local(&local_keys::UNDELEGATE_REQUEST_QUEUE)
+        .unwrap_or_default()
+        .unwrap_or_default()
 }
 
-impl ContractQueue {
-    pub fn read_delegation_requests<T: DurationQueueItem + Default>(
-        kind: DelegationKind,
-    ) -> DurationQueue<T> {
-        let key = match kind {
-            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
-            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
-        };
-        storage::read_local(&key)
-            .unwrap_or_default()
-            .unwrap_or_default()
-    }
-    pub fn write_delegation_requests<T: DurationQueueItem + Default>(
-        kind: DelegationKind,
-        queue: DurationQueue<T>,
-    ) {
-        let key = match kind {
-            DelegationKind::Undelegate => local_keys::UNDELEGATE_REQUEST_QUEUE,
-            DelegationKind::Redelegate => local_keys::REDELEGATE_REQUEST_QUEUE,
-        };
-        storage::write_local(key, queue);
-    }
+pub fn read_redelegation_requests() -> DurationQueue<RedelegateRequest> {
+    storage::read_local(&local_keys::REDELEGATE_REQUEST_QUEUE)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
 
-    pub fn read_claim_requests() -> ClaimRequestList {
-        storage::read_local(&local_keys::CLAIM_REQUESTS)
-            .unwrap_or_default()
-            .unwrap_or_default()
-    }
-    pub fn write_claim_requests(list: ClaimRequestList) {
-        storage::write_local(local_keys::CLAIM_REQUESTS, list);
-    }
+pub fn write_undelegation_requests(queue: DurationQueue<UndelegateRequest>) {
+    storage::write_local(local_keys::UNDELEGATE_REQUEST_QUEUE, queue);
+}
+
+pub fn write_redelegation_requests(queue: DurationQueue<RedelegateRequest>) {
+    storage::write_local(local_keys::REDELEGATE_REQUEST_QUEUE, queue);
+}
+
+pub fn read_claim_requests() -> ClaimRequestList {
+    storage::read_local(&local_keys::CLAIM_REQUESTS)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
+pub fn write_claim_requests(list: ClaimRequestList) {
+    storage::write_local(local_keys::CLAIM_REQUESTS, list);
 }
 
 #[cfg(test)]
