@@ -1,13 +1,13 @@
-mod claim_list;
 mod duration_queue;
 mod requests;
+
+use alloc::vec::Vec;
 
 use contract::contract_api::storage;
 
 use crate::constants::local_keys;
 
-use claim_list::ClaimRequestList;
-use duration_queue::{DurationQueue, DurationQueueItem};
+use duration_queue::DurationQueue;
 pub use requests::{ClaimRequest, RedelegateRequest, UndelegateRequest};
 
 pub fn read_undelegation_requests() -> DurationQueue<UndelegateRequest> {
@@ -30,12 +30,12 @@ pub fn write_redelegation_requests(queue: DurationQueue<RedelegateRequest>) {
     storage::write_local(local_keys::REDELEGATE_REQUEST_QUEUE, queue);
 }
 
-pub fn read_claim_requests() -> ClaimRequestList {
+pub fn read_claim_requests() -> Vec<ClaimRequest> {
     storage::read_local(&local_keys::CLAIM_REQUESTS)
         .unwrap_or_default()
         .unwrap_or_default()
 }
-pub fn write_claim_requests(list: ClaimRequestList) {
+pub fn write_claim_requests(list: Vec<ClaimRequest>) {
     storage::write_local(local_keys::CLAIM_REQUESTS, list);
 }
 

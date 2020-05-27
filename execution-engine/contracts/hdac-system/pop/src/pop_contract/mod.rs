@@ -67,11 +67,7 @@ impl ProofOfProfessionContract {
         ContractClaim::write_commission(&commissions);
 
         let mut claim_requests = request_pool::read_claim_requests();
-
-        claim_requests
-            .0
-            .push(ClaimRequest::Commission(*validator, validator_commission));
-
+        claim_requests.push(ClaimRequest::Commission(*validator, validator_commission));
         request_pool::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -90,11 +86,7 @@ impl ProofOfProfessionContract {
         ContractClaim::write_reward(&rewards);
 
         let mut claim_requests = request_pool::read_claim_requests();
-
-        claim_requests
-            .0
-            .push(ClaimRequest::Reward(*user, user_reward));
-
+        claim_requests.push(ClaimRequest::Reward(*user, user_reward));
         request_pool::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -318,7 +310,7 @@ impl ProofOfProfessionContract {
     fn step_claim(&self) -> Result<()> {
         let claim_requests = request_pool::read_claim_requests();
 
-        for request in claim_requests.0.iter() {
+        for request in claim_requests.iter() {
             let (pubkey, amount) = match request {
                 ClaimRequest::Commission(pubkey, amount) | ClaimRequest::Reward(pubkey, amount) => {
                     (*pubkey, *amount)
