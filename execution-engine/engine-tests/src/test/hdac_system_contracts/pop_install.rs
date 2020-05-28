@@ -16,8 +16,11 @@ const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
 const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 
-// one named_key for each validator and five for the purses and the total supply amount.
-const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 1;
+const ADDRESS1_REWARD_AMOUNT: u64 = 1;
+const ADDRESS1_COMMISSION_AMOUNT: u64 = 2;
+
+// one named_key for each validator and five for the purses, two state and the total supply amount.
+const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 2 + 1;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
@@ -49,7 +52,7 @@ fn should_run_pop_install_contract() {
     let genesis_validators: BTreeMap<PublicKey, U512> = (1u8..=N_VALIDATORS)
         .map(|i| (PublicKey::ed25519_from([i; 32]), U512::from(i)))
         .collect();
-    let state_infos: Vec<String> = (1u8..=N_VALIDATORS)
+    let mut state_infos: Vec<String> = (1u8..=N_VALIDATORS)
         .map(|i| {
             format!(
                 "d_{}_{}_{}",
@@ -60,6 +63,17 @@ fn should_run_pop_install_contract() {
         })
         .collect();
 
+    state_infos.push(format!(
+        "c_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
+        &ADDRESS1_COMMISSION_AMOUNT.to_string()
+    ));
+    state_infos.push(format!(
+        "r_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
+        &ADDRESS1_REWARD_AMOUNT.to_string()
+    ));
+
     let total_bond = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
     let (ret_value, ret_urefs, effect): (URef, _, _) = exec_with_return::exec(
@@ -69,7 +83,7 @@ fn should_run_pop_install_contract() {
         POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
-        (mint_uref, genesis_validators, state_infos),
+        (mint_uref, genesis_validators, state_infos, U512::zero()),
         vec![mint_uref],
     )
     .expect("should run successfully");
@@ -107,14 +121,17 @@ fn should_run_pop_install_contract() {
         get_purse(named_keys, POS_REWARDS_PURSE).expect("should find rewards purse in named_keys");
 
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
-    assert_eq!(rewards_purse_balance, U512::zero());
+    assert_eq!(rewards_purse_balance, U512::from(ADDRESS1_REWARD_AMOUNT));
 
     // commission purse has correct balance
     let commission_purse = get_purse(named_keys, POS_COMMISSION_PURSE)
         .expect("should find rewards purse in named_keys");
 
     let commission_purse_balance = builder.get_purse_balance(commission_purse);
-    assert_eq!(commission_purse_balance, U512::zero());
+    assert_eq!(
+        commission_purse_balance,
+        U512::from(ADDRESS1_COMMISSION_AMOUNT)
+    );
 
     // community purse has correct balance
     let community_purse = get_purse(named_keys, POS_COMMUNITY_PURSE)
@@ -134,6 +151,16 @@ fn should_run_pop_install_contract() {
     assert!(
         system_account.named_keys().contains_key("client_api_proxy"),
         "client_api_proxy should be present"
+    );
+
+    // check total supply
+    let total_supply =
+        total_bond + U512::from(ADDRESS1_REWARD_AMOUNT) + U512::from(ADDRESS1_COMMISSION_AMOUNT);
+    assert!(
+        contract
+            .named_keys()
+            .contains_key(&format!("t_{}", total_supply)),
+        "total supply must be same"
     );
 }
 

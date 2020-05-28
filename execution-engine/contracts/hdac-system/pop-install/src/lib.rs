@@ -26,13 +26,13 @@ const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 const POS_FUNCTION_NAME: &str = "pos_ext";
-const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 #[repr(u32)]
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
     StateInformations = 2,
+    TotalAvaliableAmount = 3,
 }
 
 #[no_mangle]
@@ -51,6 +51,7 @@ pub extern "C" fn call() {
         runtime::get_arg(Args::GenesisValidators as u32)
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
+
     // Add genesis validators to PoP contract object.
     // For now, we are storing validators in `named_keys` map of the PoP contract
     // in the form: key: "v_{validator_pk}_{validator_stake}", value: doesn't
@@ -192,21 +193,23 @@ pub extern "C" fn call() {
         }
     }
 
-    // Insert total supply
-    let mut total_supply_uref = String::new();
-    total_supply_uref
-        .write_fmt(format_args!(
-            "t_{}",
-            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC)
-        ))
-        .unwrap();
-    named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
-
     let total_bonds: U512 = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
     if total_bonds != total_delegates {
         runtime::revert(Error::NotMatchedTotalBondAndDelegate);
     }
+
+    let total_amount: U512 = runtime::get_arg(Args::TotalAvaliableAmount as u32)
+        .unwrap_or_revert_with(ApiError::MissingArgument)
+        .unwrap_or_revert_with(ApiError::InvalidArgument);
+
+    // Insert total supply
+    let total_supply = total_amount + total_bonds + total_reward + total_commission;
+    let mut total_supply_uref = String::new();
+    total_supply_uref
+        .write_fmt(format_args!("t_{}", total_supply))
+        .unwrap();
+    named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
 
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());

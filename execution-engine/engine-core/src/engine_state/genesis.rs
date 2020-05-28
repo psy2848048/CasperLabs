@@ -192,6 +192,13 @@ impl GenesisConfig {
         })
     }
 
+    pub fn get_avaliable_total_amount(&self) -> U512 {
+        self.accounts()
+            .iter()
+            .map(|genesis_account| genesis_account.balance().value())
+            .fold(U512::zero(), |x, y| x + y)
+    }
+
     pub fn accounts(&self) -> &[GenesisAccount] {
         self.accounts.as_slice()
     }
