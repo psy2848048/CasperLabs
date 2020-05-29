@@ -11,7 +11,8 @@ use super::{
 };
 use crate::{
     constants::{local_keys, uref_names},
-    local_store::{self, RedelegateRequest, UndelegateRequest},
+    duration_queue::DurationQueue,
+    local_store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 impl ProofOfProfession for ProofOfProfessionContract {}
@@ -38,9 +39,34 @@ impl Stakable for ProofOfProfessionContract {
         Ok(())
     }
 
-    fn unbond(&mut self, user: PublicKey, maybe_amount: Option<U512>) -> Result<()> {
+    fn unbond(&mut self, requester: PublicKey, maybe_amount: Option<U512>) -> Result<()> {
         // validating request
+        let key = local_keys::staking_amount_key(requester);
+        let current_amount: U512 = storage::read_local(&key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+
+        if let Some(amount) = maybe_amount {
+            if current_amount < amount {
+                return Err(Error::UnbondTooLarge);
+            }
+        }
+
         // write unbond request
+        let current = runtime::get_blocktime();
+        let mut queue: DurationQueue<UnbondRequest> =
+            storage::read_local(&local_keys::UNBOND_REQUEST_QUEUE)
+                .unwrap_or_default()
+                .unwrap_or_default();
+        queue.push(
+            UnbondRequest {
+                requester,
+                maybe_amount,
+            },
+            current,
+        )?;
+        storage::write_local(local_keys::UNBOND_REQUEST_QUEUE, queue);
+
         Ok(())
     }
 }
