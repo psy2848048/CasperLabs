@@ -11,7 +11,6 @@ use super::{
 };
 use crate::{
     constants::{local_keys, uref_names},
-    duration_queue::DurationQueue,
     local_store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
@@ -54,10 +53,7 @@ impl Stakable for ProofOfProfessionContract {
 
         // write unbond request
         let current = runtime::get_blocktime();
-        let mut queue: DurationQueue<UnbondRequest> =
-            storage::read_local(&local_keys::UNBOND_REQUEST_QUEUE)
-                .unwrap_or_default()
-                .unwrap_or_default();
+        let mut queue = local_store::read_unbond_requests();
         queue.push(
             UnbondRequest {
                 requester,
@@ -65,7 +61,7 @@ impl Stakable for ProofOfProfessionContract {
             },
             current,
         )?;
-        storage::write_local(local_keys::UNBOND_REQUEST_QUEUE, queue);
+        local_store::write_unbond_requests(queue);
 
         Ok(())
     }
@@ -73,21 +69,39 @@ impl Stakable for ProofOfProfessionContract {
 
 impl Delegatable for ProofOfProfessionContract {
     fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
-        // check validator is bonded
-        let mut stakes = self.read_stakes()?;
-        // if this is not self-delegation and target validator is not bonded
-        if delegator != validator && !stakes.0.contains_key(&validator) {
+        // TODO: validate validator is created.
+
+        let staking_amount: U512 = storage::read_local(&local_keys::staking_amount_key(delegator))
+            .unwrap_or_default()
+            .unwrap_or_default();
+        let delegating_amount: U512 =
+            storage::read_local(&local_keys::delegating_amount_key(delegator))
+                .unwrap_or_default()
+                .unwrap_or_default();
+
+        // internal error
+        if staking_amount < delegating_amount {
+            // TODO: return Err(Error::InternalError);
             return Err(Error::NotBonded);
         }
+        if staking_amount - delegating_amount < amount {
+            // TODO: return Err(Error::DelegateMoreThanStakes);
+            return Err(Error::UndelegateTooLarge);
+        }
 
-        let mut delegations = self.read_delegations()?;
+        // write delegation
+        storage::write_local(local_keys::delegation_key(delegator, validator), amount);
 
-        stakes.bond(&validator, amount);
-        delegations.delegate(&delegator, &validator, amount);
+        // write delegating amount
+        storage::write_local(
+            local_keys::delegating_amount_key(delegator),
+            delegating_amount + amount,
+        );
 
-        self.write_stakes(&stakes);
-        self.write_delegations(&delegations);
+        // write delegated amount
+        storage::write_local(local_keys::delegated_amount_key(validator), amount);
 
+        // TODO: update named_key
         Ok(())
     }
 
