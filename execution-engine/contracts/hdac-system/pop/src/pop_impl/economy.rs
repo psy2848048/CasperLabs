@@ -21,6 +21,11 @@ pub struct TotalSupply(pub U512);
 pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
+pub const INFLATION_COMMISSION: &str = "ic";
+pub const FARE_COMMISSION: &str = "cp";
+pub const INFLATION_REWARD: &str = "ir";
+pub const FARE_REWARD: &str = "rp";
+
 pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> U512 {
     // Currenrly running in PoS.
     // Profession factor will be added soon
@@ -80,13 +85,87 @@ impl ContractClaim {
         runtime::put_key(&uref, Key::Hash([0; 32]));
     }
 
-    // prefix: "c"
+    // prefix: "cps"
+    // cps_{commission_purse_snapshot}
+    pub fn read_commission_purse_snapshot() -> Result<U512> {
+        let mut amount = U512::from(0);
+
+        for (name, _) in runtime::list_named_keys() {
+            let mut split_name = name.split('_');
+            if Some("cps") != split_name.next() {
+                continue;
+            }
+
+            amount = split_name
+                .next()
+                .and_then(|b| U512::from_dec_str(b).ok())
+                .ok_or(Error::CommissionPurseSnapshotDeserializationFailed)?;
+
+            break;
+        }
+
+        Ok(amount)
+    }
+
+    // prefix: "cps"
+    // cps_{commission_purse_snapshot}
+    pub fn write_commission_purse_snapshot(amount: U512) {
+        for (name, _) in runtime::list_named_keys() {
+            if name.starts_with("cps_") {
+                runtime::remove_key(&name);
+                break;
+            }
+        }
+        let mut uref = String::new();
+        uref.write_fmt(format_args!("cps_{}", amount))
+            .expect("Writing to a string cannot fail");
+        runtime::put_key(&uref, Key::Hash([0; 32]));
+    }
+
+    // prefix: "rps"
+    // rps_{reward_purse_snapshot}
+    pub fn read_reward_purse_snapshot() -> Result<U512> {
+        let mut amount = U512::from(0);
+
+        for (name, _) in runtime::list_named_keys() {
+            let mut split_name = name.split('_');
+            if Some("rps") != split_name.next() {
+                continue;
+            }
+
+            amount = split_name
+                .next()
+                .and_then(|b| U512::from_dec_str(b).ok())
+                .ok_or(Error::RewardPurseSnapshotDeserializationFailed)?;
+
+            break;
+        }
+
+        Ok(amount)
+    }
+
+    // prefix: "rps"
+    // rps_{reward_purse_snapshot}
+    pub fn write_reward_purse_snapshot(amount: U512) {
+        for (name, _) in runtime::list_named_keys() {
+            if name.starts_with("rps_") {
+                runtime::remove_key(&name);
+                break;
+            }
+        }
+        let mut uref = String::new();
+        uref.write_fmt(format_args!("rps_{}", amount))
+            .expect("Writing to a string cannot fail");
+        runtime::put_key(&uref, Key::Hash([0; 32]));
+    }
+
+    // prefix: "c", "cp"
     // c_{PublicKey}_{ClaimableBalance}
-    pub fn read_commission() -> Result<Commissions> {
+    pub fn read_commission(prefix: &str) -> Result<Commissions> {
         let mut commissions = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
             let mut split_name = name.split('_');
-            if Some("c") != split_name.next() {
+            if Some(prefix) != split_name.next() {
                 continue;
             }
 
@@ -117,9 +196,9 @@ impl ContractClaim {
         Ok(Commissions(commissions))
     }
 
-    // prefix: "c"
+    // prefix: "c", "cp"
     // c_{PublicKey}_{ClaimableBalance}
-    pub fn write_commission(commissions: &Commissions) {
+    pub fn write_commission(prefix: &str, commissions: &Commissions) {
         // Encode the stakes as a set of uref names.
         let mut new_urefs: BTreeSet<String> = commissions
             .0
@@ -136,7 +215,7 @@ impl ContractClaim {
 
                 let validator = to_hex_string(*pubkey);
                 let mut uref = String::new();
-                uref.write_fmt(format_args!("c_{}_{}", validator, balance))
+                uref.write_fmt(format_args!("{}_{}_{}", prefix, validator, balance))
                     .expect("Writing to a string cannot fail");
                 uref
             })
@@ -144,7 +223,11 @@ impl ContractClaim {
 
         // Remove and add urefs to update the contract's known urefs accordingly.
         for (name, _) in runtime::list_named_keys() {
-            if name.starts_with("c_") && !new_urefs.remove(&name) {
+            let mut prefix_: String = String::new();
+            prefix_
+                .write_fmt(format_args!("{}_", prefix))
+                .expect("Writing to a string cannot fail");
+            if name.starts_with(&prefix_) && !new_urefs.remove(&name) {
                 runtime::remove_key(&name);
             }
         }
@@ -153,13 +236,13 @@ impl ContractClaim {
         }
     }
 
-    // prefix: "r"
+    // prefix: "r", "rp"
     // r_{PublicKey}_{ClaimableBalance}
-    pub fn read_reward() -> Result<Rewards> {
+    pub fn read_reward(prefix: &str) -> Result<Rewards> {
         let mut rewards = BTreeMap::new();
         for (name, _) in runtime::list_named_keys() {
             let mut split_name = name.split('_');
-            if Some("r") != split_name.next() {
+            if Some(prefix) != split_name.next() {
                 continue;
             }
 
@@ -190,9 +273,9 @@ impl ContractClaim {
         Ok(Rewards(rewards))
     }
 
-    // prefix: "r"
+    // prefix: "r", "rp"
     // r_{PublicKey}_{ClaimableBalance}
-    pub fn write_reward(rewards: &Rewards) {
+    pub fn write_reward(prefix: &str, rewards: &Rewards) {
         // Encode the stakes as a set of uref names.
         let mut new_urefs: BTreeSet<String> = rewards
             .0
@@ -209,7 +292,7 @@ impl ContractClaim {
 
                 let user = to_hex_string(*pubkey);
                 let mut uref = String::new();
-                uref.write_fmt(format_args!("r_{}_{}", user, balance))
+                uref.write_fmt(format_args!("{}_{}_{}", prefix, user, balance))
                     .expect("Writing to a string cannot fail");
                 uref
             })
@@ -217,7 +300,11 @@ impl ContractClaim {
 
         // Remove and add urefs to update the contract's known urefs accordingly.
         for (name, _) in runtime::list_named_keys() {
-            if name.starts_with("r_") && !new_urefs.remove(&name) {
+            let mut prefix_: String = String::new();
+            prefix_
+                .write_fmt(format_args!("{}_", prefix))
+                .expect("Writing to a string cannot fail");
+            if name.starts_with(&prefix_) && !new_urefs.remove(&name) {
                 runtime::remove_key(&name);
             }
         }

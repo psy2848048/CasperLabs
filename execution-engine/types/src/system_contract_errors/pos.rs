@@ -147,17 +147,25 @@ pub enum Error {
     /// Internal error: Invalid state information
     InvalidStateInformation, // = 58
     /// Internal error: the PoS contract's commission purse key was the wrong type.
-    CommissionPurseKeyUnexpectedType, // 59
+    CommissionPurseKeyUnexpectedType, // = 59
     /// Internal error: failed to issue a new purse for community
-    CommunityPurseNotFound, // 60
+    CommunityPurseNotFound, // = 60
     /// Internal error: the PoS contract's community purse key was the wrong type.
-    CommunityPurseKeyUnexpectedType, // 61
+    CommunityPurseKeyUnexpectedType, // = 61
     /// Internal error: while finalizing payment, failed to pay the validators (the transfer from
     /// the PoP contract's payment purse to commission purse failed).
-    FailedTransferToCommissionPurse, //62
+    FailedTransferToCommissionPurse, // = 62
     /// Internal error: while finalizing payment, failed to pay the validators (the transfer from
     /// the PoP contract's payment purse to community purse failed).
-    FailedTransferToCommunityPurse, //63
+    FailedTransferToCommunityPurse, // = 63
+    /// Internal error: Deserialization failed about commission purse snapshot
+    CommissionPurseSnapshotDeserializationFailed, // = 64
+    /// Internal error: Deserialization failed about reward purse snapshot
+    RewardPurseSnapshotDeserializationFailed, // = 65
+    /// Internal error: failed to deserialize the user's key
+    RewardPurseKeyDeserializationFailed, // = 66
+    /// Internal error: failed to deserialize the user's balance
+    RewardPurseBalanceDeserializationFailed, // = 67
 }
 
 impl CLTyped for Error {

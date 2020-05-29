@@ -21,7 +21,7 @@ use types::{
 
 use crate::constants::{sys_params, uref_names};
 
-use economy::{pop_score_calculation, ContractClaim};
+use economy::{pop_score_calculation, ContractClaim, INFLATION_COMMISSION, INFLATION_REWARD};
 use pop_actions::ProofOfProfession;
 use request_pool::{
     ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
@@ -204,7 +204,7 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let mut commissions = ContractClaim::read_commission()?;
+        let mut commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
         let validator_commission = commissions
             .0
             .get(validator)
@@ -212,7 +212,7 @@ impl ProofOfProfessionContract {
             .unwrap_or_revert_with(Error::RewardNotFound);
 
         commissions.claim_commission(validator, &validator_commission);
-        ContractClaim::write_commission(&commissions);
+        ContractClaim::write_commission(INFLATION_COMMISSION, &commissions);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
@@ -228,14 +228,14 @@ impl ProofOfProfessionContract {
 
     // For user
     pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
-        let mut rewards = ContractClaim::read_reward()?;
+        let mut rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
         let user_reward = rewards
             .0
             .get(user)
             .cloned()
             .unwrap_or_revert_with(Error::RewardNotFound);
         rewards.claim_rewards(user, &user_reward);
-        ContractClaim::write_reward(&rewards);
+        ContractClaim::write_reward(INFLATION_REWARD, &rewards);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
@@ -311,8 +311,8 @@ impl ProofOfProfessionContract {
         let delegation_stat = self.read_delegation_stat()?;
         let delegation_sorted_stat = self.get_sorted_delegation_stat(&delegation_stat)?;
 
-        let mut commissions = ContractClaim::read_commission()?;
-        let mut rewards = ContractClaim::read_reward()?;
+        let mut commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
+        let mut rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
@@ -374,7 +374,7 @@ impl ProofOfProfessionContract {
                 / (total_pop_score * U512::from(100));
             commissions.insert_commission(validator, &unit_commission);
         }
-        ContractClaim::write_commission(&commissions);
+        ContractClaim::write_commission(INFLATION_COMMISSION, &commissions);
 
         /////////////////////////////////
         // Update user's reward
@@ -403,7 +403,7 @@ impl ProofOfProfessionContract {
 
             rewards.insert_rewards(&delegation_key.delegator, &user_reward);
         }
-        ContractClaim::write_reward(&rewards);
+        ContractClaim::write_reward(INFLATION_REWARD, &rewards);
 
         Ok(())
     }

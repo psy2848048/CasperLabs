@@ -158,7 +158,7 @@ fn should_run_successful_step() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| { key.starts_with("c_") })
+            .filter(|(key, _)| { key.starts_with("ic_") })
             .count(),
         2
     );
@@ -166,7 +166,7 @@ fn should_run_successful_step() {
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| key.starts_with("r_"))
+            .filter(|(key, _)| key.starts_with("ir_"))
             .count(),
         2
     );
@@ -203,7 +203,7 @@ fn should_run_successful_step() {
             .iter()
             .filter(|(key, _)| {
                 println!("{}", key);
-                key.starts_with("c_")
+                key.starts_with("ic_")
             })
             .count(),
         2
@@ -229,7 +229,7 @@ fn should_run_successful_step() {
             .iter()
             .filter(|(key, _)| {
                 println!("{}", key);
-                key.starts_with("c_")
+                key.starts_with("ic_")
             })
             .count(),
         2
@@ -267,7 +267,7 @@ fn should_run_successful_step() {
             .iter()
             .filter(|(key, _)| {
                 println!("{}", key);
-                key.starts_with("c_")
+                key.starts_with("ic_")
             })
             .count(),
         1
@@ -321,7 +321,7 @@ fn should_run_successful_step() {
             .iter()
             .filter(|(key, _)| {
                 println!("{}", key);
-                key.starts_with("r_")
+                key.starts_with("ir_")
             })
             .count(),
         2
