@@ -99,7 +99,11 @@ impl Delegatable for ProofOfProfessionContract {
         );
 
         // write delegated amount
-        storage::write_local(local_keys::delegated_amount_key(validator), amount);
+        let delegated_amount_key = local_keys::delegated_amount_key(validator);
+        let delegated_amount: U512 = storage::read_local(&delegated_amount_key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+        storage::write_local(delegated_amount_key, delegated_amount + amount);
 
         // TODO: update named_key
         Ok(())
