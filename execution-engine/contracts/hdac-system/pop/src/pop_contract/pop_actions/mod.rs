@@ -30,7 +30,7 @@ pub trait Delegatable {
         delegator: PublicKey,
         src: PublicKey,
         dest: PublicKey,
-        amount: U512,
+        amount: Option<U512>,
     ) -> Result<()>;
 }
 

@@ -46,7 +46,7 @@ impl Stakable for ProofOfProfessionContract {
             .unwrap_or_default();
 
         if let Some(amount) = maybe_amount {
-            if current_amount < amount {
+            if amount > current_amount {
                 return Err(Error::UnbondTooLarge);
             }
         }
@@ -80,11 +80,11 @@ impl Delegatable for ProofOfProfessionContract {
                 .unwrap_or_default();
 
         // internal error
-        if staking_amount < delegating_amount {
+        if delegating_amount > staking_amount {
             // TODO: return Err(Error::InternalError);
             return Err(Error::NotBonded);
         }
-        if staking_amount - delegating_amount < amount {
+        if amount > staking_amount - delegating_amount {
             // TODO: return Err(Error::DelegateMoreThanStakes);
             return Err(Error::UndelegateTooLarge);
         }
@@ -113,11 +113,11 @@ impl Delegatable for ProofOfProfessionContract {
     ) -> Result<()> {
         // validate undelegation by simulating
         let delegation_amount =
-            storage::read_local(local_keys::delegation_key(delegator, validator))
+            storage::read_local(&local_keys::delegation_key(delegator, validator))
                 .unwrap_or_default()
                 .unwrap_or_default();
         if let Some(amount) = maybe_amount {
-            if delegation_amount < amount {
+            if amount < delegation_amount {
                 return Err(Error::UndelegateTooLarge);
             }
         }
@@ -141,17 +141,17 @@ impl Delegatable for ProofOfProfessionContract {
         delegator: PublicKey,
         src: PublicKey,
         dest: PublicKey,
-        amount: U512,
+        maybe_amount: Option<U512>,
     ) -> Result<()> {
         if src == dest {
             return Err(Error::SelfRedelegation);
         }
         // validate redelegation by simulating
-        let delegation_amount = storage::read_local(local_keys::delegation_key(delegator, src))
+        let delegation_amount = storage::read_local(&local_keys::delegation_key(delegator, src))
             .unwrap_or_default()
             .unwrap_or_default();
         if let Some(amount) = maybe_amount {
-            if delegation_amount < amount {
+            if amount < delegation_amount {
                 return Err(Error::UndelegateTooLarge);
             }
         }
@@ -162,7 +162,7 @@ impl Delegatable for ProofOfProfessionContract {
                 delegator: delegator,
                 src_validator: src,
                 dest_validator: dest,
-                maybe_amount: Some(amount),
+                maybe_amount: maybe_amount,
             },
             runtime::get_blocktime(),
         )?;
@@ -176,33 +176,35 @@ impl Votable for ProofOfProfessionContract {
     fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
         // staked balance check
         if amount.is_zero() {
+            // TODO: change to Error::VoteTooSmall
             return Err(Error::BondTooSmall);
         }
 
-        // check validator's staked token amount
-        let delegation_user_stat = self.read_delegation_user_stat()?;
-        // if an user has no staked amount, he cannot do anything
-        let delegated_balance: U512 = match delegation_user_stat.0.get(&user) {
-            Some(balance) => *balance,
-            None => return Err(Error::DelegationsNotFound),
-        };
+        let staking_amount: U512 = storage::read_local(&local_keys::staking_amount_key(user))
+            .unwrap_or_default()
+            .unwrap_or_default();
+        let voting_amount: U512 = storage::read_local(&local_keys::voting_amount_key(user))
+            .unwrap_or_default()
+            .unwrap_or_default();
 
-        // check user's vote stat
-        let vote_stat = self.read_vote_stat()?;
-        let vote_stat_per_user: U512 = vote_stat
-            .0
-            .get(&user)
-            .cloned()
-            .unwrap_or_else(|| U512::from(0));
-
-        if delegated_balance < vote_stat_per_user + amount {
+        if voting_amount > staking_amount {
+            // TODO: Internal Error
+            return Err(Error::VoteTooLarge);
+        }
+        if amount > staking_amount - voting_amount {
             return Err(Error::VoteTooLarge);
         }
 
-        // check vote table
-        let mut votes = self.read_votes()?; // <- here
-        votes.vote(&user, &dapp, amount);
-        self.write_votes(&votes);
+        // write vote
+        storage::write_local(local_keys::vote_key(user, dapp), amount);
+        // write voting amount
+        storage::write_local(local_keys::voting_amount_key(user), voting_amount + amount);
+        // write voted amount
+        let voted_amount_key = local_keys::voted_amount_key(dapp);
+        let voted_amount: U512 = storage::read_local(&voted_amount_key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+        storage::write_local(voted_amount_key, voted_amount + amount);
 
         Ok(())
     }

@@ -108,7 +108,7 @@ pub fn delegate() {
             let dest_validator: PublicKey = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let shares: U512 = runtime::get_arg(3)
+            let shares: Option<U512> = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
