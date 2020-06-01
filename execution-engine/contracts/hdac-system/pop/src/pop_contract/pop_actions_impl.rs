@@ -147,13 +147,16 @@ impl Delegatable for ProofOfProfessionContract {
             return Err(Error::SelfRedelegation);
         }
         // validate redelegation by simulating
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
-        let amount = delegations.undelegate(&delegator, &src, Some(amount))?;
-        let _payout = stakes.unbond(&src, Some(amount))?;
+        let delegation_amount = storage::read_local(local_keys::delegation_key(delegator, src))
+            .unwrap_or_default()
+            .unwrap_or_default();
+        if let Some(amount) = maybe_amount {
+            if delegation_amount < amount {
+                return Err(Error::UndelegateTooLarge);
+            }
+        }
 
         let mut request_queue = local_store::read_redelegation_requests();
-
         request_queue.push(
             RedelegateRequest {
                 delegator: delegator,
@@ -163,8 +166,8 @@ impl Delegatable for ProofOfProfessionContract {
             },
             runtime::get_blocktime(),
         )?;
-
         local_store::write_redelegation_requests(request_queue);
+
         Ok(())
     }
 }
