@@ -214,9 +214,35 @@ impl Votable for ProofOfProfessionContract {
     }
 
     fn unvote(&mut self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
-        let mut votes = self.read_votes()?;
-        votes.unvote(&user, &dapp, maybe_amount)?;
-        self.write_votes(&votes);
+        let vote_key = local_keys::vote_key(user, dapp);
+        let vote_amount = storage::read_local(&vote_key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+
+        let unvote_amount = match maybe_amount {
+            Some(amount) => {
+                if amount > vote_amount {
+                    return Err(Error::UnvoteTooLarge);
+                }
+                amount
+            }
+            None => vote_amount,
+        };
+
+        // write vote
+        storage::write_local(vote_key, vote_amount - unvote_amount);
+        // write voting amount
+        let voting_amount_key = local_keys::voting_amount_key(user);
+        let voting_amount: U512 = storage::read_local(&voting_amount_key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+        storage::write_local(voting_amount_key, voting_amount - unvote_amount);
+        // write voted amount
+        let voted_amount_key = local_keys::voted_amount_key(dapp);
+        let voted_amount: U512 = storage::read_local(&voted_amount_key)
+            .unwrap_or_default()
+            .unwrap_or_default();
+        storage::write_local(voted_amount_key, voted_amount - unvote_amount);
 
         Ok(())
     }
