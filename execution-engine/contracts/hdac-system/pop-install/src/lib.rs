@@ -77,8 +77,10 @@ pub extern "C" fn call() {
     let mut delegators: BTreeMap<String, U512> = BTreeMap::new();
     let mut voters: BTreeMap<String, U512> = BTreeMap::new();
     let mut total_delegates: U512 = U512::zero();
-    let mut total_reward: U512 = U512::zero();
-    let mut total_commission: U512 = U512::zero();
+    let mut total_inflation_reward: U512 = U512::zero();
+    let mut total_inflation_commission: U512 = U512::zero();
+    let mut total_fare_reward: U512 = U512::zero();
+    let mut total_fare_commission: U512 = U512::zero();
 
     // Insert genesis state information.
     // We also store in the form key:
@@ -88,7 +90,7 @@ pub extern "C" fn call() {
     state_informations.iter().for_each(|key| {
         let split_key: Vec<&str> = key.split('_').collect();
         match split_key[0] {
-            "c" => {
+            "ic" => {
                 if split_key.len() != 3 {
                     runtime::revert(Error::CommissionKeyDeserializationFailed);
                 }
@@ -98,12 +100,27 @@ pub extern "C" fn call() {
 
                 match U512::from_dec_str(split_key[2]) {
                     Ok(amount) => {
-                        total_commission += amount;
+                        total_inflation_commission += amount;
                     }
                     Err(_) => runtime::revert(Error::CommissionBalanceDeserializationFailed),
                 }
             }
-            "r" => {
+            "fc" => {
+                if split_key.len() != 3 {
+                    runtime::revert(Error::CommissionKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 {
+                    runtime::revert(Error::CommissionKeyDeserializationFailed);
+                }
+
+                match U512::from_dec_str(split_key[2]) {
+                    Ok(amount) => {
+                        total_fare_commission += amount;
+                    }
+                    Err(_) => runtime::revert(Error::CommissionBalanceDeserializationFailed),
+                }
+            }
+            "ir" => {
                 if split_key.len() != 3 {
                     runtime::revert(Error::RewardKeyDeserializationFailed);
                 }
@@ -113,7 +130,22 @@ pub extern "C" fn call() {
 
                 match U512::from_dec_str(split_key[2]) {
                     Ok(amount) => {
-                        total_reward += amount;
+                        total_inflation_reward += amount;
+                    }
+                    Err(_) => runtime::revert(Error::RewardBalanceDeserializationFailed),
+                }
+            }
+            "fr" => {
+                if split_key.len() != 3 {
+                    runtime::revert(Error::RewardKeyDeserializationFailed);
+                }
+                if split_key[1].len() != 64 {
+                    runtime::revert(Error::RewardKeyDeserializationFailed);
+                }
+
+                match U512::from_dec_str(split_key[2]) {
+                    Ok(amount) => {
+                        total_fare_reward += amount;
                     }
                     Err(_) => runtime::revert(Error::RewardBalanceDeserializationFailed),
                 }
@@ -204,17 +236,36 @@ pub extern "C" fn call() {
         .unwrap_or_revert_with(ApiError::InvalidArgument);
 
     // Insert total supply
-    let total_supply = total_amount + total_bonds + total_reward + total_commission;
+    let total_supply = total_amount
+        + total_bonds
+        + total_inflation_commission
+        + total_inflation_reward
+        + total_fare_commission
+        + total_fare_reward;
     let mut total_supply_uref = String::new();
     total_supply_uref
         .write_fmt(format_args!("t_{}", total_supply))
         .unwrap();
     named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
 
+    // Insert total commission purse snapshot
+    let mut commission_purse_snapshot_uref = String::new();
+    commission_purse_snapshot_uref
+        .write_fmt(format_args!("cps_{}", total_fare_commission))
+        .unwrap();
+    named_keys.insert(commission_purse_snapshot_uref, PLACEHOLDER_KEY);
+
+    // Insert total reward purse snapshot
+    let mut reward_purse_snapshot_uref = String::new();
+    reward_purse_snapshot_uref
+        .write_fmt(format_args!("rps_{}", total_fare_reward))
+        .unwrap();
+    named_keys.insert(reward_purse_snapshot_uref, PLACEHOLDER_KEY);
+
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
-    let rewards_purse = mint_purse(&mint, total_reward);
-    let commission_purse = mint_purse(&mint, total_commission);
+    let rewards_purse = mint_purse(&mint, total_fare_reward);
+    let commission_purse = mint_purse(&mint, total_fare_commission);
     let community_purse = mint_purse(&mint, U512::zero());
 
     // Include PoP purses in its named_keys

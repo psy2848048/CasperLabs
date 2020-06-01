@@ -22,9 +22,9 @@ pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
 pub const INFLATION_COMMISSION: &str = "ic";
-pub const FARE_COMMISSION: &str = "cp";
+pub const FARE_COMMISSION: &str = "fc";
 pub const INFLATION_REWARD: &str = "ir";
-pub const FARE_REWARD: &str = "rp";
+pub const FARE_REWARD: &str = "fr";
 
 pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> U512 {
     // Currenrly running in PoS.

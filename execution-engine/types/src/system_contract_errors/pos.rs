@@ -166,6 +166,14 @@ pub enum Error {
     RewardPurseKeyDeserializationFailed, // = 66
     /// Internal error: failed to deserialize the user's balance
     RewardPurseBalanceDeserializationFailed, // = 67
+    /// Internal error: couldn't retrieve the balance for the PoS contract's commission purse.
+    CommissionPurseBalanceNotFound, // = 68
+    /// Internal error: couldn't retrieve the balance for the PoS contract's reward purse.
+    RewardPurseBalanceNotFound, // = 69
+    /// Internal error: commission balance must be more than commisson snapshot
+    CommissionSnapshotMoreThanCommissionBalance, // = 70
+    /// Internal error: reward balance must be more than reward snapshot
+    RewardSnapshotMoreThanRewardBalance, // = 71
 }
 
 impl CLTyped for Error {

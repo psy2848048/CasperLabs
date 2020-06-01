@@ -19,8 +19,9 @@ const N_VALIDATORS: u8 = 5;
 const ADDRESS1_REWARD_AMOUNT: u64 = 1;
 const ADDRESS1_COMMISSION_AMOUNT: u64 = 2;
 
-// one named_key for each validator and five for the purses, two state and the total supply amount.
-const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 2 + 1;
+// one named_key for each validator and five for the purses,
+// four state, two snapshot and the total supply amount.
+const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 4 + 2 + 1;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
@@ -64,12 +65,22 @@ fn should_run_pop_install_contract() {
         .collect();
 
     state_infos.push(format!(
-        "c_{}_{}",
+        "fc_{}_{}",
         base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
         &ADDRESS1_COMMISSION_AMOUNT.to_string()
     ));
     state_infos.push(format!(
-        "r_{}_{}",
+        "fr_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
+        &ADDRESS1_REWARD_AMOUNT.to_string()
+    ));
+    state_infos.push(format!(
+        "ic_{}_{}",
+        base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
+        &ADDRESS1_COMMISSION_AMOUNT.to_string()
+    ));
+    state_infos.push(format!(
+        "ir_{}_{}",
         base16::encode_lower(&PublicKey::ed25519_from([1; 32]).as_bytes()),
         &ADDRESS1_REWARD_AMOUNT.to_string()
     ));
@@ -153,9 +164,31 @@ fn should_run_pop_install_contract() {
         "client_api_proxy should be present"
     );
 
-    // check total supply
-    let total_supply =
-        total_bond + U512::from(ADDRESS1_REWARD_AMOUNT) + U512::from(ADDRESS1_COMMISSION_AMOUNT);
+    // check total fare commission
+    let total_fare_commission = U512::from(ADDRESS1_COMMISSION_AMOUNT);
+    assert!(
+        contract
+            .named_keys()
+            .contains_key(&format!("cps_{}", total_fare_commission)),
+        "total fare commission must be same"
+    );
+
+    // check total fare reward
+    let total_fare_reward = U512::from(ADDRESS1_REWARD_AMOUNT);
+    assert!(
+        contract
+            .named_keys()
+            .contains_key(&format!("rps_{}", total_fare_reward)),
+        "total fare reward must be same"
+    );
+
+    // check total supply = total bond + total_inflation_reward + total_fare_reward +
+    // total_inflation_commission + toal_fare_commission
+    let total_supply = total_bond
+        + U512::from(ADDRESS1_REWARD_AMOUNT)
+        + total_fare_reward
+        + U512::from(ADDRESS1_COMMISSION_AMOUNT)
+        + total_fare_commission;
     assert!(
         contract
             .named_keys()

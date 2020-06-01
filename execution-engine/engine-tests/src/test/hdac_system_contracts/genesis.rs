@@ -461,7 +461,7 @@ fn should_fail_address_is_less_than_64() {
             ACCOUNT_1_BONDED_AMOUNT.to_string()
         )
         .to_string(),
-        format_args!("c_{}_{}", "0000", 200.to_string()).to_string(),
+        format_args!("ic_{}_{}", "0000", 200.to_string()).to_string(),
     ];
 
     let accounts = vec![account_1];

@@ -21,7 +21,10 @@ use types::{
 
 use crate::constants::{sys_params, uref_names};
 
-use economy::{pop_score_calculation, ContractClaim, INFLATION_COMMISSION, INFLATION_REWARD};
+use economy::{
+    pop_score_calculation, ContractClaim, FARE_COMMISSION, FARE_REWARD, INFLATION_COMMISSION,
+    INFLATION_REWARD,
+};
 use pop_actions::ProofOfProfession;
 use request_pool::{
     ClaimRequest, ContractQueue, DelegationKind, RedelegateRequestKey, UndelegateRequestKey,
@@ -311,8 +314,10 @@ impl ProofOfProfessionContract {
         let delegation_stat = self.read_delegation_stat()?;
         let delegation_sorted_stat = self.get_sorted_delegation_stat(&delegation_stat)?;
 
-        let mut commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
-        let mut rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
+        let mut inflation_commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
+        let mut inflation_rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
+        let mut fare_commissions = ContractClaim::read_commission(FARE_COMMISSION)?;
+        let mut fare_rewards = ContractClaim::read_reward(FARE_REWARD)?;
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
@@ -367,14 +372,34 @@ impl ProofOfProfessionContract {
             pop_score_table.insert(unit_data.validator, unit_pop_score);
         }
 
+        let commission_purse_snapshot = ContractClaim::read_commission_purse_snapshot()?;
+        let commission_purse =
+            get_purse(uref_names::POS_COMMISSION_PURSE).map_err(PurseLookupError::commission)?;
+        let commission_purse_balance = match system::get_balance(commission_purse) {
+            Some(balance) => balance,
+            None => return Err(Error::CommissionPurseBalanceNotFound),
+        };
+
+        if commission_purse_snapshot > commission_purse_balance {
+            return Err(Error::CommissionSnapshotMoreThanCommissionBalance);
+        }
+
+        let fare_commission = commission_purse_balance - commission_purse_snapshot;
+
         for (validator, unit_pop_score) in pop_score_table.iter() {
-            let unit_commission = unit_pop_score
+            let unit_inflation_commission = unit_pop_score
                 * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100));
-            commissions.insert_commission(validator, &unit_commission);
+            inflation_commissions.insert_commission(validator, &unit_inflation_commission);
+
+            let unit_fare_commission =
+                unit_pop_score * fare_commission / (total_pop_score * U512::from(100));
+            fare_commissions.insert_commission(validator, &unit_fare_commission);
         }
-        ContractClaim::write_commission(INFLATION_COMMISSION, &commissions);
+        ContractClaim::write_commission(INFLATION_COMMISSION, &inflation_commissions);
+        ContractClaim::write_commission(FARE_COMMISSION, &fare_commissions);
+        ContractClaim::write_commission_purse_snapshot(commission_purse_balance);
 
         /////////////////////////////////
         // Update user's reward
@@ -382,6 +407,20 @@ impl ProofOfProfessionContract {
         // 1. Swipe delegation table, and derive user's portion of delegation
         // 2. Lookup delegation_stat table for total delegation for each validator
         // 3. Derive each validator's reward portion and insert reward of each user
+
+        let reward_purse_snapshot = ContractClaim::read_reward_purse_snapshot()?;
+        let reward_purse =
+            get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+        let reward_purse_balance = match system::get_balance(reward_purse) {
+            Some(balance) => balance,
+            None => return Err(Error::RewardPurseBalanceNotFound),
+        };
+
+        if reward_purse_snapshot > reward_purse_balance {
+            return Err(Error::RewardSnapshotMoreThanRewardBalance);
+        }
+
+        let fare_reward = reward_purse_balance - reward_purse_snapshot;
 
         // 1. Swipe delegation table, and derive user's portion of delegation
         for (delegation_key, user_delegation_amount) in delegations.0.iter() {
@@ -395,15 +434,20 @@ impl ProofOfProfessionContract {
             let pop_score_of_validator = pop_score_table
                 .get(&delegation_key.validator)
                 .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
-            let user_reward = user_delegation_amount
+            let inflation_user_reward = user_delegation_amount
                 * pop_score_of_validator
                 * U512::from(100 - sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
+            inflation_rewards.insert_rewards(&delegation_key.delegator, &inflation_user_reward);
 
-            rewards.insert_rewards(&delegation_key.delegator, &user_reward);
+            let unit_fare_reward = user_delegation_amount * pop_score_of_validator * fare_reward
+                / (total_pop_score * U512::from(100) * total_delegation_per_validator);
+            fare_rewards.insert_rewards(&delegation_key.delegator, &unit_fare_reward);
         }
-        ContractClaim::write_reward(INFLATION_REWARD, &rewards);
+        ContractClaim::write_reward(INFLATION_REWARD, &inflation_rewards);
+        ContractClaim::write_reward(FARE_REWARD, &fare_rewards);
+        ContractClaim::write_reward_purse_snapshot(reward_purse_balance);
 
         Ok(())
     }
