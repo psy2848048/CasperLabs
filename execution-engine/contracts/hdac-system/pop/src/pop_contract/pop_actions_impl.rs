@@ -112,14 +112,18 @@ impl Delegatable for ProofOfProfessionContract {
         maybe_amount: Option<U512>,
     ) -> Result<()> {
         // validate undelegation by simulating
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
-        let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
-        let _ = stakes.unbond(&validator, Some(amount))?;
+        let delegation_amount =
+            storage::read_local(local_keys::delegation_key(delegator, validator))
+                .unwrap_or_default()
+                .unwrap_or_default();
+        if let Some(amount) = maybe_amount {
+            if delegation_amount < amount {
+                return Err(Error::UndelegateTooLarge);
+            }
+        }
 
-        let mut request_queue = local_store::read_undelegation_requests();
-
-        request_queue.push(
+        let mut queue = local_store::read_undelegation_requests();
+        queue.push(
             UndelegateRequest {
                 delegator,
                 validator,
@@ -127,8 +131,8 @@ impl Delegatable for ProofOfProfessionContract {
             },
             runtime::get_blocktime(),
         )?;
+        local_store::write_undelegation_requests(queue);
 
-        local_store::write_undelegation_requests(request_queue);
         Ok(())
     }
 
