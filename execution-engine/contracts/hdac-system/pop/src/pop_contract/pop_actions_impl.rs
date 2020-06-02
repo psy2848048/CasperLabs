@@ -1,4 +1,4 @@
-use contract::contract_api::{runtime, storage, system};
+use contract::contract_api::{runtime, system};
 use types::{
     account::PublicKey,
     system_contract_errors::pos::{Error, PurseLookupError, Result},
@@ -10,7 +10,7 @@ use super::{
     ProofOfProfessionContract,
 };
 use crate::{
-    constants::{local_keys, uref_names},
+    constants::uref_names,
     local_store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
@@ -29,23 +29,18 @@ impl Stakable for ProofOfProfessionContract {
             .map_err(|_| Error::BondTransferFailed)?;
 
         // write own staking amount
-        let key = local_keys::staking_amount_key(user);
-        let current_amount: U512 = storage::read_local(&key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-        storage::write_local(key, current_amount + amount);
+        local_store::bond(user, amount);
 
         Ok(())
     }
 
     fn unbond(&mut self, requester: PublicKey, maybe_amount: Option<U512>) -> Result<()> {
-        // validating request
-        let key = local_keys::staking_amount_key(requester);
-        let current_amount: U512 = storage::read_local(&key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-
+        // validate unbond amount
         if let Some(amount) = maybe_amount {
+            let current_amount = local_store::read_bonding_amount(requester);
+
+            // The over-amount caused by the accumulated unbonding request amount is handled in
+            // step phase
             if amount > current_amount {
                 return Err(Error::UnbondTooLarge);
             }
@@ -71,40 +66,20 @@ impl Delegatable for ProofOfProfessionContract {
     fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
         // TODO: validate validator is created.
 
-        let staking_amount: U512 = storage::read_local(&local_keys::staking_amount_key(delegator))
-            .unwrap_or_default()
-            .unwrap_or_default();
-        let delegating_amount: U512 =
-            storage::read_local(&local_keys::delegating_amount_key(delegator))
-                .unwrap_or_default()
-                .unwrap_or_default();
+        let bonding_amount = local_store::read_bonding_amount(delegator);
+        let delegating_amount = local_store::read_delegating_amount(delegator);
 
         // internal error
-        if delegating_amount > staking_amount {
+        if delegating_amount > bonding_amount {
             // TODO: return Err(Error::InternalError);
             return Err(Error::NotBonded);
         }
-        if amount > staking_amount - delegating_amount {
+        if amount > bonding_amount - delegating_amount {
             // TODO: return Err(Error::DelegateMoreThanStakes);
             return Err(Error::UndelegateTooLarge);
         }
 
-        // write delegation
-        storage::write_local(local_keys::delegation_key(delegator, validator), amount);
-
-        // write delegating amount
-        storage::write_local(
-            local_keys::delegating_amount_key(delegator),
-            delegating_amount + amount,
-        );
-
-        // write delegated amount
-        let delegated_amount_key = local_keys::delegated_amount_key(validator);
-        let delegated_amount: U512 = storage::read_local(&delegated_amount_key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-        storage::write_local(delegated_amount_key, delegated_amount + amount);
-
+        local_store::delegate(delegator, validator, amount);
         // TODO: update named_key
         Ok(())
     }
@@ -115,13 +90,13 @@ impl Delegatable for ProofOfProfessionContract {
         validator: PublicKey,
         maybe_amount: Option<U512>,
     ) -> Result<()> {
-        // validate undelegation by simulating
-        let delegation_amount =
-            storage::read_local(&local_keys::delegation_key(delegator, validator))
-                .unwrap_or_default()
-                .unwrap_or_default();
+        // validate undelegate amount
         if let Some(amount) = maybe_amount {
-            if amount < delegation_amount {
+            let delegation_amount = local_store::read_delegation(delegator, validator);
+
+            // The over-amount caused by the accumulated undelegating request amount is handled in
+            // step phase
+            if amount > delegation_amount {
                 return Err(Error::UndelegateTooLarge);
             }
         }
@@ -150,12 +125,13 @@ impl Delegatable for ProofOfProfessionContract {
         if src == dest {
             return Err(Error::SelfRedelegation);
         }
-        // validate redelegation by simulating
-        let delegation_amount = storage::read_local(&local_keys::delegation_key(delegator, src))
-            .unwrap_or_default()
-            .unwrap_or_default();
+
+        // validate redelegate amount
         if let Some(amount) = maybe_amount {
-            if amount < delegation_amount {
+            let delegation_amount = local_store::read_delegation(delegator, src);
+            // The over-amount caused by the accumulated redelegating request amount is handled in
+            // step phase
+            if amount > delegation_amount {
                 return Err(Error::UndelegateTooLarge);
             }
         }
@@ -184,66 +160,36 @@ impl Votable for ProofOfProfessionContract {
             return Err(Error::BondTooSmall);
         }
 
-        let staking_amount: U512 = storage::read_local(&local_keys::staking_amount_key(user))
-            .unwrap_or_default()
-            .unwrap_or_default();
-        let voting_amount: U512 = storage::read_local(&local_keys::voting_amount_key(user))
-            .unwrap_or_default()
-            .unwrap_or_default();
+        let bonding_amount = local_store::read_bonding_amount(user);
+        let voting_amount = local_store::read_voting_amount(user);
 
-        if voting_amount > staking_amount {
+        if voting_amount > bonding_amount {
             // TODO: Internal Error
             return Err(Error::VoteTooLarge);
         }
-        if amount > staking_amount - voting_amount {
+        if amount > bonding_amount - voting_amount {
             return Err(Error::VoteTooLarge);
         }
 
         // write vote
-        storage::write_local(local_keys::vote_key(user, dapp), amount);
-        // write voting amount
-        storage::write_local(local_keys::voting_amount_key(user), voting_amount + amount);
-        // write voted amount
-        let voted_amount_key = local_keys::voted_amount_key(dapp);
-        let voted_amount: U512 = storage::read_local(&voted_amount_key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-        storage::write_local(voted_amount_key, voted_amount + amount);
+        local_store::vote(user, dapp, amount);
 
         Ok(())
     }
 
     fn unvote(&mut self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
-        let vote_key = local_keys::vote_key(user, dapp);
-        let vote_amount = storage::read_local(&vote_key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-
+        let vote = local_store::read_vote(user, dapp);
         let unvote_amount = match maybe_amount {
             Some(amount) => {
-                if amount > vote_amount {
+                if amount > vote {
                     return Err(Error::UnvoteTooLarge);
                 }
                 amount
             }
-            None => vote_amount,
+            None => vote,
         };
 
-        // write vote
-        storage::write_local(vote_key, vote_amount - unvote_amount);
-        // write voting amount
-        let voting_amount_key = local_keys::voting_amount_key(user);
-        let voting_amount: U512 = storage::read_local(&voting_amount_key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-        storage::write_local(voting_amount_key, voting_amount - unvote_amount);
-        // write voted amount
-        let voted_amount_key = local_keys::voted_amount_key(dapp);
-        let voted_amount: U512 = storage::read_local(&voted_amount_key)
-            .unwrap_or_default()
-            .unwrap_or_default();
-        storage::write_local(voted_amount_key, voted_amount - unvote_amount);
-
+        local_store::unvote(user, dapp, unvote_amount)?;
         Ok(())
     }
 }
