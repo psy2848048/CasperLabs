@@ -23,6 +23,8 @@ const PLACEHOLDER_KEY: Key = Key::Hash([0u8; 32]);
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
+const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
+const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 const POS_FUNCTION_NAME: &str = "pos_ext";
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
@@ -74,6 +76,9 @@ pub extern "C" fn call() {
     let mut delegators: BTreeMap<String, U512> = BTreeMap::new();
     let mut voters: BTreeMap<String, U512> = BTreeMap::new();
     let mut total_delegates: U512 = U512::zero();
+    let mut total_reward: U512 = U512::zero();
+    let mut total_commission: U512 = U512::zero();
+
     // Insert genesis state information.
     // We also store in the form key:
     let state_informations: Vec<String> = runtime::get_arg(Args::StateInformations as u32)
@@ -89,6 +94,13 @@ pub extern "C" fn call() {
                 if split_key[1].len() != 64 {
                     runtime::revert(Error::CommissionKeyDeserializationFailed);
                 }
+
+                match U512::from_dec_str(split_key[2]) {
+                    Ok(amount) => {
+                        total_commission += amount;
+                    }
+                    Err(_) => runtime::revert(Error::CommissionBalanceDeserializationFailed),
+                }
             }
             "r" => {
                 if split_key.len() != 3 {
@@ -96,6 +108,13 @@ pub extern "C" fn call() {
                 }
                 if split_key[1].len() != 64 {
                     runtime::revert(Error::RewardKeyDeserializationFailed);
+                }
+
+                match U512::from_dec_str(split_key[2]) {
+                    Ok(amount) => {
+                        total_reward += amount;
+                    }
+                    Err(_) => runtime::revert(Error::RewardBalanceDeserializationFailed),
                 }
             }
             "d" => {
@@ -191,15 +210,17 @@ pub extern "C" fn call() {
 
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
-    // let rewards_purse = mint_purse(&mint, U512::zero());
-    // Charge unreachable amount of token into inaccessible wallet
-    let rewards_purse = mint_purse(&mint, U512::zero());
+    let rewards_purse = mint_purse(&mint, total_reward);
+    let commission_purse = mint_purse(&mint, total_commission);
+    let community_purse = mint_purse(&mint, U512::zero());
 
     // Include PoP purses in its named_keys
     [
         (POS_BONDING_PURSE, bonding_purse),
         (POS_PAYMENT_PURSE, payment_purse),
         (POS_REWARDS_PURSE, rewards_purse),
+        (POS_COMMISSION_PURSE, commission_purse),
+        (POS_COMMUNITY_PURSE, community_purse),
     ]
     .iter()
     .for_each(|(name, uref)| {

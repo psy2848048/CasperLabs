@@ -1,4 +1,6 @@
-use engine_core::engine_state::genesis::{POS_PAYMENT_PURSE, POS_REWARDS_PURSE};
+use engine_core::engine_state::genesis::{
+    POS_COMMISSION_PURSE, POS_COMMUNITY_PURSE, POS_PAYMENT_PURSE, POS_REWARDS_PURSE,
+};
 use engine_test_support::{
     internal::{
         DeployItemBuilder, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG,
@@ -14,6 +16,8 @@ const FINALIZE_PAYMENT: &str = "pos_finalize_payment.wasm";
 
 const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
 const ACCOUNT_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+
+const VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE: i64 = 30_i64;
 
 fn initialize() -> InMemoryWasmTestBuilder {
     let mut builder = InMemoryWasmTestBuilder::default();
@@ -84,6 +88,8 @@ fn finalize_payment_should_reward_to_specified_purse() {
 
     let payment_pre_balance = get_pos_payment_purse_balance(&builder);
     let rewards_pre_balance = get_pos_rewards_purse_balance(&builder);
+    let commission_pre_balance = get_pos_commission_purse_balance(&builder);
+    let community_pre_balance = get_pos_community_purse_balance(&builder);
 
     assert!(
         payment_pre_balance.is_zero(),
@@ -107,11 +113,32 @@ fn finalize_payment_should_reward_to_specified_purse() {
 
     let payment_post_balance = get_pos_payment_purse_balance(&builder);
     let rewards_post_balance = get_pos_rewards_purse_balance(&builder);
-    let expected_amount = rewards_pre_balance + *DEFAULT_PAYMENT;
+    let commission_post_balance = get_pos_commission_purse_balance(&builder);
+    let community_post_balance = get_pos_community_purse_balance(&builder);
+
+    let expected_reward_amount = rewards_pre_balance
+        + *DEFAULT_PAYMENT * VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE / U512::from(100);
     assert_eq!(
-        expected_amount, rewards_post_balance,
-        "validators should get paid; expected: {}, actual: {}",
-        expected_amount, rewards_post_balance
+        expected_reward_amount, rewards_post_balance,
+        "validators should get reward paid; expected: {}, actual: {}",
+        expected_reward_amount, rewards_post_balance
+    );
+
+    let expected_commission_amount = commission_pre_balance
+        + *DEFAULT_PAYMENT * (U512::from(100) - VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
+            / U512::from(100);
+    assert_eq!(
+        expected_commission_amount, commission_post_balance,
+        "validators should get commission paid; expected: {}, actual: {}",
+        expected_commission_amount, commission_post_balance
+    );
+
+    let expected_community_amount =
+        community_pre_balance + *DEFAULT_PAYMENT - rewards_post_balance - commission_post_balance;
+    assert_eq!(
+        expected_community_amount, community_post_balance,
+        "community purse should get paid; expected: {}, actual: {}",
+        expected_community_amount, community_post_balance
     );
 
     assert!(
@@ -131,6 +158,18 @@ fn get_pos_payment_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
 fn get_pos_rewards_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
     let purse_id = get_pos_purse_id_by_name(builder, POS_REWARDS_PURSE)
         .expect("should find PoS rewards purse");
+    builder.get_purse_balance(purse_id)
+}
+
+fn get_pos_commission_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
+    let purse_id = get_pos_purse_id_by_name(builder, POS_COMMISSION_PURSE)
+        .expect("should find PoS commission purse");
+    builder.get_purse_balance(purse_id)
+}
+
+fn get_pos_community_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
+    let purse_id = get_pos_purse_id_by_name(builder, POS_COMMUNITY_PURSE)
+        .expect("should find PoS community purse");
     builder.get_purse_balance(purse_id)
 }
 

@@ -146,6 +146,18 @@ pub enum Error {
     NotMatchedTotalBondAndDelegate, // = 57
     /// Internal error: Invalid state information
     InvalidStateInformation, // = 58
+    /// Internal error: the PoS contract's commission purse key was the wrong type.
+    CommissionPurseKeyUnexpectedType, // 59
+    /// Internal error: failed to issue a new purse for community
+    CommunityPurseNotFound, // 60
+    /// Internal error: the PoS contract's community purse key was the wrong type.
+    CommunityPurseKeyUnexpectedType, // 61
+    /// Internal error: while finalizing payment, failed to pay the validators (the transfer from
+    /// the PoP contract's payment purse to commission purse failed).
+    FailedTransferToCommissionPurse, //62
+    /// Internal error: while finalizing payment, failed to pay the validators (the transfer from
+    /// the PoP contract's payment purse to community purse failed).
+    FailedTransferToCommunityPurse, //63
 }
 
 impl CLTyped for Error {
@@ -196,6 +208,20 @@ impl PurseLookupError {
         match err {
             PurseLookupError::KeyNotFound => Error::RewardsPurseNotFound,
             PurseLookupError::KeyUnexpectedType => Error::RewardsPurseKeyUnexpectedType,
+        }
+    }
+
+    pub fn commission(err: PurseLookupError) -> Error {
+        match err {
+            PurseLookupError::KeyNotFound => Error::CommissionPurseNotFound,
+            PurseLookupError::KeyUnexpectedType => Error::CommissionPurseKeyUnexpectedType,
+        }
+    }
+
+    pub fn communtiy(err: PurseLookupError) -> Error {
+        match err {
+            PurseLookupError::KeyNotFound => Error::CommunityPurseNotFound,
+            PurseLookupError::KeyUnexpectedType => Error::CommunityPurseKeyUnexpectedType,
         }
     }
 }
