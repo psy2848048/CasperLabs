@@ -13,7 +13,7 @@ const ACTION_PREFIX_DELEGATED: u8 = 3;
 const ACTION_PREFIX_VOTING: u8 = 4;
 const ACTION_PREFIX_VOTED: u8 = 5;
 
-pub fn staking_amount_key(user: PublicKey) -> Vec<u8> {
+pub fn bonding_amount_key(user: PublicKey) -> Vec<u8> {
     let mut ret = Vec::with_capacity(1 + user.as_bytes().len());
     ret.push(ACTION_PREFIX_STAKE);
     ret.extend(user.as_bytes());

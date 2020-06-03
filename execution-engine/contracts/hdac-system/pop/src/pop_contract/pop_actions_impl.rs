@@ -64,23 +64,7 @@ impl Stakable for ProofOfProfessionContract {
 
 impl Delegatable for ProofOfProfessionContract {
     fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
-        // TODO: validate validator is created.
-
-        let bonding_amount = local_store::read_bonding_amount(delegator);
-        let delegating_amount = local_store::read_delegating_amount(delegator);
-
-        // internal error
-        if delegating_amount > bonding_amount {
-            // TODO: return Err(Error::InternalError);
-            return Err(Error::NotBonded);
-        }
-        if amount > bonding_amount - delegating_amount {
-            // TODO: return Err(Error::DelegateMoreThanStakes);
-            return Err(Error::UndelegateTooLarge);
-        }
-
-        local_store::delegate(delegator, validator, amount);
-        // TODO: update named_key
+        local_store::delegate(delegator, validator, amount)?;
         Ok(())
     }
 
@@ -154,26 +138,7 @@ impl Delegatable for ProofOfProfessionContract {
 
 impl Votable for ProofOfProfessionContract {
     fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
-        // staked balance check
-        if amount.is_zero() {
-            // TODO: change to Error::VoteTooSmall
-            return Err(Error::BondTooSmall);
-        }
-
-        let bonding_amount = local_store::read_bonding_amount(user);
-        let voting_amount = local_store::read_voting_amount(user);
-
-        if voting_amount > bonding_amount {
-            // TODO: Internal Error
-            return Err(Error::VoteTooLarge);
-        }
-        if amount > bonding_amount - voting_amount {
-            return Err(Error::VoteTooLarge);
-        }
-
-        // write vote
-        local_store::vote(user, dapp, amount);
-
+        local_store::vote(user, dapp, amount)?;
         Ok(())
     }
 

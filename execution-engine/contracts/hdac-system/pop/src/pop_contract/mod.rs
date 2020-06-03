@@ -21,7 +21,7 @@ use types::{
 
 use crate::{
     constants::{sys_params, uref_names},
-    local_store::{self, ClaimRequest, RedelegateRequest, UndelegateRequest},
+    local_store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 use economy::{pop_score_calculation, ContractClaim};
@@ -40,17 +40,21 @@ impl ProofOfProfessionContract {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
+        // The order of below functions matters.
         let current = runtime::get_blocktime();
         self.step_undelegation(
-            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
-        )?;
+            current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY)),
+        );
         self.step_redelegation(
-            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
-        )?;
+            current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY)),
+        );
+        self.step_unbond(current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)));
+
+        // TODO: update named_key state
 
         // TODO: separate to another function
-        self.distribute()?;
-        self.step_claim()?;
+        let _ = self.distribute();
+        let _ = self.step_claim();
 
         Ok(())
     }
@@ -253,14 +257,32 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    fn step_undelegation(&mut self, due: BlockTime) -> Result<()> {
+    fn step_unbond(&mut self, due: BlockTime) {
+        let mut request_queue = local_store::read_unbond_requests();
+        let requests = request_queue.pop_due(due);
+        local_store::write_unbond_requests(request_queue);
+
+        for request in requests {
+            let UnbondRequest {
+                requester,
+                maybe_amount,
+            } = request.item;
+
+            // If the request is invalid, discard the request.
+            // TODO: Error is ignored currently, but should propagate to endpoint in the future.
+            if let Ok(payout) = local_store::unbond(requester, maybe_amount) {
+                if let Ok(pos_purse) = get_purse(uref_names::POS_BONDING_PURSE) {
+                    let _ = system::transfer_from_purse_to_account(pos_purse, requester, payout);
+                }
+            }
+        }
+    }
+
+    fn step_undelegation(&mut self, due: BlockTime) {
+        // populate the mature requests.
         let mut request_queue = local_store::read_undelegation_requests();
         let requests = request_queue.pop_due(due);
-
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
-        let pos_purse =
-            get_purse(uref_names::POS_BONDING_PURSE).map_err(PurseLookupError::bonding)?;
+        local_store::write_undelegation_requests(request_queue);
 
         for request in requests {
             let UndelegateRequest {
@@ -268,25 +290,17 @@ impl ProofOfProfessionContract {
                 validator,
                 maybe_amount,
             } = request.item;
-
-            let amount = delegations.undelegate(&delegator, &validator, maybe_amount)?;
-            let payout = stakes.unbond(&validator, Some(amount))?;
-            system::transfer_from_purse_to_account(pos_purse, delegator, payout)
-                .map_err(|_| Error::UnbondTransferFailed)?;
+            // If the request is invalid, discard the request.
+            // TODO: Error is ignored currently, but should propagate to endpoint in the future.
+            let _ = local_store::undelegate(delegator, validator, maybe_amount);
         }
-
-        self.write_delegations(&delegations);
-        self.write_stakes(&stakes);
-        local_store::write_undelegation_requests(request_queue);
-        Ok(())
     }
 
-    fn step_redelegation(&mut self, due: BlockTime) -> Result<()> {
+    fn step_redelegation(&mut self, due: BlockTime) {
+        // populate the mature requests.
         let mut request_queue = local_store::read_redelegation_requests();
-
         let requests = request_queue.pop_due(due);
-        let mut delegations = self.read_delegations()?;
-        let mut stakes = self.read_stakes()?;
+        local_store::write_redelegation_requests(request_queue);
 
         for request in requests {
             let RedelegateRequest {
@@ -296,16 +310,10 @@ impl ProofOfProfessionContract {
                 maybe_amount,
             } = request.item;
 
-            let amount = delegations.undelegate(&delegator, &src_validator, maybe_amount)?;
-            delegations.delegate(&delegator, &dest_validator, amount);
-            let payout = stakes.unbond(&src_validator, Some(amount))?;
-            stakes.bond(&dest_validator, payout);
+            // If the request is invalid, discard the request.
+            // TODO: Error is currently ignored, but should propagate to endpoint in the future.
+            let _ = local_store::redelegate(delegator, src_validator, dest_validator, maybe_amount);
         }
-
-        self.write_delegations(&delegations);
-        self.write_stakes(&stakes);
-        local_store::write_redelegation_requests(request_queue);
-        Ok(())
     }
 
     fn step_claim(&self) -> Result<()> {
