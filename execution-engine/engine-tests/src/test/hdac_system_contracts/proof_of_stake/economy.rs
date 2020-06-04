@@ -170,6 +170,22 @@ fn should_run_successful_step() {
             .count(),
         2
     );
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| { key.starts_with("fc_") })
+            .count(),
+        2
+    );
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| key.starts_with("fr_"))
+            .count(),
+        2
+    );
 
     // Delegate some amount and try distribute
     println!("Delegate and try to step again");
@@ -272,6 +288,17 @@ fn should_run_successful_step() {
             .count(),
         1
     );
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("fc_")
+            })
+            .count(),
+        1
+    );
     println!("**** Dummy output ends here ****");
 
     let account1_dapp_1 = builder
@@ -322,6 +349,17 @@ fn should_run_successful_step() {
             .filter(|(key, _)| {
                 println!("{}", key);
                 key.starts_with("ir_")
+            })
+            .count(),
+        2
+    );
+    assert_eq!(
+        pos_contract
+            .named_keys()
+            .iter()
+            .filter(|(key, _)| {
+                println!("{}", key);
+                key.starts_with("fr_")
             })
             .count(),
         2

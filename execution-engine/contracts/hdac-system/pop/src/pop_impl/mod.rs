@@ -207,21 +207,31 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let mut commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
-        let validator_commission = commissions
+        let mut inflation_commissions = ContractClaim::read_commission(INFLATION_COMMISSION)?;
+        let validator_inflation_commission = inflation_commissions
             .0
             .get(validator)
             .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
+            .unwrap_or_revert_with(Error::CommissionNotFound);
 
-        commissions.claim_commission(validator, &validator_commission);
-        ContractClaim::write_commission(INFLATION_COMMISSION, &commissions);
+        inflation_commissions.claim_commission(validator, &validator_inflation_commission);
+        ContractClaim::write_commission(INFLATION_COMMISSION, &inflation_commissions);
+
+        let mut fare_commissions = ContractClaim::read_commission(FARE_COMMISSION)?;
+        let validator_fare_commission = fare_commissions
+            .0
+            .get(validator)
+            .cloned()
+            .unwrap_or_revert_with(Error::CommissionNotFound);
+
+        fare_commissions.claim_commission(validator, &validator_fare_commission);
+        ContractClaim::write_commission(FARE_COMMISSION, &fare_commissions);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
         claim_requests
             .0
-            .push(ClaimRequest::Commission(*validator, validator_commission));
+            .push(ClaimRequest::Commission(*validator, validator_inflation_commission, validator_fare_commission));
 
         ContractQueue::write_claim_requests(claim_requests);
 
@@ -231,20 +241,29 @@ impl ProofOfProfessionContract {
 
     // For user
     pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
-        let mut rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
-        let user_reward = rewards
+        let mut inflation_rewards = ContractClaim::read_reward(INFLATION_REWARD)?;
+        let user_inflation_reward = inflation_rewards
             .0
             .get(user)
             .cloned()
             .unwrap_or_revert_with(Error::RewardNotFound);
-        rewards.claim_rewards(user, &user_reward);
-        ContractClaim::write_reward(INFLATION_REWARD, &rewards);
+        inflation_rewards.claim_rewards(user, &user_inflation_reward);
+        ContractClaim::write_reward(INFLATION_REWARD, &inflation_rewards);
+
+        let mut fare_rewards = ContractClaim::read_reward(FARE_REWARD)?;
+        let user_fare_reward = fare_rewards
+            .0
+            .get(user)
+            .cloned()
+            .unwrap_or_revert_with(Error::RewardNotFound);
+        fare_rewards.claim_rewards(user, &user_fare_reward);
+        ContractClaim::write_reward(FARE_REWARD, &fare_rewards);
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
         claim_requests
             .0
-            .push(ClaimRequest::Reward(*user, user_reward));
+            .push(ClaimRequest::Reward(*user, user_inflation_reward, user_fare_reward));
 
         ContractQueue::write_claim_requests(claim_requests);
 
@@ -519,23 +538,47 @@ impl ProofOfProfessionContract {
         let claim_requests = ContractQueue::read_claim_requests();
 
         for request in claim_requests.0.iter() {
-            let (pubkey, amount) = match request {
-                ClaimRequest::Commission(pubkey, amount) | ClaimRequest::Reward(pubkey, amount) => {
-                    (*pubkey, *amount)
+            let (pubkey, inflation_amount, fare_amount, fare_purse) = match request {
+                ClaimRequest::Commission(pubkey, inflation_amount, fare_amount) => {
+                    let commission_purse = get_purse(uref_names::POS_COMMISSION_PURSE).map_err(PurseLookupError::commission)?;
+                    (*pubkey, *inflation_amount, *fare_amount, commission_purse)
+                },
+                ClaimRequest::Reward(pubkey, inflation_amount, fare_amount) => {
+                    let reward_purse = get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+                    (*pubkey, *inflation_amount, *fare_amount, reward_purse)
                 }
             };
 
             let mint_contract = system::get_mint();
             let minted_purse_res: core::result::Result<URef, mint::Error> =
-                runtime::call_contract(mint_contract.clone(), ("mint", amount));
+                runtime::call_contract(mint_contract.clone(), ("mint", inflation_amount));
             let minted_purse = minted_purse_res.unwrap_or_revert();
 
             let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(minted_purse, pubkey, amount);
+                system::transfer_from_purse_to_account(minted_purse, pubkey, inflation_amount);
 
             if let Err(err) = transfer_res {
                 runtime::revert(err);
             }
+
+            let fare_transfer_res = system::transfer_from_purse_to_account(fare_purse, pubkey, fare_amount);
+            if let Err(err) = fare_transfer_res {
+                runtime::revert(err);
+            }
+        
+            match request {
+                ClaimRequest::Commission(_, _, fare_amount) => {
+                    let commission_purse_snapshot = ContractClaim::read_commission_purse_snapshot()?;
+                    let balance = commission_purse_snapshot - fare_amount;
+                    ContractClaim::write_commission_purse_snapshot(balance);
+                },
+                ClaimRequest::Reward(_, _, fare_amount) => {
+                    let reward_purse_snapshot = ContractClaim::read_reward_purse_snapshot()?;
+                    let balance = reward_purse_snapshot - fare_amount;
+                    ContractClaim::write_reward_purse_snapshot(balance);
+                }
+            }
+            
         }
 
         // write an empty list.
