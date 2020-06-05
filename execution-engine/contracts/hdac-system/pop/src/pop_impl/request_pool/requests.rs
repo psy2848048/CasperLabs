@@ -138,7 +138,11 @@ const REWARD_ID: u8 = 2;
 
 impl Default for ClaimRequest {
     fn default() -> Self {
-        ClaimRequest::Commission(PublicKey::ed25519_from([0u8; 32]), U512::default(), U512::default())
+        ClaimRequest::Commission(
+            PublicKey::ed25519_from([0u8; 32]),
+            U512::default(),
+            U512::default(),
+        )
     }
 }
 
@@ -149,8 +153,14 @@ impl FromBytes for ClaimRequest {
         let (inflation_amount, rest): (U512, &[u8]) = FromBytes::from_bytes(rest)?;
         let (fare_amount, rest): (U512, &[u8]) = FromBytes::from_bytes(rest)?;
         match claim_type {
-            COMMISSION_ID => Ok((ClaimRequest::Commission(pubkey, inflation_amount, fare_amount), rest)),
-            REWARD_ID => Ok((ClaimRequest::Reward(pubkey, inflation_amount, fare_amount), rest)),
+            COMMISSION_ID => Ok((
+                ClaimRequest::Commission(pubkey, inflation_amount, fare_amount),
+                rest,
+            )),
+            REWARD_ID => Ok((
+                ClaimRequest::Reward(pubkey, inflation_amount, fare_amount),
+                rest,
+            )),
             _ => Err(bytesrepr::Error::Formatting),
         }
     }
@@ -177,8 +187,11 @@ impl ToBytes for ClaimRequest {
     }
     fn serialized_length(&self) -> usize {
         match self {
-            ClaimRequest::Commission(pubkey, inflation_amount, fare_amount) | ClaimRequest::Reward(pubkey, inflation_amount, fare_amount) => {
-                pubkey.serialized_length() + inflation_amount.serialized_length() + fare_amount.serialized_length()
+            ClaimRequest::Commission(pubkey, inflation_amount, fare_amount)
+            | ClaimRequest::Reward(pubkey, inflation_amount, fare_amount) => {
+                pubkey.serialized_length()
+                    + inflation_amount.serialized_length()
+                    + fare_amount.serialized_length()
             }
         }
     }

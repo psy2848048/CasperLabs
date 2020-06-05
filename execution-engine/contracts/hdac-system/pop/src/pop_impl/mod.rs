@@ -229,9 +229,11 @@ impl ProofOfProfessionContract {
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
-        claim_requests
-            .0
-            .push(ClaimRequest::Commission(*validator, validator_inflation_commission, validator_fare_commission));
+        claim_requests.0.push(ClaimRequest::Commission(
+            *validator,
+            validator_inflation_commission,
+            validator_fare_commission,
+        ));
 
         ContractQueue::write_claim_requests(claim_requests);
 
@@ -261,9 +263,11 @@ impl ProofOfProfessionContract {
 
         let mut claim_requests = ContractQueue::read_claim_requests();
 
-        claim_requests
-            .0
-            .push(ClaimRequest::Reward(*user, user_inflation_reward, user_fare_reward));
+        claim_requests.0.push(ClaimRequest::Reward(
+            *user,
+            user_inflation_reward,
+            user_fare_reward,
+        ));
 
         ContractQueue::write_claim_requests(claim_requests);
 
@@ -540,45 +544,66 @@ impl ProofOfProfessionContract {
         for request in claim_requests.0.iter() {
             let (pubkey, inflation_amount, fare_amount, fare_purse) = match request {
                 ClaimRequest::Commission(pubkey, inflation_amount, fare_amount) => {
-                    let commission_purse = get_purse(uref_names::POS_COMMISSION_PURSE).map_err(PurseLookupError::commission)?;
+                    let commission_purse = get_purse(uref_names::POS_COMMISSION_PURSE)
+                        .map_err(PurseLookupError::commission)?;
                     (*pubkey, *inflation_amount, *fare_amount, commission_purse)
-                },
+                }
                 ClaimRequest::Reward(pubkey, inflation_amount, fare_amount) => {
-                    let reward_purse = get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
+                    let reward_purse = get_purse(uref_names::POS_REWARD_PURSE)
+                        .map_err(PurseLookupError::rewards)?;
                     (*pubkey, *inflation_amount, *fare_amount, reward_purse)
                 }
             };
+
+            let communtiy_purse =
+                get_purse(uref_names::POS_COMMUNITY_PURSE).map_err(PurseLookupError::communtiy)?;
 
             let mint_contract = system::get_mint();
             let minted_purse_res: core::result::Result<URef, mint::Error> =
                 runtime::call_contract(mint_contract.clone(), ("mint", inflation_amount));
             let minted_purse = minted_purse_res.unwrap_or_revert();
 
+            // Hdac goes to the user
+            // BIGSUN goes to the community pool
+            let inflation_amount_hdac = inflation_amount / U512::from(sys_params::BIGSUN_TO_HDAC)
+                * U512::from(sys_params::BIGSUN_TO_HDAC);
+            let inflation_amount_bigsun = inflation_amount - inflation_amount_hdac;
             let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(minted_purse, pubkey, inflation_amount);
-
+                system::transfer_from_purse_to_account(minted_purse, pubkey, inflation_amount_hdac);
             if let Err(err) = transfer_res {
                 runtime::revert(err);
             }
+            system::transfer_from_purse_to_purse(
+                minted_purse,
+                communtiy_purse,
+                inflation_amount_bigsun,
+            )
+            .map_err(|_| Error::FailedTransferToCommunityPurse)?;
 
-            let fare_transfer_res = system::transfer_from_purse_to_account(fare_purse, pubkey, fare_amount);
+            let fare_amount_hdac = fare_amount / U512::from(sys_params::BIGSUN_TO_HDAC)
+                * U512::from(sys_params::BIGSUN_TO_HDAC);
+            let fare_amount_bigsun = fare_amount - fare_amount_hdac;
+            let fare_transfer_res =
+                system::transfer_from_purse_to_account(fare_purse, pubkey, fare_amount);
             if let Err(err) = fare_transfer_res {
                 runtime::revert(err);
             }
-        
+            system::transfer_from_purse_to_purse(fare_purse, communtiy_purse, fare_amount_bigsun)
+                .map_err(|_| Error::FailedTransferToCommunityPurse)?;
+
             match request {
                 ClaimRequest::Commission(_, _, fare_amount) => {
-                    let commission_purse_snapshot = ContractClaim::read_commission_purse_snapshot()?;
+                    let commission_purse_snapshot =
+                        ContractClaim::read_commission_purse_snapshot()?;
                     let balance = commission_purse_snapshot - fare_amount;
                     ContractClaim::write_commission_purse_snapshot(balance);
-                },
+                }
                 ClaimRequest::Reward(_, _, fare_amount) => {
                     let reward_purse_snapshot = ContractClaim::read_reward_purse_snapshot()?;
                     let balance = reward_purse_snapshot - fare_amount;
                     ContractClaim::write_reward_purse_snapshot(balance);
                 }
             }
-            
         }
 
         // write an empty list.
