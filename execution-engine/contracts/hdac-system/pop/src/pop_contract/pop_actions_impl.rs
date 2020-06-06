@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     constants::uref_names,
-    local_store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
+    store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 impl ProofOfProfession for ProofOfProfessionContract {}
@@ -29,7 +29,7 @@ impl Stakable for ProofOfProfessionContract {
             .map_err(|_| Error::BondTransferFailed)?;
 
         // write own staking amount
-        local_store::bond(user, amount);
+        store::bond(user, amount);
 
         Ok(())
     }
@@ -37,7 +37,7 @@ impl Stakable for ProofOfProfessionContract {
     fn unbond(&mut self, requester: PublicKey, maybe_amount: Option<U512>) -> Result<()> {
         // validate unbond amount
         if let Some(amount) = maybe_amount {
-            let current_amount = local_store::read_bonding_amount(requester);
+            let current_amount = store::read_bonding_amount(requester);
 
             // The over-amount caused by the accumulated unbonding request amount is handled in
             // step phase
@@ -48,7 +48,7 @@ impl Stakable for ProofOfProfessionContract {
 
         // write unbond request
         let current = runtime::get_blocktime();
-        let mut queue = local_store::read_unbond_requests();
+        let mut queue = store::read_unbond_requests();
         queue.push(
             UnbondRequest {
                 requester,
@@ -56,7 +56,7 @@ impl Stakable for ProofOfProfessionContract {
             },
             current,
         )?;
-        local_store::write_unbond_requests(queue);
+        store::write_unbond_requests(queue);
 
         Ok(())
     }
@@ -64,7 +64,7 @@ impl Stakable for ProofOfProfessionContract {
 
 impl Delegatable for ProofOfProfessionContract {
     fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
-        local_store::delegate(delegator, validator, amount)?;
+        store::delegate(delegator, validator, amount)?;
         Ok(())
     }
 
@@ -76,7 +76,7 @@ impl Delegatable for ProofOfProfessionContract {
     ) -> Result<()> {
         // validate undelegate amount
         if let Some(amount) = maybe_amount {
-            let delegation_amount = local_store::read_delegation(delegator, validator);
+            let delegation_amount = store::read_delegation(delegator, validator);
 
             // The over-amount caused by the accumulated undelegating request amount is handled in
             // step phase
@@ -85,7 +85,7 @@ impl Delegatable for ProofOfProfessionContract {
             }
         }
 
-        let mut queue = local_store::read_undelegation_requests();
+        let mut queue = store::read_undelegation_requests();
         queue.push(
             UndelegateRequest {
                 delegator,
@@ -94,7 +94,7 @@ impl Delegatable for ProofOfProfessionContract {
             },
             runtime::get_blocktime(),
         )?;
-        local_store::write_undelegation_requests(queue);
+        store::write_undelegation_requests(queue);
 
         Ok(())
     }
@@ -112,7 +112,7 @@ impl Delegatable for ProofOfProfessionContract {
 
         // validate redelegate amount
         if let Some(amount) = maybe_amount {
-            let delegation_amount = local_store::read_delegation(delegator, src);
+            let delegation_amount = store::read_delegation(delegator, src);
             // The over-amount caused by the accumulated redelegating request amount is handled in
             // step phase
             if amount > delegation_amount {
@@ -120,7 +120,7 @@ impl Delegatable for ProofOfProfessionContract {
             }
         }
 
-        let mut request_queue = local_store::read_redelegation_requests();
+        let mut request_queue = store::read_redelegation_requests();
         request_queue.push(
             RedelegateRequest {
                 delegator: delegator,
@@ -130,7 +130,7 @@ impl Delegatable for ProofOfProfessionContract {
             },
             runtime::get_blocktime(),
         )?;
-        local_store::write_redelegation_requests(request_queue);
+        store::write_redelegation_requests(request_queue);
 
         Ok(())
     }
@@ -138,12 +138,12 @@ impl Delegatable for ProofOfProfessionContract {
 
 impl Votable for ProofOfProfessionContract {
     fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
-        local_store::vote(user, dapp, amount)?;
+        store::vote(user, dapp, amount)?;
         Ok(())
     }
 
     fn unvote(&mut self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
-        let vote = local_store::read_vote(user, dapp);
+        let vote = store::read_vote(user, dapp);
         let unvote_amount = match maybe_amount {
             Some(amount) => {
                 if amount > vote {
@@ -154,7 +154,7 @@ impl Votable for ProofOfProfessionContract {
             None => vote,
         };
 
-        local_store::unvote(user, dapp, unvote_amount)?;
+        store::unvote(user, dapp, unvote_amount)?;
         Ok(())
     }
 }

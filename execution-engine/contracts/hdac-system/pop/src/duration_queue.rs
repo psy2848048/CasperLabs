@@ -102,7 +102,7 @@ mod tests {
 
     use types::{account::PublicKey, system_contract_errors::pos::Error, BlockTime, U512};
 
-    use crate::local_store::UndelegateRequest;
+    use crate::store::UndelegateRequest;
 
     use super::{DurationQueue, DurationQueueEntry};
 

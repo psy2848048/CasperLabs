@@ -4,9 +4,9 @@ extern crate alloc;
 
 mod constants;
 mod duration_queue;
-mod local_store;
 mod math;
 mod pop_contract;
+mod store;
 
 use alloc::string::String;
 

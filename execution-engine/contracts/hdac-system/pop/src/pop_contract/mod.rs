@@ -21,7 +21,7 @@ use types::{
 
 use crate::{
     constants::{sys_params, uref_names},
-    local_store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
+    store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 use economy::{pop_score_calculation, ContractClaim};
@@ -71,9 +71,9 @@ impl ProofOfProfessionContract {
         commissions.claim_commission(validator, &validator_commission);
         ContractClaim::write_commission(&commissions);
 
-        let mut claim_requests = local_store::read_claim_requests();
+        let mut claim_requests = store::read_claim_requests();
         claim_requests.push(ClaimRequest::Commission(*validator, validator_commission));
-        local_store::write_claim_requests(claim_requests);
+        store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
         Ok(())
@@ -90,9 +90,9 @@ impl ProofOfProfessionContract {
         rewards.claim_rewards(user, &user_reward);
         ContractClaim::write_reward(&rewards);
 
-        let mut claim_requests = local_store::read_claim_requests();
+        let mut claim_requests = store::read_claim_requests();
         claim_requests.push(ClaimRequest::Reward(*user, user_reward));
-        local_store::write_claim_requests(claim_requests);
+        store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
         Ok(())
@@ -258,9 +258,9 @@ impl ProofOfProfessionContract {
     }
 
     fn step_unbond(&mut self, due: BlockTime) {
-        let mut request_queue = local_store::read_unbond_requests();
+        let mut request_queue = store::read_unbond_requests();
         let requests = request_queue.pop_due(due);
-        local_store::write_unbond_requests(request_queue);
+        store::write_unbond_requests(request_queue);
 
         for request in requests {
             let UnbondRequest {
@@ -270,7 +270,7 @@ impl ProofOfProfessionContract {
 
             // If the request is invalid, discard the request.
             // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-            if let Ok(payout) = local_store::unbond(requester, maybe_amount) {
+            if let Ok(payout) = store::unbond(requester, maybe_amount) {
                 if let Ok(pos_purse) = get_purse(uref_names::POS_BONDING_PURSE) {
                     let _ = system::transfer_from_purse_to_account(pos_purse, requester, payout);
                 }
@@ -280,9 +280,9 @@ impl ProofOfProfessionContract {
 
     fn step_undelegation(&mut self, due: BlockTime) {
         // populate the mature requests.
-        let mut request_queue = local_store::read_undelegation_requests();
+        let mut request_queue = store::read_undelegation_requests();
         let requests = request_queue.pop_due(due);
-        local_store::write_undelegation_requests(request_queue);
+        store::write_undelegation_requests(request_queue);
 
         for request in requests {
             let UndelegateRequest {
@@ -292,15 +292,15 @@ impl ProofOfProfessionContract {
             } = request.item;
             // If the request is invalid, discard the request.
             // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-            let _ = local_store::undelegate(delegator, validator, maybe_amount);
+            let _ = store::undelegate(delegator, validator, maybe_amount);
         }
     }
 
     fn step_redelegation(&mut self, due: BlockTime) {
         // populate the mature requests.
-        let mut request_queue = local_store::read_redelegation_requests();
+        let mut request_queue = store::read_redelegation_requests();
         let requests = request_queue.pop_due(due);
-        local_store::write_redelegation_requests(request_queue);
+        store::write_redelegation_requests(request_queue);
 
         for request in requests {
             let RedelegateRequest {
@@ -312,12 +312,12 @@ impl ProofOfProfessionContract {
 
             // If the request is invalid, discard the request.
             // TODO: Error is currently ignored, but should propagate to endpoint in the future.
-            let _ = local_store::redelegate(delegator, src_validator, dest_validator, maybe_amount);
+            let _ = store::redelegate(delegator, src_validator, dest_validator, maybe_amount);
         }
     }
 
     fn step_claim(&self) -> Result<()> {
-        let claim_requests = local_store::read_claim_requests();
+        let claim_requests = store::read_claim_requests();
 
         for request in claim_requests.iter() {
             let (pubkey, amount) = match request {
@@ -340,7 +340,7 @@ impl ProofOfProfessionContract {
         }
 
         // write an empty list.
-        local_store::write_claim_requests(Default::default());
+        store::write_claim_requests(Default::default());
         Ok(())
     }
 }
