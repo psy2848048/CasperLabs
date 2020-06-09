@@ -12,7 +12,7 @@ use types::{
     Key, U512,
 };
 
-use super::{DelegationKey, Delegations};
+use crate::pop_contract::{DelegationKey, Delegations};
 
 pub fn read_delegations() -> Result<Delegations> {
     let mut delegations = BTreeMap::new();

@@ -3,6 +3,7 @@ mod pop_actions;
 mod pop_actions_impl;
 
 pub use pop_actions::{Delegatable, Stakable, Votable};
+pub use pop_actions_impl::{DelegationKey, Delegations};
 
 use alloc::collections::BTreeMap;
 use contract::{
@@ -21,9 +22,7 @@ use types::{
 
 use crate::{
     constants::{sys_params, uref_names},
-    store::{
-        self, ClaimRequest, DelegationKey, RedelegateRequest, UnbondRequest, UndelegateRequest,
-    },
+    store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 use economy::{pop_score_calculation, ContractClaim};

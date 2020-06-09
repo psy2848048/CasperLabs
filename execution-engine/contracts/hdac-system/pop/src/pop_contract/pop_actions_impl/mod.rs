@@ -1,3 +1,7 @@
+mod delegation;
+
+pub use delegation::{DelegationKey, Delegations};
+
 use contract::contract_api::{runtime, system};
 use types::{
     account::PublicKey,
