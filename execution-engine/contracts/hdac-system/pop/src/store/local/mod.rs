@@ -60,40 +60,12 @@ pub fn read_bonding_amount(user: PublicKey) -> U512 {
         .unwrap_or_default()
 }
 
-pub fn bond(user: PublicKey, amount: U512) {
+pub fn write_bonding_amount(user: PublicKey, amount: U512) {
     let key = keys::bonding_amount_key(user);
     let current_amount: U512 = storage::read_local(&key)
         .unwrap_or_default()
         .unwrap_or_default();
-    storage::write_local(key, current_amount + amount);
-}
-
-pub fn unbond(user: PublicKey, maybe_amount: Option<U512>) -> Result<U512> {
-    let key = keys::bonding_amount_key(user);
-    let bonding_amount = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-
-    let unbond_amount = match maybe_amount {
-        Some(amount) => amount,
-        None => bonding_amount,
-    };
-
-    // // validate amount
-    // {
-    //     if unbond_amount > bonding_amount {
-    //         return Err(Error::UnbondTooLarge);
-    //     }
-
-    //     // TODO: make iteration to make sure not to ommit an action.
-    //     let max_action_amount = U512::max(read_delegating_amount(user),
-    // read_voting_amount(user));     if unbond_amount > bonding_amount - max_action_amount {
-    //         return Err(Error::UnbondTooLarge);
-    //     }
-    // }
-
-    storage::write_local(key, bonding_amount - unbond_amount);
-    Ok(unbond_amount)
+    storage::write_local(key, amount);
 }
 
 pub fn read_vote(voter: PublicKey, dapp: Key) -> U512 {

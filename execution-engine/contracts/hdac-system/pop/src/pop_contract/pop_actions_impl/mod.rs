@@ -1,4 +1,5 @@
 mod delegation;
+pub mod stake;
 
 pub use delegation::{DelegationKey, Delegations};
 
@@ -33,7 +34,7 @@ impl Stakable for ProofOfProfessionContract {
             .map_err(|_| Error::BondTransferFailed)?;
 
         // write own staking amount
-        store::bond(user, amount);
+        stake::bond(&user, amount);
 
         Ok(())
     }

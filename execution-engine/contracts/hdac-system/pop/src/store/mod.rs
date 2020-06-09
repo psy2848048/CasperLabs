@@ -3,7 +3,9 @@ mod named_key;
 mod requests;
 
 // stake
-pub use local::{bond, read_bonding_amount, read_unbond_requests, unbond, write_unbond_requests};
+pub use local::{
+    read_bonding_amount, read_unbond_requests, write_bonding_amount, write_unbond_requests,
+};
 
 // delegate
 pub use local::{

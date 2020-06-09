@@ -26,6 +26,7 @@ use crate::{
 };
 
 use economy::{pop_score_calculation, ContractClaim};
+use pop_actions_impl::stake;
 
 const DAYS_OF_YEAR: i64 = 365_i64;
 const HOURS_OF_DAY: i64 = 24_i64;
@@ -269,7 +270,7 @@ impl ProofOfProfessionContract {
 
             // If the request is invalid, discard the request.
             // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-            if let Ok(payout) = store::unbond(requester, maybe_amount) {
+            if let Ok(payout) = stake::unbond(&requester, maybe_amount) {
                 if let Ok(pos_purse) = get_purse(uref_names::POS_BONDING_PURSE) {
                     let _ = system::transfer_from_purse_to_account(pos_purse, requester, payout);
                 }
