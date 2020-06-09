@@ -5,31 +5,14 @@ pub const UNDELEGATE_REQUEST_QUEUE: u8 = 2;
 pub const REDELEGATE_REQUEST_QUEUE: u8 = 3;
 pub const CLAIM_REQUESTS: u8 = 4;
 
-// a single delegation: (ACTION_PREFIX_DELEGATING + delegator_pubkey + validator_pubkey, amount)
 // a single vote: (ACTION_PREFIX_VOTING + voter_pubkey + dapp_addr, amount)
 const ACTION_PREFIX_STAKE: u8 = 1;
-const ACTION_PREFIX_DELEGATING: u8 = 2;
-const ACTION_PREFIX_DELEGATED: u8 = 3;
-const ACTION_PREFIX_VOTING: u8 = 4;
-const ACTION_PREFIX_VOTED: u8 = 5;
+const ACTION_PREFIX_VOTING: u8 = 2;
+const ACTION_PREFIX_VOTED: u8 = 3;
 
 pub fn bonding_amount_key(user: &PublicKey) -> Vec<u8> {
     let mut ret = Vec::with_capacity(1 + user.as_bytes().len());
     ret.push(ACTION_PREFIX_STAKE);
-    ret.extend(user.as_bytes());
-    ret
-}
-
-pub fn delegating_amount_key(user: &PublicKey) -> Vec<u8> {
-    let mut ret = Vec::with_capacity(1 + user.as_bytes().len());
-    ret.push(ACTION_PREFIX_DELEGATING);
-    ret.extend(user.as_bytes());
-    ret
-}
-
-pub fn delegated_amount_key(user: &PublicKey) -> Vec<u8> {
-    let mut ret = Vec::with_capacity(1 + user.as_bytes().len());
-    ret.push(ACTION_PREFIX_DELEGATED);
     ret.extend(user.as_bytes());
     ret
 }
@@ -49,14 +32,6 @@ pub fn voted_amount_key(dapp: &Key) -> Vec<u8> {
             .expect("Key serialization cannot fail")
             .into_iter(),
     );
-    ret
-}
-
-pub fn delegation_key(delegator: &PublicKey, validator: &PublicKey) -> Vec<u8> {
-    let mut ret = Vec::with_capacity(1 + 2 * delegator.as_bytes().len());
-    ret.push(ACTION_PREFIX_DELEGATING);
-    ret.extend(delegator.as_bytes());
-    ret.extend(validator.as_bytes());
     ret
 }
 

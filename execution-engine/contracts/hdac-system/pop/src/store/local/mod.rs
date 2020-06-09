@@ -58,9 +58,6 @@ pub fn read_bonding_amount(user: &PublicKey) -> U512 {
 
 pub fn write_bonding_amount(user: &PublicKey, amount: U512) {
     let key = keys::bonding_amount_key(user);
-    let current_amount: U512 = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
     storage::write_local(key, amount);
 }
 

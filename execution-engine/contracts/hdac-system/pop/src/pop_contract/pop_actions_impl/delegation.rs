@@ -9,9 +9,7 @@ use types::{
     U512,
 };
 
-use crate::store;
-
-const MAX_VALIDATORS: usize = 100;
+use crate::{constants::sys_params, store};
 
 pub struct Delegations {
     table: BTreeMap<DelegationKey, U512>,
@@ -40,7 +38,7 @@ impl Delegations {
         let mut validators = BTreeMap::default();
         for (
             DelegationKey {
-                delegator,
+                delegator: _,
                 validator,
             },
             amount,
@@ -56,7 +54,7 @@ impl Delegations {
 
         // sort by descending order and truncate
         validators.sort_by(|a, b| b.1.cmp(&a.1));
-        validators.truncate(MAX_VALIDATORS);
+        validators.truncate(sys_params::MAX_VALIDATORS);
 
         validators
     }

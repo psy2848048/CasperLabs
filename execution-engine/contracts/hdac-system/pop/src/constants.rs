@@ -24,6 +24,7 @@ pub(crate) mod methods {
 
 pub(crate) mod sys_params {
     pub const SYSTEM_ACCOUNT: [u8; 32] = [0u8; 32];
+    pub const MAX_VALIDATORS: usize = 100;
 
     pub const UNBONDING_DELAY: u64 = 0;
     pub const UNDELEGATING_DELAY: u64 = 0;
