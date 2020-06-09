@@ -1,5 +1,6 @@
 mod delegation;
 pub mod stake;
+mod vote;
 
 pub use delegation::{DelegationKey, Delegations};
 
@@ -143,7 +144,7 @@ impl Delegatable for ProofOfProfessionContract {
 
 impl Votable for ProofOfProfessionContract {
     fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
-        store::vote(user, dapp, amount)?;
+        vote::vote(user, dapp, amount)?;
         Ok(())
     }
 
@@ -159,7 +160,7 @@ impl Votable for ProofOfProfessionContract {
             None => vote,
         };
 
-        store::unvote(user, dapp, unvote_amount)?;
+        vote::unvote(user, dapp, unvote_amount)?;
         Ok(())
     }
 }

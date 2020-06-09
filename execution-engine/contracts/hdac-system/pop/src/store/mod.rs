@@ -15,7 +15,10 @@ pub use local::{
 pub use named_key::{read_delegations, write_delegations};
 
 // vote
-pub use local::{read_vote, read_voted_amount, read_voting_amount, unvote, vote};
+pub use local::{
+    read_vote, read_voted_amount, read_voting_amount, write_vote, write_voted_amount,
+    write_voting_amount,
+};
 
 // claim
 pub use local::{read_claim_requests, write_claim_requests};

@@ -1,7 +1,7 @@
 use types::{
     account::PublicKey,
     system_contract_errors::pos::{Error, Result},
-    Key, U512,
+    U512,
 };
 
 use crate::store;
