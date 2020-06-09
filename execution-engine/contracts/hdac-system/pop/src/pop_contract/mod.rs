@@ -98,7 +98,7 @@ impl ProofOfProfessionContract {
         self.step_unbond(current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)));
 
         // TODO: separate to another function
-        let _ = self.distribute();
+        let _ = self.distribute(&delegations);
         let _ = self.step_claim();
 
         Ok(())
@@ -196,7 +196,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    fn distribute(&self) -> Result<()> {
+    fn distribute(&self, delegations: &Delegations) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -238,7 +238,6 @@ impl ProofOfProfessionContract {
         // 4. Calculate commission & add to commission claim table
         //
         // Check total delegations
-        let delegations = store::read_delegations()?;
         let total_delegation = delegations.total_amount();
 
         // Pick 100 validators + Summize it to derive total PoP
