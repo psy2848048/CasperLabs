@@ -6,7 +6,7 @@ use types::{
 
 use crate::store;
 
-pub fn vote(voter: PublicKey, dapp: Key, amount: U512) -> Result<()> {
+pub fn vote(voter: &PublicKey, dapp: &Key, amount: U512) -> Result<()> {
     // validate amount
     if amount.is_zero() {
         // TODO: change to Error::VoteTooSmall
@@ -34,7 +34,7 @@ pub fn vote(voter: PublicKey, dapp: Key, amount: U512) -> Result<()> {
     Ok(())
 }
 
-pub fn unvote(voter: PublicKey, dapp: Key, amount: U512) -> Result<()> {
+pub fn unvote(voter: &PublicKey, dapp: &Key, amount: U512) -> Result<()> {
     // update vote ((voter, dapp), amount)
     let vote_amount = store::read_vote(voter, dapp);
     if amount > vote_amount {

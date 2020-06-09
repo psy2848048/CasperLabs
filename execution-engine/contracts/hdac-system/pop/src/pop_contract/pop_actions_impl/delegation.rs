@@ -117,7 +117,7 @@ impl Delegations {
 
         // validate amount
         {
-            let bonding_amount = store::read_bonding_amount(*delegator);
+            let bonding_amount = store::read_bonding_amount(delegator);
             let delegating_amount = self.delegating_amount(delegator);
             if amount > bonding_amount.saturating_sub(delegating_amount) {
                 // TODO: return Err(Error::TryToDelegateMoreThanStakes);

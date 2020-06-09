@@ -43,7 +43,7 @@ impl Stakable for ProofOfProfessionContract {
     fn unbond(&mut self, requester: PublicKey, maybe_amount: Option<U512>) -> Result<()> {
         // validate unbond amount
         if let Some(amount) = maybe_amount {
-            let current_amount = store::read_bonding_amount(requester);
+            let current_amount = store::read_bonding_amount(&requester);
 
             // The over-amount caused by the accumulated unbonding request amount is handled in
             // step phase
@@ -144,12 +144,12 @@ impl Delegatable for ProofOfProfessionContract {
 
 impl Votable for ProofOfProfessionContract {
     fn vote(&mut self, user: PublicKey, dapp: Key, amount: U512) -> Result<()> {
-        vote::vote(user, dapp, amount)?;
+        vote::vote(&user, &dapp, amount)?;
         Ok(())
     }
 
     fn unvote(&mut self, user: PublicKey, dapp: Key, maybe_amount: Option<U512>) -> Result<()> {
-        let vote = store::read_vote(user, dapp);
+        let vote = store::read_vote(&user, &dapp);
         let unvote_amount = match maybe_amount {
             Some(amount) => {
                 if amount > vote {
@@ -160,7 +160,7 @@ impl Votable for ProofOfProfessionContract {
             None => vote,
         };
 
-        vote::unvote(user, dapp, unvote_amount)?;
+        vote::unvote(&user, &dapp, unvote_amount)?;
         Ok(())
     }
 }
