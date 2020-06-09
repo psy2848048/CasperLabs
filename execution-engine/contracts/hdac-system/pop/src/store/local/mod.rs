@@ -79,167 +79,21 @@ pub fn unbond(user: PublicKey, maybe_amount: Option<U512>) -> Result<U512> {
         None => bonding_amount,
     };
 
-    // validate amount
-    {
-        if unbond_amount > bonding_amount {
-            return Err(Error::UnbondTooLarge);
-        }
+    // // validate amount
+    // {
+    //     if unbond_amount > bonding_amount {
+    //         return Err(Error::UnbondTooLarge);
+    //     }
 
-        // TODO: make iteration to make sure not to ommit an action.
-        let max_action_amount = U512::max(read_delegating_amount(user), read_voting_amount(user));
-        if unbond_amount > bonding_amount - max_action_amount {
-            return Err(Error::UnbondTooLarge);
-        }
-    }
+    //     // TODO: make iteration to make sure not to ommit an action.
+    //     let max_action_amount = U512::max(read_delegating_amount(user),
+    // read_voting_amount(user));     if unbond_amount > bonding_amount - max_action_amount {
+    //         return Err(Error::UnbondTooLarge);
+    //     }
+    // }
 
     storage::write_local(key, bonding_amount - unbond_amount);
     Ok(unbond_amount)
-}
-
-pub fn read_delegation(delegator: PublicKey, validator: PublicKey) -> U512 {
-    let key = keys::delegation_key(delegator, validator);
-    storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default()
-}
-
-pub fn read_delegating_amount(delegator: PublicKey) -> U512 {
-    let key = keys::delegating_amount_key(delegator);
-    storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default()
-}
-
-pub fn read_delegated_amount(validator: PublicKey) -> U512 {
-    let key = keys::delegated_amount_key(validator);
-    storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default()
-}
-
-pub fn delegate(delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
-    // update delegating amount (delegator, amount)
-    let delegating_amount_key = keys::delegating_amount_key(delegator);
-    let delegating_amount: U512 = storage::read_local(&delegating_amount_key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-
-    // validate amount
-    {
-        let bonding_amount = read_bonding_amount(delegator);
-        let delegating_amount = read_delegating_amount(delegator);
-        // internal error
-        if delegating_amount > bonding_amount {
-            // TODO: return Err(Error::InternalError);
-            return Err(Error::NotBonded);
-        }
-        if amount > bonding_amount - delegating_amount {
-            // TODO: return Err(Error::DelegateMoreThanStakes);
-            return Err(Error::UndelegateTooLarge);
-        }
-    }
-    storage::write_local(delegating_amount_key, delegating_amount + amount);
-
-    // update delegation ((delegator, validator), amount)
-    let key = keys::delegation_key(delegator, validator);
-    let current_amount: U512 = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    storage::write_local(key, current_amount + amount);
-
-    // update delegated amount (validator, amount)
-    let key = keys::delegated_amount_key(validator);
-    let current_amount: U512 = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    storage::write_local(key, current_amount + amount);
-
-    Ok(())
-}
-
-pub fn undelegate(
-    delegator: PublicKey,
-    validator: PublicKey,
-    maybe_amount: Option<U512>,
-) -> Result<U512> {
-    // update delegation ((delegator, validator), amount)
-    let delegation_key = keys::delegation_key(delegator, validator);
-    let delegation_amount: U512 = storage::read_local(&delegation_key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    let undelegate_amount = match maybe_amount {
-        Some(amount) => {
-            if amount > delegation_amount {
-                return Err(Error::UndelegateTooLarge);
-            }
-            if amount.is_zero() {
-                // TODO: change to UndelegateTooSmall;
-                return Err(Error::UndelegateTooLarge);
-            }
-            amount
-        }
-        None => delegation_amount,
-    };
-    storage::write_local(delegation_key, delegation_amount - undelegate_amount);
-
-    // update delegating amount (delegator, amount)
-    let key = keys::delegating_amount_key(delegator);
-    let current_amount: U512 = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    // if amount > current_amount {
-    //     Err(Error::InternalError);
-    // }
-    storage::write_local(key, current_amount - undelegate_amount);
-
-    // update delegated amount (validator, amount)
-    let key = keys::delegated_amount_key(validator);
-    let current_amount: U512 = storage::read_local(&key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    // if amount > current_amount {
-    //     Err(Error::InternalError);
-    // }
-    storage::write_local(key, current_amount - undelegate_amount);
-    Ok(undelegate_amount)
-}
-
-pub fn redelegate(
-    delegator: PublicKey,
-    src_validator: PublicKey,
-    dest_validator: PublicKey,
-    maybe_amount: Option<U512>,
-) -> Result<()> {
-    // update delegation(delegator, src_validator)
-    let src_delegation_key = keys::delegation_key(delegator, src_validator);
-    let delegation_amount: U512 = storage::read_local(&src_delegation_key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-
-    let redelegate_amount = match maybe_amount {
-        Some(amount) => {
-            if amount > delegation_amount {
-                return Err(Error::UndelegateTooLarge);
-            }
-            if amount.is_zero() {
-                // TODO: UndelegateTooSmall
-                return Err(Error::UndelegateTooLarge);
-            }
-            amount
-        }
-        None => delegation_amount,
-    };
-
-    storage::write_local(src_delegation_key, delegation_amount - redelegate_amount);
-
-    // update delegation(delegator, dest_validator)
-    let dest_delegation_key = keys::delegation_key(delegator, dest_validator);
-    let delegation_amount: U512 = storage::read_local(&dest_delegation_key)
-        .unwrap_or_default()
-        .unwrap_or_default();
-    storage::write_local(dest_delegation_key, delegation_amount + redelegate_amount);
-
-    Ok(())
 }
 
 pub fn read_vote(voter: PublicKey, dapp: Key) -> U512 {

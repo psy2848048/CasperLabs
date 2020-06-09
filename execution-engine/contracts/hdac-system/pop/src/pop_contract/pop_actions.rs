@@ -1,11 +1,3 @@
-pub mod delegations;
-pub mod delegations_provider;
-#[allow(dead_code)] // this mod comes from CasperLabs' stakes
-pub mod stakes;
-pub mod stakes_provider;
-pub mod votes;
-pub mod votes_provider;
-
 use types::{account::PublicKey, system_contract_errors::pos::Result, Key, URef, U512};
 
 pub trait ProofOfProfession: Delegatable + Votable + Stakable {}

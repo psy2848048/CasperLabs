@@ -21,7 +21,9 @@ use types::{
 
 use crate::{
     constants::{sys_params, uref_names},
-    store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
+    store::{
+        self, ClaimRequest, DelegationKey, RedelegateRequest, UnbondRequest, UndelegateRequest,
+    },
 };
 
 use economy::{pop_score_calculation, ContractClaim};
@@ -156,10 +158,6 @@ impl ProofOfProfessionContract {
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
 
-        let delegations = self.read_delegations()?;
-        let delegation_stat = self.read_delegation_stat()?;
-        let delegation_sorted_stat = self.get_sorted_delegation_stat(&delegation_stat)?;
-
         let mut commissions = ContractClaim::read_commission()?;
         let mut rewards = ContractClaim::read_reward()?;
 
@@ -197,23 +195,18 @@ impl ProofOfProfessionContract {
         // 4. Calculate commission & add to commission claim table
         //
         // Check total delegations
-        let mut total_delegation: U512 = U512::from(0);
-        for (_, value) in delegation_stat.0.iter() {
-            total_delegation += *value;
-        }
+        let delegations = store::read_delegations()?;
+        let total_delegation = delegations.total_amount();
 
         // Pick 100 validators + Summize it to derive total PoP
         let mut total_pop_score = U512::zero();
         let mut pop_score_table: BTreeMap<PublicKey, U512> = BTreeMap::new();
-        for (idx, unit_data) in delegation_sorted_stat.into_iter().enumerate() {
-            if idx >= 100 {
-                break;
-            }
-
-            let unit_pop_score = pop_score_calculation(&total_delegation, &unit_data.amount);
+        let validators = delegations.validators();
+        for (validator, delegated_amount) in validators {
+            let unit_pop_score = pop_score_calculation(&total_delegation, &delegated_amount);
 
             total_pop_score += unit_pop_score;
-            pop_score_table.insert(unit_data.validator, unit_pop_score);
+            pop_score_table.insert(*validator, unit_pop_score);
         }
 
         for (validator, unit_pop_score) in pop_score_table.iter() {
@@ -233,24 +226,31 @@ impl ProofOfProfessionContract {
         // 3. Derive each validator's reward portion and insert reward of each user
 
         // 1. Swipe delegation table, and derive user's portion of delegation
-        for (delegation_key, user_delegation_amount) in delegations.0.iter() {
+        for (
+            DelegationKey {
+                delegator,
+                validator,
+            },
+            user_delegation_amount,
+        ) in delegations.iter()
+        {
             // 2. Lookup delegation_stat table for total delegation for each validator
-            let total_delegation_per_validator = delegation_stat
-                .0
-                .get(&delegation_key.validator)
-                .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
+            let total_delegation_per_validator = delegations
+                .delegated_amount(validator)
+                .ok_or(Error::NotDelegated)?;
 
             // 3. Derive each validator's reward portion and insert reward of each user
             let pop_score_of_validator = pop_score_table
-                .get(&delegation_key.validator)
-                .unwrap_or_revert_with(Error::DelegationsKeyDeserializationFailed);
+                .get(validator)
+                .ok_or(Error::DelegationsKeyDeserializationFailed)?;
+
             let user_reward = user_delegation_amount
                 * pop_score_of_validator
                 * U512::from(100 - sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
-            rewards.insert_rewards(&delegation_key.delegator, &user_reward);
+            rewards.insert_rewards(delegator, &user_reward);
         }
         ContractClaim::write_reward(&rewards);
 
@@ -292,7 +292,7 @@ impl ProofOfProfessionContract {
             } = request.item;
             // If the request is invalid, discard the request.
             // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-            let _ = store::undelegate(delegator, validator, maybe_amount);
+            // let _ = store::undelegate(delegator, validator, maybe_amount);
         }
     }
 
@@ -312,7 +312,7 @@ impl ProofOfProfessionContract {
 
             // If the request is invalid, discard the request.
             // TODO: Error is currently ignored, but should propagate to endpoint in the future.
-            let _ = store::redelegate(delegator, src_validator, dest_validator, maybe_amount);
+            // let _ = store::redelegate(delegator, src_validator, dest_validator, maybe_amount);
         }
     }
 

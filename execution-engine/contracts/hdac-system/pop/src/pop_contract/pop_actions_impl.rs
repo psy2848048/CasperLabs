@@ -64,7 +64,7 @@ impl Stakable for ProofOfProfessionContract {
 
 impl Delegatable for ProofOfProfessionContract {
     fn delegate(&mut self, delegator: PublicKey, validator: PublicKey, amount: U512) -> Result<()> {
-        store::delegate(delegator, validator, amount)?;
+        // store::delegate(delegator, validator, amount)?;
         Ok(())
     }
 
@@ -75,15 +75,15 @@ impl Delegatable for ProofOfProfessionContract {
         maybe_amount: Option<U512>,
     ) -> Result<()> {
         // validate undelegate amount
-        if let Some(amount) = maybe_amount {
-            let delegation_amount = store::read_delegation(delegator, validator);
+        // if let Some(amount) = maybe_amount {
+        //     let delegation_amount = store::read_delegation(delegator, validator);
 
-            // The over-amount caused by the accumulated undelegating request amount is handled in
-            // step phase
-            if amount > delegation_amount {
-                return Err(Error::UndelegateTooLarge);
-            }
-        }
+        //     // The over-amount caused by the accumulated undelegating request amount is handled
+        // in     // step phase
+        //     if amount > delegation_amount {
+        //         return Err(Error::UndelegateTooLarge);
+        //     }
+        // }
 
         let mut queue = store::read_undelegation_requests();
         queue.push(
@@ -110,15 +110,15 @@ impl Delegatable for ProofOfProfessionContract {
             return Err(Error::SelfRedelegation);
         }
 
-        // validate redelegate amount
-        if let Some(amount) = maybe_amount {
-            let delegation_amount = store::read_delegation(delegator, src);
-            // The over-amount caused by the accumulated redelegating request amount is handled in
-            // step phase
-            if amount > delegation_amount {
-                return Err(Error::UndelegateTooLarge);
-            }
-        }
+        // // validate redelegate amount
+        // if let Some(amount) = maybe_amount {
+        //     let delegation_amount = store::read_delegation(delegator, src);
+        //     // The over-amount caused by the accumulated redelegating request amount is handled
+        // in     // step phase
+        //     if amount > delegation_amount {
+        //         return Err(Error::UndelegateTooLarge);
+        //     }
+        // }
 
         let mut request_queue = store::read_redelegation_requests();
         request_queue.push(
