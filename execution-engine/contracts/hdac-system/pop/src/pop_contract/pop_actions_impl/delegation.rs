@@ -15,8 +15,6 @@ const MAX_VALIDATORS: usize = 100;
 
 pub struct Delegations {
     table: BTreeMap<DelegationKey, U512>,
-    /// validators should be always sorted in desc order and truncated with MAX_VALIDATORS
-    validators: Vec<(PublicKey, U512)>,
     total_amount: Option<U512>,
 }
 
@@ -28,10 +26,8 @@ pub struct DelegationKey {
 
 impl Delegations {
     pub fn new(table: BTreeMap<DelegationKey, U512>) -> Self {
-        let validators = Self::validators_from_table(&table);
         Self {
             table,
-            validators,
             total_amount: None,
         }
     }
@@ -40,11 +36,7 @@ impl Delegations {
         self.table.iter()
     }
 
-    pub fn validators(&self) -> &Vec<(PublicKey, U512)> {
-        &self.validators
-    }
-
-    fn validators_from_table(table: &BTreeMap<DelegationKey, U512>) -> Vec<(PublicKey, U512)> {
+    pub fn validators(&self) -> Vec<(PublicKey, U512)> {
         let mut validators = BTreeMap::default();
         for (
             DelegationKey {
@@ -52,7 +44,7 @@ impl Delegations {
                 validator,
             },
             amount,
-        ) in table.iter()
+        ) in self.table.iter()
         {
             validators
                 .entry(*validator)
@@ -97,11 +89,12 @@ impl Delegations {
             .fold(U512::zero(), |acc, x| acc + x)
     }
 
-    pub fn delegated_amount(&self, validator: &PublicKey) -> Option<&U512> {
-        self.validators
+    pub fn delegated_amount(&self, validator: &PublicKey) -> U512 {
+        self.table
             .iter()
-            .find(|x| x.0 == *validator)
-            .map(|x| &x.1)
+            .filter(|x| x.0.validator == *validator)
+            .map(|x| x.1)
+            .fold(U512::zero(), |acc, x| acc + *x)
     }
 
     pub fn delegate(
@@ -136,22 +129,6 @@ impl Delegations {
             Some(total_amount) => Some(total_amount + amount),
             None => Some(amount),
         };
-
-        // update validators
-        if let Some((_, last_validator_amount)) = self.validators.last() {
-            let delegated_amount = self
-                .delegated_amount(validator)
-                .cloned()
-                .unwrap_or(U512::zero());
-            if delegated_amount + amount > *last_validator_amount {
-                // TODO: consider to replace Vec with priority_queue
-                self.validators.push((*validator, amount));
-                self.validators.sort_by(|a, b| b.1.cmp(&a.1));
-            }
-        } else {
-            self.validators.push((*validator, amount));
-            self.validators.sort_by(|a, b| b.1.cmp(&a.1));
-        }
 
         Ok(())
     }
@@ -192,10 +169,6 @@ impl Delegations {
             Some(total_amount) => Some(total_amount.saturating_sub(undelegate_amount)),
             None => unreachable!(),
         };
-
-        // update validators
-        // TODO: This is too expensive, reflect a better way.
-        self.validators = Self::validators_from_table(&self.table);
 
         Ok(undelegate_amount)
     }
@@ -243,10 +216,6 @@ impl Delegations {
                 .and_modify(|x| *x += undelegate_amount)
                 .or_insert(undelegate_amount);
         }
-
-        // update validators
-        // TODO: This is too expensive, reflect a better way.
-        self.validators = Self::validators_from_table(&self.table);
 
         Ok(())
     }
