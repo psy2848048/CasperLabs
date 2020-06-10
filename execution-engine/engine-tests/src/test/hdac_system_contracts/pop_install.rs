@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, convert::TryFrom};
 
 use engine_core::engine_state::EngineConfig;
 use engine_test_support::{
@@ -8,7 +8,7 @@ use engine_test_support::{
     },
     DEFAULT_ACCOUNT_ADDR,
 };
-use types::{account::PublicKey, AccessRights, Key, URef, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, AccessRights, CLValue, Key, URef, U512};
 
 const CONTRACT_TRANSFER_TO_ACCOUNT: &str = "transfer_to_account_u512.wasm";
 const TRANSFER_AMOUNT: u64 = 250_000_000 + 1000;
@@ -17,7 +17,7 @@ const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 
 // one named_key for each validator and five for the purses and the total supply amount.
-const EXPECTED_KNOWN_KEYS_LEN: usize = ((N_VALIDATORS * 2) as usize) + 5 + 1;
+const EXPECTED_KNOWN_KEYS_LEN: usize = (N_VALIDATORS as usize) + 5 + 1;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
@@ -49,16 +49,6 @@ fn should_run_pop_install_contract() {
     let genesis_validators: BTreeMap<PublicKey, U512> = (1u8..=N_VALIDATORS)
         .map(|i| (PublicKey::ed25519_from([i; 32]), U512::from(i)))
         .collect();
-    let state_infos: Vec<String> = (1u8..=N_VALIDATORS)
-        .map(|i| {
-            format!(
-                "d_{}_{}_{}",
-                base16::encode_lower(&PublicKey::ed25519_from([i; 32]).as_bytes()),
-                base16::encode_lower(&PublicKey::ed25519_from([i; 32]).as_bytes()),
-                i.to_string()
-            )
-        })
-        .collect();
 
     let total_bond = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
 
@@ -69,7 +59,7 @@ fn should_run_pop_install_contract() {
         POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
-        (mint_uref, genesis_validators, state_infos),
+        (mint_uref, genesis_validators.clone()),
         vec![mint_uref],
     )
     .expect("should run successfully");
@@ -135,6 +125,39 @@ fn should_run_pop_install_contract() {
         system_account.named_keys().contains_key("client_api_proxy"),
         "client_api_proxy should be present"
     );
+
+    // genesis states are correctly saved.
+    for (validator, amount) in &genesis_validators {
+        // check delegations
+        let delegation_entry = format!(
+            "d_{}_{}_{}",
+            base16::encode_lower(validator.as_bytes()),
+            base16::encode_lower(validator.as_bytes()),
+            amount
+        );
+        assert!(named_keys.contains_key(&delegation_entry));
+
+        // check stakes
+        let key = stake_amount_local_key(&ret_value, validator);
+        let got: CLValue = builder
+            .query(None, key.clone(), &[])
+            .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+            .expect("should have local value.");
+        let got: U512 = got.into_t().unwrap();
+        assert_eq!(
+            got, *amount,
+            "bond amount assertion failure for {:?}",
+            validator
+        );
+    }
+}
+
+fn stake_amount_local_key(pop_uref: &URef, address: &PublicKey) -> Key {
+    let mut ret = Vec::with_capacity(1 + address.as_bytes().len());
+    ret.push(1u8);
+    ret.extend(address.as_bytes());
+
+    Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
 }
 
 fn get_purse(named_keys: &BTreeMap<String, Key>, name: &str) -> Option<URef> {

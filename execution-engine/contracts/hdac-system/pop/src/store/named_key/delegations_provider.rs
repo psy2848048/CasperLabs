@@ -56,9 +56,6 @@ pub fn read_delegations() -> Result<Delegations> {
             balance,
         );
     }
-    if delegations.is_empty() {
-        return Err(Error::DelegationsNotFound);
-    }
     Ok(Delegations::new(delegations))
 }
 

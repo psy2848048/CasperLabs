@@ -48,7 +48,7 @@ pub extern "C" fn call() {
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
 
-    let named_keys = build_pop_named_keys(mint_uref);
+    let named_keys = build_pop_named_keys(mint_uref, &genesis_validators);
 
     let pop_uref: URef = storage::store_function(POP_FUNCTION_NAME, named_keys)
         .into_uref()
@@ -70,7 +70,10 @@ pub extern "C" fn call() {
     runtime::ret(return_value);
 }
 
-fn build_pop_named_keys(mint_uref: URef) -> BTreeMap<String, Key> {
+fn build_pop_named_keys(
+    mint_uref: URef,
+    genesis_validators: &BTreeMap<PublicKey, U512>,
+) -> BTreeMap<String, Key> {
     let mint = ContractRef::URef(URef::new(mint_uref.addr(), AccessRights::READ));
     let mut named_keys = BTreeMap::<String, Key>::default();
 
@@ -84,7 +87,8 @@ fn build_pop_named_keys(mint_uref: URef) -> BTreeMap<String, Key> {
         .unwrap();
     named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
 
-    let bonding_purse = mint_purse(&mint, U512::zero());
+    let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
+    let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
     let rewards_purse = mint_purse(&mint, U512::zero());
     let commission_purse = mint_purse(&mint, U512::zero());
