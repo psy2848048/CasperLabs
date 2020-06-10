@@ -142,17 +142,6 @@ mod tests {
             )
         );
         assert_eq!(
-            Err(Error::MultipleRequests),
-            queue.push(
-                UndelegateRequest {
-                    delegator: delegator,
-                    validator: validator_1,
-                    maybe_amount: Some(U512::from(6))
-                },
-                BlockTime::new(102)
-            )
-        );
-        assert_eq!(
             Err(Error::TimeWentBackwards),
             queue.push(
                 UndelegateRequest {
@@ -206,37 +195,41 @@ mod tests {
                 BlockTime::new(102)
             )
         );
-        assert_eq!(
-            vec![
-                DurationQueueEntry {
-                    item: UndelegateRequest {
-                        delegator: delegator,
-                        validator: validator_1,
-                        maybe_amount: Some(U512::from(5))
-                    },
-                    timestamp: BlockTime::new(100)
-                },
-                DurationQueueEntry {
-                    item: UndelegateRequest {
-                        delegator: delegator,
-                        validator: validator_2,
-                        maybe_amount: Some(U512::from(5))
-                    },
-                    timestamp: BlockTime::new(101)
-                },
-            ],
-            queue.pop_due(BlockTime::new(101))
-        );
-        assert_eq!(
-            vec![DurationQueueEntry {
+        let expected = vec![
+            DurationQueueEntry {
                 item: UndelegateRequest {
                     delegator: delegator,
-                    validator: validator_3,
-                    maybe_amount: Some(U512::from(5))
+                    validator: validator_1,
+                    maybe_amount: Some(U512::from(5)),
                 },
-                timestamp: BlockTime::new(102)
-            },],
-            queue.pop_due(BlockTime::new(105))
-        );
+                timestamp: BlockTime::new(100),
+            },
+            DurationQueueEntry {
+                item: UndelegateRequest {
+                    delegator: delegator,
+                    validator: validator_2,
+                    maybe_amount: Some(U512::from(5)),
+                },
+                timestamp: BlockTime::new(101),
+            },
+        ];
+        let got = queue.pop_due(BlockTime::new(101));
+        for i in 0..expected.len() {
+            assert_eq!(expected[i].item, got[i].item);
+            assert_eq!(expected[i].timestamp, got[i].timestamp);
+        }
+        let expected = vec![DurationQueueEntry {
+            item: UndelegateRequest {
+                delegator: delegator,
+                validator: validator_3,
+                maybe_amount: Some(U512::from(5)),
+            },
+            timestamp: BlockTime::new(102),
+        }];
+        let got = queue.pop_due(BlockTime::new(105));
+        for i in 0..expected.len() {
+            assert_eq!(expected[i].item, got[i].item);
+            assert_eq!(expected[i].timestamp, got[i].timestamp);
+        }
     }
 }
