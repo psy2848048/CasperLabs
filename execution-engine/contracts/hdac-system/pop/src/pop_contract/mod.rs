@@ -39,7 +39,20 @@ impl ProofOfProfessionContract {
         &mut self,
         genesis_validators: BTreeMap<PublicKey, U512>,
     ) -> Result<()> {
-        unimplemented!()
+        if runtime::get_caller().value() != sys_params::SYSTEM_ACCOUNT {
+            return Err(Error::SystemFunctionCalledByUserAccount);
+        }
+
+        let mut delegations = store::read_delegations()?;
+
+        for (validator, amount) in &genesis_validators {
+            // bond and write self-delegation
+            stake::bond(validator, *amount);
+            delegations.delegate(&validator, &validator, *amount)?;
+        }
+
+        store::write_delegations(&delegations);
+        Ok(())
     }
 
     pub fn step(&mut self) -> Result<()> {
