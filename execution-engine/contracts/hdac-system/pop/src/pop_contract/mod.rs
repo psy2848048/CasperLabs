@@ -123,8 +123,9 @@ impl ProofOfProfessionContract {
 
         Ok(())
     }
+
     // For validator
-    pub fn claim_commission(&self, validator: &PublicKey) -> Result<()> {
+    pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
         let mut commissions = ContractClaim::read_commission()?;
         let validator_commission = commissions
@@ -145,7 +146,7 @@ impl ProofOfProfessionContract {
     }
 
     // For user
-    pub fn claim_reward(&self, user: &PublicKey) -> Result<()> {
+    pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
         let mut rewards = ContractClaim::read_reward()?;
         let user_reward = rewards
             .0
@@ -216,7 +217,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    fn distribute(&self, delegations: &Delegations) -> Result<()> {
+    fn distribute(&mut self, delegations: &Delegations) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
         let mut total_supply = ContractClaim::read_total_supply()?;
@@ -338,7 +339,7 @@ impl ProofOfProfessionContract {
         }
     }
 
-    fn step_claim(&self) -> Result<()> {
+    fn step_claim(&mut self) -> Result<()> {
         let claim_requests = store::read_claim_requests();
 
         for request in claim_requests.iter() {
