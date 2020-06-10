@@ -7,6 +7,7 @@ pub(crate) mod uref_names {
 }
 
 pub(crate) mod methods {
+    pub const METHOD_INSTALL_GENESIS_STATES: &str = "install_genesis_states";
     pub const METHOD_BOND: &str = "bond";
     pub const METHOD_UNBOND: &str = "unbond";
     pub const METHOD_STEP: &str = "step";

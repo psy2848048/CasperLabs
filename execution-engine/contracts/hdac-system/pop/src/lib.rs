@@ -8,7 +8,7 @@ mod math;
 mod pop_contract;
 mod store;
 
-use alloc::string::String;
+use alloc::{collections::BTreeMap, string::String};
 
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{account::PublicKey, ApiError, CLValue, Key, URef, U512};
@@ -24,6 +24,16 @@ pub fn delegate() {
         .unwrap_or_revert_with(ApiError::InvalidArgument);
 
     match method_name.as_str() {
+        // Type of this method:
+        // `fn install_genesis_states(genesis_validators: BTreeMap<PublicKey, U512>)`
+        methods::METHOD_INSTALL_GENESIS_STATES => {
+            let genesis_validators: BTreeMap<PublicKey, U512> = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract
+                .install_genesis_states(genesis_validators)
+                .unwrap_or_revert();
+        }
         // Type of this method: `fn bond(amount: U512, purse: URef)`
         methods::METHOD_BOND => {
             let caller = runtime::get_caller();

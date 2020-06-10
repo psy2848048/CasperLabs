@@ -35,6 +35,13 @@ const SECONDS_OF_HOUR: i64 = 3600_i64;
 pub struct ProofOfProfessionContract;
 
 impl ProofOfProfessionContract {
+    pub fn install_genesis_states(
+        &mut self,
+        genesis_validators: BTreeMap<PublicKey, U512>,
+    ) -> Result<()> {
+        unimplemented!()
+    }
+
     pub fn step(&mut self) -> Result<()> {
         let caller = runtime::get_caller();
 
