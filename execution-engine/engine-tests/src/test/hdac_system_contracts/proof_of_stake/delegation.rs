@@ -515,7 +515,7 @@ fn should_run_successful_redelegate() {
 
 #[ignore]
 #[test]
-fn should_fail_to_unbond_more_than_own_self_delegation() {
+fn should_fail_to_undelegate_more_than_delegation() {
     const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
     const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
@@ -537,15 +537,18 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
         ),
     ];
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
+    // bond request from ACCOUNT_2.
+    let bond_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_2_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(BOND_METHOD),
+            U512::from(GENESIS_VALIDATOR_STAKE),
+        ),
     )
-    .to_string()];
+    .build();
 
-    // delegate request from ACCOUNT_3 to ACCOUNT_1.
+    // delegate request from ACCOUNT_2 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_2_ADDR,
         CONTRACT_POS_DELEGATION,
@@ -557,40 +560,42 @@ fn should_fail_to_unbond_more_than_own_self_delegation() {
     )
     .build();
 
-    let unbond_request = ExecuteRequestBuilder::standard(
+    let undelegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR,
         CONTRACT_POS_DELEGATION,
         (
             String::from(UNBOND_METHOD),
-            Some(U512::from(GENESIS_VALIDATOR_STAKE + 10)),
+            Some(U512::from(ACCOUNT_2_DELEGATE_AMOUNT + 10)),
         ),
     )
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
+        .exec(bond_request)
+        .expect_success()
+        .commit()
         .exec(delegate_request)
         .expect_success()
         .commit()
-        .exec(unbond_request)
+        .exec(undelegate_request)
         .commit()
         .step(StepRequestBuilder::default().build())
         .finish();
 
-    let response = result
-        .builder()
-        .get_exec_response(1)
-        .expect("should have a response")
-        .to_owned();
+    // assert that the delegations are not changed
+    let delegation_1 = format!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_2_ADDR.value()),
+        base16::encode_lower(&ACCOUNT_1_ADDR.value()),
+        ACCOUNT_2_DELEGATE_AMOUNT
+    );
+    let pop_contract = builder.get_pos_contract();
+    assert!(pop_contract.named_keys().contains_key(&delegation_1));
 
-    let error_message = utils::get_error_message(response);
-
-    // pos::Error::UndelegateTooLarge => 28
-    assert!(error_message.contains(&format!(
-        "Revert({})",
-        u32::from(ApiError::ProofOfStake(28))
-    )));
+    // assert ACCOUNT_2's delegating amount
+    // assert ACCOUNT_1's delegated amount
 }
 
 #[ignore]
