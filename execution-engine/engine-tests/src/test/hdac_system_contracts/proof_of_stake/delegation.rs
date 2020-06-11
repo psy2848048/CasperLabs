@@ -616,14 +616,6 @@ fn should_fail_to_delegate_to_unbonded_validator() {
         ),
     ];
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
-
     // delegate request from ACCOUNT_1 to ACCOUNT_2.
     let delegate_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR,
@@ -638,7 +630,7 @@ fn should_fail_to_delegate_to_unbonded_validator() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
         .exec(delegate_request)
         .commit()
         .finish();
@@ -651,8 +643,11 @@ fn should_fail_to_delegate_to_unbonded_validator() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::NotBonded => 0
-    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(0)))));
+    // pos::Error::NotDelegated => 27
+    assert!(error_message.contains(&format!(
+        "Revert({})",
+        u32::from(ApiError::ProofOfStake(27))
+    )));
 }
 
 #[ignore]
@@ -679,23 +674,6 @@ fn should_fail_to_redelegate_non_existent_delegation() {
         ),
     ];
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
-
     // redelegate request from ACCOUNT_2 to self.
     let redelegate_request = ExecuteRequestBuilder::standard(
         PublicKey::ed25519_from(ACCOUNT_1_ADDR),
@@ -710,26 +688,29 @@ fn should_fail_to_redelegate_non_existent_delegation() {
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::default();
-    let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+    let _ = builder
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
         .exec(redelegate_request)
         .commit()
         .step(StepRequestBuilder::default().build())
         .finish();
 
-    let response = result
-        .builder()
-        .get_exec_response(0)
-        .expect("should have a response")
-        .to_owned();
-
-    let error_message = utils::get_error_message(response);
-
-    // pos::Error::NotDelegated => 27
-    assert!(error_message.contains(&format!(
-        "Revert({})",
-        u32::from(ApiError::ProofOfStake(27))
-    )));
+    // assert that the delegations are not changed
+    let delegation_1 = format!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_1_ADDR),
+        base16::encode_lower(&ACCOUNT_1_ADDR),
+        GENESIS_VALIDATOR_STAKE
+    );
+    let delegation_2 = format!(
+        "d_{}_{}_{}",
+        base16::encode_lower(&ACCOUNT_2_ADDR),
+        base16::encode_lower(&ACCOUNT_2_ADDR),
+        GENESIS_VALIDATOR_STAKE
+    );
+    let pop_contract = builder.get_pos_contract();
+    assert!(pop_contract.named_keys().contains_key(&delegation_1));
+    assert!(pop_contract.named_keys().contains_key(&delegation_2));
 }
 
 #[ignore]
@@ -755,14 +736,6 @@ fn should_fail_to_self_redelegate() {
             Motes::zero(),
         ),
     ];
-
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR),
-        base16::encode_lower(&ACCOUNT_1_ADDR),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
 
     // delegate request from ACCOUNT_2 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
@@ -791,7 +764,7 @@ fn should_fail_to_self_redelegate() {
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
         .exec(delegate_request)
         .expect_success()
         .commit()

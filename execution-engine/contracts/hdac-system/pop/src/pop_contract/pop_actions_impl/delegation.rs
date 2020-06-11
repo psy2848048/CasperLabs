@@ -64,11 +64,11 @@ impl Delegations {
             .unwrap_or_else(|| self.table.values().fold(U512::zero(), |acc, x| acc + x))
     }
 
-    pub fn delegation(&self, delegator: PublicKey, validator: PublicKey) -> Result<U512> {
+    pub fn delegation(&self, delegator: &PublicKey, validator: &PublicKey) -> Result<U512> {
         self.table
             .get(&DelegationKey {
-                delegator,
-                validator,
+                delegator: *delegator,
+                validator: *validator,
             })
             .cloned()
             .ok_or(Error::DelegationsNotFound)
@@ -105,6 +105,10 @@ impl Delegations {
             delegator: *delegator,
             validator: *validator,
         };
+        // if request is not self-delegation and validator is not self-delegated, return error
+        if *delegator != *validator && self.delegation(validator, validator).is_err() {
+            return Err(Error::NotDelegated);
+        }
 
         // validate amount
         {

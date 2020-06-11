@@ -84,7 +84,8 @@ impl Delegatable for ProofOfProfessionContract {
     ) -> Result<()> {
         // validate undelegate amount
         if let Some(amount) = maybe_amount {
-            let delegation_amount = store::read_delegations()?.delegation(delegator, validator)?;
+            let delegation_amount =
+                store::read_delegations()?.delegation(&delegator, &validator)?;
 
             // The over-amount caused by the accumulated undelegating request amount is handled
             // step phase
@@ -120,7 +121,7 @@ impl Delegatable for ProofOfProfessionContract {
 
         // // validate redelegate amount
         if let Some(amount) = maybe_amount {
-            let delegation_amount = store::read_delegations()?.delegation(delegator, src)?;
+            let delegation_amount = store::read_delegations()?.delegation(&delegator, &src)?;
 
             // The over-amount caused by the accumulated undelegating request amount is handled
             // step phase
