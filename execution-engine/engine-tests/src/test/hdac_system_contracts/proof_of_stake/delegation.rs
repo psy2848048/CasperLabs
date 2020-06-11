@@ -1,14 +1,12 @@
 use num_traits::identities::Zero;
 
-use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
+use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
-    internal::{
-        utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder, DEFAULT_PAYMENT,
-    },
+    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, ApiError, Key, U512};
+use types::{account::PublicKey, ApiError, U512};
 
 const CONTRACT_POS_DELEGATION: &str = "pos_delegation.wasm";
 
@@ -17,18 +15,6 @@ const UNBOND_METHOD: &str = "unbond";
 const DELEGATE_METHOD: &str = "delegate";
 const UNDELEGATE_METHOD: &str = "undelegate";
 const REDELEGATE_METHOD: &str = "redelegate";
-
-fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
-    let purse_id = builder
-        .get_pos_contract()
-        .named_keys()
-        .get(POS_BONDING_PURSE)
-        .and_then(Key::as_uref)
-        .cloned()
-        .expect("should find PoS payment purse");
-
-    builder.get_purse_balance(purse_id)
-}
 
 #[ignore]
 #[test]
@@ -294,22 +280,24 @@ fn should_run_successful_redelegate() {
         ),
     ];
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
+    let account_1_bond_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_1_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(BOND_METHOD), U512::from(1_000_000)),
+    )
+    .build();
+    let account_2_bond_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_2_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(BOND_METHOD), U512::from(1_000_000)),
+    )
+    .build();
+    let account_3_bond_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_3_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(BOND_METHOD), U512::from(1_000_000)),
+    )
+    .build();
 
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
@@ -330,17 +318,28 @@ fn should_run_successful_redelegate() {
             String::from(REDELEGATE_METHOD),
             ACCOUNT_1_ADDR,
             ACCOUNT_2_ADDR,
-            U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
+            Some(U512::from(ACCOUNT_3_REDELEGATE_AMOUNT)),
         ),
     )
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
+        .exec(account_1_bond_request)
+        .expect_success()
+        .commit()
+        .exec(account_2_bond_request)
+        .expect_success()
+        .commit()
+        .exec(account_3_bond_request)
+        .expect_success()
+        .commit()
         .exec(delegate_request)
+        .expect_success()
         .commit()
         .exec(redelegate_request)
+        .expect_success()
         .commit()
         .step(StepRequestBuilder::default().build())
         .finish();
@@ -397,13 +396,15 @@ fn should_run_successful_redelegate() {
             String::from(REDELEGATE_METHOD),
             ACCOUNT_1_ADDR,
             ACCOUNT_2_ADDR,
-            U512::from(ACCOUNT_3_DELEGATE_AMOUNT - ACCOUNT_3_REDELEGATE_AMOUNT),
+            Some(U512::from(
+                ACCOUNT_3_DELEGATE_AMOUNT - ACCOUNT_3_REDELEGATE_AMOUNT,
+            )),
         ),
     )
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
+    let _ = builder
         .exec(redelegate_all_request)
         .commit()
         .step(StepRequestBuilder::default().build())
@@ -453,21 +454,6 @@ fn should_run_successful_redelegate() {
             )))
             .count(),
         1
-    );
-
-    // validate pos_bonding_purse balance
-    assert_eq!(
-        get_pos_bonding_purse_balance(&builder),
-        U512::from(GENESIS_VALIDATOR_STAKE * 2 + ACCOUNT_3_DELEGATE_AMOUNT)
-    );
-
-    let account_3 = builder
-        .get_account(ACCOUNT_3_ADDR)
-        .expect("should get account 3");
-    assert_eq!(
-        result.builder().get_purse_balance(account_3.main_purse()),
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - ACCOUNT_3_DELEGATE_AMOUNT)
-            - *DEFAULT_PAYMENT * 3
     );
 }
 
