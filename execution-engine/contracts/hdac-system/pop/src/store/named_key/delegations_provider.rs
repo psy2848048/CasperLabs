@@ -61,18 +61,19 @@ pub fn read_delegations() -> Result<Delegations> {
 
 /// Writes the current stakes to the contract's known urefs.
 pub fn write_delegations(delegations: &Delegations) {
-    // Encode the stakes as a set of uref names.
-    let mut new_urefs: BTreeSet<String> = delegations
+    let to_hex_string = |address: PublicKey| -> String {
+        let bytes = address.value();
+        let mut ret = String::with_capacity(64);
+        for byte in &bytes[..32] {
+            write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
+        }
+        ret
+    };
+
+    // Encode the delegations as a set of string alias.
+    let mut new_entries: BTreeSet<String> = delegations
         .iter()
         .map(|(delegation_key, balance)| {
-            let to_hex_string = |address: PublicKey| -> String {
-                let bytes = address.value();
-                let mut ret = String::with_capacity(64);
-                for byte in &bytes[..32] {
-                    write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
-                }
-                ret
-            };
             let delegator = to_hex_string(delegation_key.delegator);
             let validator = to_hex_string(delegation_key.validator);
             let mut uref = String::new();
@@ -81,13 +82,23 @@ pub fn write_delegations(delegations: &Delegations) {
             uref
         })
         .collect();
+
+    // Encode the validator status as a set of string alias.
+    new_entries.extend(delegations.validators().iter().map(|(validator, amount)| {
+        let validator = to_hex_string(*validator);
+        let mut uref = String::new();
+        uref.write_fmt(format_args!("v_{}_{}", validator, amount))
+            .expect("Writing to a string cannot fail");
+        uref
+    }));
+
     // Remove and add urefs to update the contract's known urefs accordingly.
     for (name, _) in runtime::list_named_keys() {
-        if name.starts_with("d_") && !new_urefs.remove(&name) {
+        if (name.starts_with("d_") || name.starts_with("v_")) && !new_entries.remove(&name) {
             runtime::remove_key(&name);
         }
     }
-    for name in new_urefs {
+    for name in new_entries {
         runtime::put_key(&name, Key::Hash([0; 32]));
     }
 }

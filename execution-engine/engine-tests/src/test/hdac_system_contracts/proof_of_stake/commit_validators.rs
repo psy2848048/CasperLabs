@@ -20,7 +20,13 @@ const ACCOUNT_2_BOND: u64 = 200;
 
 #[ignore]
 #[test]
-fn should_return_bonded_validators() {
+fn should_return_validators() {
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // account_1:
+    // { balance: 2k, stake: 1k, self_delegation: 1k }
+    // account_2:
+    // { balance: 2k, stake: 1k, self_delegation: 200 }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account_1 = GenesisAccount::new(
@@ -38,24 +44,7 @@ fn should_return_bonded_validators() {
         tmp
     };
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            ACCOUNT_1_BOND.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            ACCOUNT_2_BOND.to_string()
-        )
-        .to_string(),
-    ];
-
-    let genesis_config = utils::create_genesis_config(accounts.clone(), state_infos);
+    let genesis_config = utils::create_genesis_config(accounts.clone(), Default::default());
 
     let exec_request =
         ExecuteRequestBuilder::standard(DEFAULT_ACCOUNT_ADDR, CONTRACT_LOCAL_STATE, ()).build();

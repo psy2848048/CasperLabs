@@ -74,7 +74,7 @@ fn should_run_successful_bond_and_unbond() {
     // default_account:
     // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
     // genesis_validator[42; 32]:
-    // { balance: 100k, self_delegation: 50k }
+    // { balance: 100k, stake: 50k ,self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -394,7 +394,7 @@ fn should_fail_unbonding_validator_without_bonding_first() {
     // default_account:
     // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
     // genesis_validator[42; 32]:
-    // { balance: 100k, self_delegation: 50k }
+    // { balance: 100k, stake: 50k, self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
