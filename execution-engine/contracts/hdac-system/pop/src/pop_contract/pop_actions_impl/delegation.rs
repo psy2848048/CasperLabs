@@ -13,7 +13,7 @@ use crate::{constants::sys_params, store};
 
 pub struct Delegations {
     table: BTreeMap<DelegationKey, U512>,
-    total_amount: Option<U512>,
+    total_amount: U512,
 }
 
 #[derive(PartialOrd, Ord, PartialEq, Eq, Clone, Copy)]
@@ -24,9 +24,10 @@ pub struct DelegationKey {
 
 impl Delegations {
     pub fn new(table: BTreeMap<DelegationKey, U512>) -> Self {
+        let total_amount = table.values().fold(U512::zero(), |acc, x| acc + x);
         Self {
             table,
-            total_amount: None,
+            total_amount,
         }
     }
 
@@ -61,7 +62,6 @@ impl Delegations {
 
     pub fn total_amount(&self) -> U512 {
         self.total_amount
-            .unwrap_or_else(|| self.table.values().fold(U512::zero(), |acc, x| acc + x))
     }
 
     pub fn delegation(&self, delegator: &PublicKey, validator: &PublicKey) -> Result<U512> {
@@ -127,10 +127,7 @@ impl Delegations {
             .or_insert(amount);
 
         // update total amount
-        self.total_amount = match self.total_amount {
-            Some(total_amount) => Some(total_amount + amount),
-            None => Some(amount),
-        };
+        self.total_amount += amount;
 
         Ok(())
     }
@@ -167,10 +164,7 @@ impl Delegations {
         };
 
         // update total amount
-        self.total_amount = match self.total_amount {
-            Some(total_amount) => Some(total_amount.saturating_sub(undelegate_amount)),
-            None => unreachable!(),
-        };
+        self.total_amount = self.total_amount.saturating_sub(undelegate_amount);
 
         Ok(undelegate_amount)
     }
