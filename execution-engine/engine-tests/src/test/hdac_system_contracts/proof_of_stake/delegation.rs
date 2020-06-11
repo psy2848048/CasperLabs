@@ -834,22 +834,16 @@ fn should_fail_to_redelegate_more_than_own_shares() {
         ),
     ];
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            base16::encode_lower(&ACCOUNT_1_ADDR),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            base16::encode_lower(&ACCOUNT_2_ADDR),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
+    // bond request from ACCOUNT_3
+    let bond_request = ExecuteRequestBuilder::standard(
+        PublicKey::ed25519_from(ACCOUNT_3_ADDR),
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(BOND_METHOD),
+            U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
 
     // delegate request from ACCOUNT_3 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
@@ -871,14 +865,17 @@ fn should_fail_to_redelegate_more_than_own_shares() {
             String::from(REDELEGATE_METHOD),
             PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             PublicKey::ed25519_from(ACCOUNT_2_ADDR),
-            U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
+            Some(U512::from(ACCOUNT_3_REDELEGATE_AMOUNT)),
         ),
     )
     .build();
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
+        .exec(bond_request)
+        .expect_success()
+        .commit()
         .exec(delegate_request)
         .expect_success()
         .commit()
@@ -889,7 +886,7 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     let response = result
         .builder()
-        .get_exec_response(1)
+        .get_exec_response(2)
         .expect("should have a response")
         .to_owned();
 
