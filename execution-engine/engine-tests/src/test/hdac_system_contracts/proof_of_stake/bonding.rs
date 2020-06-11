@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, convert::TryFrom};
+use std::convert::TryFrom;
 
 use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
@@ -332,6 +332,10 @@ fn should_run_successful_bond_and_unbond() {
 #[ignore]
 #[test]
 fn should_fail_bonding_with_insufficient_funds() {
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // genesis_validator[42; 32]:
+    // { balance: 100k, self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -343,15 +347,7 @@ fn should_fail_bonding_with_insufficient_funds() {
         tmp
     };
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
-
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
 
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
@@ -395,6 +391,10 @@ fn should_fail_bonding_with_insufficient_funds() {
 #[ignore]
 #[test]
 fn should_fail_unbonding_validator_without_bonding_first() {
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // genesis_validator[42; 32]:
+    // { balance: 100k, self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -406,16 +406,9 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         tmp
     };
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
 
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
-
+    // #1 default_account try to unbond 42 without bonding.
     let exec_request = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -437,9 +430,6 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         .to_owned();
 
     let error_message = utils::get_error_message(response);
-    // pos::Error::NotDelegated => 27
-    assert!(error_message.contains(&format!(
-        "Revert({})",
-        u32::from(ApiError::ProofOfStake(27))
-    )));
+    // pos::Error::UnbondTooLarge => 7
+    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(7)))));
 }
