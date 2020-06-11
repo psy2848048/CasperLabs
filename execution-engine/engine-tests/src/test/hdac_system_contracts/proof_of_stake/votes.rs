@@ -4,8 +4,8 @@ use std::convert::TryFrom;
 use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
-    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder},
-    DEFAULT_ACCOUNT_INITIAL_BALANCE,
+    internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, DEFAULT_GENESIS_CONFIG},
+    DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
 use types::{account::PublicKey, bytesrepr::ToBytes, ApiError, CLValue, Key, URef, U512};
 
@@ -255,112 +255,36 @@ fn should_run_successful_vote_and_unvote_after_bonding() {
 #[ignore]
 #[test]
 fn should_fail_to_vote_more_than_bonded() {
-    // 1. Try to vote twice.
-    // 2. Second vote, the amount of vote exceeds than user's bond, an error expected
-    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
-    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
-    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
+    let bond_amount = U512::from(1000);
+    let vote_amount = U512::from(1001);
+    let dapp_addr = Key::Hash([11u8; 32]);
 
-    const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
-    const ACCOUNT_3_VOTE_AMOUNT: u64 = 30_000;
-
-    let accounts = vec![
-        GenesisAccount::new(
-            ACCOUNT_1_ADDR_DAPP_1,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_2_ADDR_DAPP_2,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_3_ADDR_USER_1,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
-        ),
-    ];
-
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
-
-    let mut builder = InMemoryWasmTestBuilder::default();
-    let _result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
-        .finish();
-
-    //
-    // first vote. working well expected
-    //
-    let vote_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_3_ADDR_USER_1,
+    let bond_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_VOTE,
-        (
-            String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
-            U512::from(ACCOUNT_3_VOTE_AMOUNT),
-        ),
+        (String::from(BOND_METHOD), bond_amount),
+    )
+    .build();
+    let vote_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_VOTE,
+        (String::from(VOTE_METHOD), dapp_addr, vote_amount),
     )
     .build();
 
+    let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .exec(vote_request)
+        .run_genesis(&DEFAULT_GENESIS_CONFIG)
+        .exec(bond_request)
         .expect_success()
+        .commit()
+        .exec(vote_request)
         .commit()
         .finish();
 
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let pos_uref = builder.get_pos_contract_uref();
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    // there should be a still only one validator.
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("a_"))
-            .count(),
-        1
-    );
-
-    //
-    // second vote. an error expected
-    //
-
-    let vote_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_3_ADDR_USER_1,
-        CONTRACT_POS_VOTE,
-        (
-            String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_2_ADDR_DAPP_2.value()),
-            U512::from(ACCOUNT_3_VOTE_AMOUNT),
-        ),
-    )
-    .build();
-
-    let result = builder.exec(vote_request).commit().finish();
-
     let response = result
         .builder()
-        .get_exec_response(0)
+        .get_exec_response(1)
         .expect("should have a response")
         .to_owned();
 
