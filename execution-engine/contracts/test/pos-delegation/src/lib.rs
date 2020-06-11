@@ -51,8 +51,8 @@ fn vote(pos: &ContractRef, dapp_key: &Key, amount: &U512) {
     runtime::call_contract::<_, ()>(pos.clone(), (POS_VOTE, *dapp_key, *amount));
 }
 
-fn unvote(pos: &ContractRef, dapp_key: &Key, amount: &U512) {
-    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNVOTE, *dapp_key, *amount));
+fn unvote(pos: &ContractRef, dapp_key: &Key, amount: Option<U512>) {
+    runtime::call_contract::<_, ()>(pos.clone(), (POS_UNVOTE, *dapp_key, amount));
 }
 
 fn claim_commission(pos: &ContractRef) {
@@ -150,10 +150,10 @@ pub extern "C" fn call() {
             let dapp: Key = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let amount: U512 = runtime::get_arg(2)
+            let amount: Option<U512> = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            unvote(&pos_pointer, &dapp, &amount);
+            unvote(&pos_pointer, &dapp, amount);
         }
         POS_CLAIM_COMMISSION => {
             claim_commission(&pos_pointer);
