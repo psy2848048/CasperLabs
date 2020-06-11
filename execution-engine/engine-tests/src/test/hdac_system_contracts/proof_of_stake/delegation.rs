@@ -12,8 +12,9 @@ use types::{account::PublicKey, ApiError, Key, U512};
 
 const CONTRACT_POS_DELEGATION: &str = "pos_delegation.wasm";
 
-const DELEGATE_METHOD: &str = "delegate";
+const BOND_METHOD: &str = "bond";
 const UNBOND_METHOD: &str = "unbond";
+const DELEGATE_METHOD: &str = "delegate";
 const UNDELEGATE_METHOD: &str = "undelegate";
 const REDELEGATE_METHOD: &str = "redelegate";
 
@@ -733,9 +734,19 @@ fn should_fail_to_self_redelegate() {
         GenesisAccount::new(
             PublicKey::ed25519_from(ACCOUNT_2_ADDR),
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
+            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
     ];
+
+    let bond_request = ExecuteRequestBuilder::standard(
+        PublicKey::ed25519_from(ACCOUNT_2_ADDR),
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(BOND_METHOD),
+            U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
 
     // delegate request from ACCOUNT_2 to ACCOUNT_1.
     let delegate_request = ExecuteRequestBuilder::standard(
@@ -757,7 +768,7 @@ fn should_fail_to_self_redelegate() {
             String::from(REDELEGATE_METHOD),
             PublicKey::ed25519_from(ACCOUNT_1_ADDR),
             PublicKey::ed25519_from(ACCOUNT_1_ADDR),
-            U512::from(ACCOUNT_1_DELEGATE_AMOUNT),
+            Some(U512::from(ACCOUNT_1_DELEGATE_AMOUNT)),
         ),
     )
     .build();
@@ -765,6 +776,9 @@ fn should_fail_to_self_redelegate() {
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
         .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
+        .exec(bond_request)
+        .expect_success()
+        .commit()
         .exec(delegate_request)
         .expect_success()
         .commit()
@@ -775,7 +789,7 @@ fn should_fail_to_self_redelegate() {
 
     let response = result
         .builder()
-        .get_exec_response(1)
+        .get_exec_response(2)
         .expect("should have a response")
         .to_owned();
 

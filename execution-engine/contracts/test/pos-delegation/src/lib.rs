@@ -39,11 +39,11 @@ fn redelegate(
     pos: &ContractRef,
     src_validator: &PublicKey,
     dest_validator: &PublicKey,
-    amount: &U512,
+    amount: Option<U512>,
 ) {
     runtime::call_contract::<_, ()>(
         pos.clone(),
-        (POS_REDELEGATE, *src_validator, *dest_validator, *amount),
+        (POS_REDELEGATE, *src_validator, *dest_validator, amount),
     );
 }
 
@@ -132,10 +132,10 @@ pub extern "C" fn call() {
             let dest_validator: PublicKey = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let amount: U512 = runtime::get_arg(3)
+            let amount: Option<U512> = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            redelegate(&pos_pointer, &src_validator, &dest_validator, &amount);
+            redelegate(&pos_pointer, &src_validator, &dest_validator, amount);
         }
         POS_VOTE => {
             let dapp: Key = runtime::get_arg(1)
