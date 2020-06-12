@@ -1,11 +1,12 @@
 use num_traits::identities::Zero;
+use std::convert::TryFrom;
 
 use engine_core::engine_state::{
     genesis::{GenesisAccount, POS_BONDING_PURSE},
     SYSTEM_ACCOUNT_ADDR,
 };
 use engine_shared::{motes::Motes, stored_value::StoredValue};
-use types::{account::PublicKey, Key, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, CLValue, Key, URef, U512};
 
 use engine_test_support::{
     internal::{
@@ -29,6 +30,30 @@ const VOTE_METHOD: &str = "vote";
 const UNVOTE_METHOD: &str = "unvote";
 const CLAIM_COMMISSION_METHOD: &str = "claim_commission";
 const CLAIM_REWARD_METHOD: &str = "claim_reward";
+
+fn assert_bond_amount(
+    pop_uref: &URef,
+    address: &PublicKey,
+    amount: U512,
+    builder: &InMemoryWasmTestBuilder,
+) {
+    let key = {
+        let mut ret = Vec::with_capacity(1 + address.as_bytes().len());
+        ret.push(1u8);
+        ret.extend(address.as_bytes());
+        Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
+    };
+    let got: CLValue = builder
+        .query(None, key.clone(), &[])
+        .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+        .expect("should have local value.");
+    let got: U512 = got.into_t().unwrap();
+    assert_eq!(
+        got, amount,
+        "bond amount assertion failure for {:?}",
+        address
+    );
+}
 
 fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
     // query client_api_proxy_hash from SYSTEM_ACCOUNT
@@ -141,20 +166,13 @@ fn should_invoke_successful_standard_payment() {
 fn should_invoke_successful_bond_and_unbond() {
     const BOND_AMOUNT: u64 = 1_000_000;
 
-    // only DEFAULT_ACCOUNT is in initial validator queue.
     let accounts: Vec<GenesisAccount> = vec![GenesisAccount::new(
         DEFAULT_ACCOUNT_ADDR,
         Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
         Motes::new(BOND_AMOUNT.into()),
     )];
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&DEFAULT_ACCOUNT_ADDR.as_bytes()),
-        base16::encode_lower(&DEFAULT_ACCOUNT_ADDR.as_bytes()),
-        BOND_AMOUNT.to_string()
-    )
-    .to_string()];
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
     let result = InMemoryWasmTestBuilder::default()
         .run_genesis(&genesis_config)
         .commit()
@@ -173,7 +191,7 @@ fn should_invoke_successful_bond_and_unbond() {
         ),
     )
     .build();
-    // Bonding request
+    // #1 ACCOUNT_1 bonds BOND_AMOUNT.
     let exec_request_bonding = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_1_ADDR,
         client_api_proxy_hash,
@@ -189,16 +207,18 @@ fn should_invoke_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let pos_contract = bonding_result.builder().get_pos_contract();
-
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-        BOND_AMOUNT
+    // #2 assert ACCOUNT_1's bond amount.
+    let pop_uref = bonding_result.builder().get_pos_contract_uref();
+    assert_bond_amount(
+        &pop_uref,
+        &ACCOUNT_1_ADDR,
+        BOND_AMOUNT.into(),
+        bonding_result.builder(),
     );
-    assert!(pos_contract.named_keys().contains_key(&lookup_key));
 
-    // Unbonding request
+    // TODO: assert unbond failure before action withdrawed.
+
+    // #3 ACCOUNT_1 unbond all with None
     let exec_request_unbonding = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_1_ADDR,
         client_api_proxy_hash,
@@ -212,28 +232,13 @@ fn should_invoke_successful_bond_and_unbond() {
         .step(StepRequestBuilder::default().build())
         .finish();
 
-    let pos_contract = unbonding_result.builder().get_pos_contract();
-
-    // ensure that ACCOUNT_1_ADDR is not in validator queue.
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with(&format!(
-                "v_{}",
-                base16::encode_lower(ACCOUNT_1_ADDR.as_bytes())
-            )))
-            .count(),
-        0
-    );
-    // only genesis validator is still in the queue
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("v_"))
-            .count(),
-        1
+    // #4 assert ACCOUNT_1's bond amount after unbonding all.
+    let pop_uref = unbonding_result.builder().get_pos_contract_uref();
+    assert_bond_amount(
+        &pop_uref,
+        &ACCOUNT_1_ADDR,
+        U512::zero(),
+        unbonding_result.builder(),
     );
 }
 
