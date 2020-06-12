@@ -10,9 +10,8 @@ use contract::{
     unwrap_or_revert::UnwrapOrRevert,
 };
 use types::{
-    account::PublicKey,
-    system_contract_errors::{mint, pos},
-    AccessRights, ApiError, CLValue, ContractRef, Key, URef, U512,
+    account::PublicKey, system_contract_errors::mint, AccessRights, ApiError, CLValue, ContractRef,
+    Key, URef, U512,
 };
 
 const PLACEHOLDER_KEY: Key = Key::Hash([0u8; 32]);
@@ -28,7 +27,6 @@ const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
-    StateInformations = 2,
 }
 
 #[no_mangle]

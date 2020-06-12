@@ -18,8 +18,6 @@ use engine_test_support::{
 
 const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
 
-const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
-
 const TRANSFER_TO_ACCOUNT_METHOD: &str = "transfer_to_account";
 const BOND_METHOD: &str = "bond";
 const UNBOND_METHOD: &str = "unbond";

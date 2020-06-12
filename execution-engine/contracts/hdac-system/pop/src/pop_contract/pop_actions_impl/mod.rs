@@ -133,10 +133,10 @@ impl Delegatable for ProofOfProfessionContract {
         let mut request_queue = store::read_redelegation_requests();
         request_queue.push(
             RedelegateRequest {
-                delegator: delegator,
+                delegator,
                 src_validator: src,
                 dest_validator: dest,
-                maybe_amount: maybe_amount,
+                maybe_amount,
             },
             runtime::get_blocktime(),
         )?;

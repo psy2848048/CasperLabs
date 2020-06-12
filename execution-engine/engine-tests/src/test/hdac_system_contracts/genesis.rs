@@ -7,7 +7,7 @@ use engine_test_support::internal::{
     utils, InMemoryWasmTestBuilder, DEFAULT_WASM_COSTS, MINT_INSTALL_CONTRACT,
     POS_INSTALL_CONTRACT, STANDARD_PAYMENT_INSTALL_CONTRACT,
 };
-use types::{account::PublicKey, bytesrepr::ToBytes, Key, ProtocolVersion, U512};
+use types::{account::PublicKey, Key, ProtocolVersion, U512};
 
 const MINT_INSTALL: &str = MINT_INSTALL_CONTRACT;
 const POS_INSTALL: &str = POS_INSTALL_CONTRACT;
