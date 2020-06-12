@@ -16,8 +16,8 @@ const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
 const DEPLOY_HASH_2: [u8; 32] = [2u8; 32];
 const N_VALIDATORS: u8 = 5;
 
-// one named_key for each validator and five for the purses and the total supply amount.
-const EXPECTED_KNOWN_KEYS_LEN: usize = (N_VALIDATORS as usize) + 5 + 1;
+// two named_key for each validator and five for the purses and the total supply amount.
+const EXPECTED_KNOWN_KEYS_LEN: usize = (N_VALIDATORS as usize) * 2 + 5 + 1;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
