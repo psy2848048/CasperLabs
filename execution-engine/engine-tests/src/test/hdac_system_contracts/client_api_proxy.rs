@@ -251,12 +251,13 @@ fn should_invoke_successful_delegation_methods() {
 
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
 
-    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = 32_000;
+    const ACCOUNT_3_BOND_AMOUNT: u64 = 32_000;
+    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = ACCOUNT_3_BOND_AMOUNT;
     const ACCOUNT_3_REDELEGATE_AMOUNT: u64 = 20_000;
 
-    // ACCOUNT_1: a bonded account with the initial balance.
-    // ACCOUNT_2  a bonded account with the initial balance.
-    // ACCOUNT_3: a not bonded account with the initial balance.
+    // ACCOUNT_1: bonded(50k), self-delegated(50k).
+    // ACCOUNT_2  bonded(50k), self-delegated(50k).
+    // ACCOUNT_3: not bonded and not delegated.
     let accounts = vec![
         GenesisAccount::new(
             ACCOUNT_1_ADDR,
@@ -275,24 +276,7 @@ fn should_invoke_successful_delegation_methods() {
         ),
     ];
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
-            base16::encode_lower(&ACCOUNT_2_ADDR.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
-
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
     let result = InMemoryWasmTestBuilder::default()
         .run_genesis(&genesis_config)
         .commit()
@@ -300,7 +284,14 @@ fn should_invoke_successful_delegation_methods() {
 
     let client_api_proxy_hash = get_client_api_proxy_hash(result.builder());
 
-    // ACCOUNT_3 delegate to ACCOUNT_1
+    // #1 ACCOUNT_3 bonds ACCOUT_3_DELEGATE_AMOUNT(32k).
+    let bond_request = ExecuteRequestBuilder::contract_call_by_hash(
+        ACCOUNT_3_ADDR,
+        client_api_proxy_hash,
+        (BOND_METHOD, U512::from(ACCOUNT_3_BOND_AMOUNT)),
+    )
+    .build();
+    // #2 ACCOUNT_3 delegate to ACCOUNT_1 with 32k
     let delegate_request = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_3_ADDR,
         client_api_proxy_hash,
@@ -312,7 +303,7 @@ fn should_invoke_successful_delegation_methods() {
     )
     .build();
 
-    // ACCOUNT_3 redelegate from ACCOUNT_1 to ACCOUNT_2
+    // #3 ACCOUNT_3 redelegate from ACCOUNT_1 to ACCOUNT_2 with 20k
     let redelegate_request = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_3_ADDR,
         client_api_proxy_hash,
@@ -320,12 +311,12 @@ fn should_invoke_successful_delegation_methods() {
             REDELEGATE_METHOD,
             ACCOUNT_1_ADDR,
             ACCOUNT_2_ADDR,
-            U512::from(ACCOUNT_3_REDELEGATE_AMOUNT),
+            Some(U512::from(ACCOUNT_3_REDELEGATE_AMOUNT)),
         ),
     )
     .build();
 
-    // ACCOUNT_3 undelegate all from ACCOUNT_1
+    // #4 ACCOUNT_3 undelegate all from ACCOUNT_1
     let undelegate_request = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_3_ADDR,
         client_api_proxy_hash,
@@ -335,26 +326,26 @@ fn should_invoke_successful_delegation_methods() {
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     builder
-        .exec(delegate_request)
+        .exec(bond_request) // ACCOUNT_3 is bonded
         .expect_success()
         .commit()
-        .exec(redelegate_request)
+        .exec(delegate_request) // ACCOUNT_3->ACCOUNT_1 with DELEGATE_AMOUNT(32k)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
-        .expect_success()
-        .exec(undelegate_request)
+        .exec(redelegate_request) // (ACCOUNT_3->ACCOUNT_1) -> (ACCOUNT_3 -> ACCOUNT2)  with REDELEGATE_AMOUNT(20k)
         .expect_success()
         .commit()
-        .step(StepRequestBuilder::default().build())
+        .step(StepRequestBuilder::default().build()) // proceed redelegate request
+        .expect_success()
+        .exec(undelegate_request) // undelegate all (ACCOUNT_3->ACCOUNT_1)
+        .expect_success()
+        .commit()
+        .step(StepRequestBuilder::default().build()) // proceed undelegate request
         .finish();
 
-    let pos_uref = builder.get_pos_contract_uref();
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("must get pos contract");
+    let pop_contract = builder.get_pos_contract();
 
-    // Validate delegations
+    // assert delegations
     let expected_delegation_1 = format!(
         "d_{}_{}_{}",
         base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
@@ -366,11 +357,11 @@ fn should_invoke_successful_delegation_methods() {
         base16::encode_lower(ACCOUNT_3_ADDR.as_bytes()),
         base16::encode_lower(ACCOUNT_1_ADDR.as_bytes())
     );
-    assert!(pos_contract
+    assert!(pop_contract
         .named_keys()
         .contains_key(&expected_delegation_1));
     assert_eq!(
-        pos_contract
+        pop_contract
             .named_keys()
             .iter()
             .filter(|(key, _)| key.starts_with(&delegation_key_that_should_not_exist))
@@ -379,7 +370,7 @@ fn should_invoke_successful_delegation_methods() {
     );
     // There are 2 self delegations and one delegation d_{ACCOUNT_3}_{ACCOUNT_2}_{REDELEGATE_AMOUNT}
     assert_eq!(
-        pos_contract
+        pop_contract
             .named_keys()
             .iter()
             .filter(|(key, _)| key.starts_with("d_"))
@@ -387,7 +378,7 @@ fn should_invoke_successful_delegation_methods() {
         3
     );
 
-    // Validate stakes
+    // Validate validators
     let expected_stakes_1 = format!(
         "v_{}_{}",
         base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
@@ -399,12 +390,12 @@ fn should_invoke_successful_delegation_methods() {
         GENESIS_VALIDATOR_STAKE + ACCOUNT_3_REDELEGATE_AMOUNT
     );
 
-    assert!(pos_contract.named_keys().contains_key(&expected_stakes_1));
-    assert!(pos_contract.named_keys().contains_key(&expected_stakes_2));
+    assert!(pop_contract.named_keys().contains_key(&expected_stakes_1));
+    assert!(pop_contract.named_keys().contains_key(&expected_stakes_2));
 
     // There should be only 2 stakes.
     assert_eq!(
-        pos_contract
+        pop_contract
             .named_keys()
             .iter()
             .filter(|(key, _)| key.starts_with("v_"))
@@ -414,7 +405,7 @@ fn should_invoke_successful_delegation_methods() {
 
     // Validate pos_bonding_purse balance
     let pos_bonding_purse_balance = {
-        let purse_id = pos_contract
+        let purse_id = pop_contract
             .named_keys()
             .get(POS_BONDING_PURSE)
             .and_then(Key::as_uref)
@@ -424,7 +415,7 @@ fn should_invoke_successful_delegation_methods() {
     };
     assert_eq!(
         pos_bonding_purse_balance,
-        (GENESIS_VALIDATOR_STAKE * 2 + ACCOUNT_3_REDELEGATE_AMOUNT).into()
+        (GENESIS_VALIDATOR_STAKE * 2 + ACCOUNT_3_BOND_AMOUNT).into()
     );
 }
 

@@ -49,7 +49,7 @@ pub enum Api {
     Step(),
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
-    Redelegate(PublicKey, PublicKey, U512),
+    Redelegate(PublicKey, PublicKey, Option<U512>),
     Vote(Key, U512),
     Unvote(Key, Option<U512>),
     ClaimCommission(),
@@ -117,7 +117,7 @@ impl Api {
                 let dest_validator: PublicKey = runtime::get_arg(2)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
-                let amount: U512 = runtime::get_arg(3)
+                let amount: Option<U512> = runtime::get_arg(3)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
                     .unwrap_or_revert_with(ApiError::InvalidArgument);
                 Api::Redelegate(src_validator, dest_validator, amount)
