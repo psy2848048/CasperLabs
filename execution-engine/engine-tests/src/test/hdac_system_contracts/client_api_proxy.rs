@@ -28,8 +28,6 @@ const UNDELEGATE_METHOD: &str = "undelegate";
 const REDELEGATE_METHOD: &str = "redelegate";
 const VOTE_METHOD: &str = "vote";
 const UNVOTE_METHOD: &str = "unvote";
-const CLAIM_COMMISSION_METHOD: &str = "claim_commission";
-const CLAIM_REWARD_METHOD: &str = "claim_reward";
 
 fn assert_bond_amount(
     pop_uref: &URef,
@@ -53,6 +51,28 @@ fn assert_bond_amount(
         "bond amount assertion failure for {:?}",
         address
     );
+}
+
+fn assert_vote_amount(
+    pop_uref: &URef,
+    voter: &PublicKey,
+    dapp: &Key,
+    amount: U512,
+    builder: &InMemoryWasmTestBuilder,
+) {
+    let key = {
+        let mut ret = Vec::with_capacity(1 + voter.as_bytes().len() + dapp.serialized_length());
+        ret.push(2u8); // voting prefix
+        ret.extend(voter.as_bytes());
+        ret.extend(dapp.to_bytes().expect("Key to bytes failed").into_iter());
+        Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
+    };
+    let got: CLValue = builder
+        .query(None, key.clone(), &[])
+        .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+        .expect("should have local value.");
+    let got: U512 = got.into_t().unwrap();
+    assert_eq!(got, amount, "vote amount assertion failure for {:?}", voter);
 }
 
 fn get_client_api_proxy_hash(builder: &InMemoryWasmTestBuilder) -> [u8; 32] {
@@ -422,78 +442,30 @@ fn should_invoke_successful_delegation_methods() {
 #[ignore]
 #[test]
 fn should_invoke_successful_vote_and_unvote() {
-    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
-    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
-    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
-    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
-    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
-
     const GENESIS_VALIDATOR_STAKE: u64 = 50_000;
-    const ACCOUNT_3_VOTE_AMOUNT: u64 = 10_000;
+    const DAPP_ADDR: Key = Key::Hash([11u8; 32]);
+    const VOTE_AMOUNT: u64 = 10_000;
 
-    let accounts = vec![
-        GenesisAccount::new(
-            ACCOUNT_1_ADDR_DAPP_1,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_2_ADDR_DAPP_2,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_3_ADDR_USER_1,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_4_ADDR_USER_2,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_5_ADDR_USER_3,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-    ];
-
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
+    let accounts = vec![GenesisAccount::new(
+        ACCOUNT_1_ADDR,
+        Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
+        Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+    )];
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
         .finish();
 
     let client_api_proxy_hash = get_client_api_proxy_hash(result.builder());
 
-    // setup done. start testing
-    // execute vote
-    // vote by ACCOUNT_3_ADDR_USER_1 to ACCOUNT_1_ADDR_DAPP_1
-
     let vote_request = ExecuteRequestBuilder::contract_call_by_hash(
-        ACCOUNT_3_ADDR_USER_1,
+        ACCOUNT_1_ADDR,
         client_api_proxy_hash,
         (
             String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
-            U512::from(ACCOUNT_3_VOTE_AMOUNT),
+            DAPP_ADDR,
+            U512::from(VOTE_AMOUNT),
         ),
     )
     .build();
@@ -505,64 +477,21 @@ fn should_invoke_successful_vote_and_unvote() {
         .commit()
         .finish();
 
-    let pos_uref = builder.get_pos_contract_uref();
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    // there should be a still only one validator.
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("a_"))
-            .count(),
-        1
+    // assert vote {ACCOUNT_1, DAPP_ADDR, amount}
+    let pop_uref = builder.get_pos_contract_uref();
+    assert_vote_amount(
+        &pop_uref,
+        &ACCOUNT_1_ADDR,
+        &DAPP_ADDR,
+        VOTE_AMOUNT.into(),
+        &builder,
     );
 
-    // execute second vote with user 1 to another dapp
-    let vote_request = ExecuteRequestBuilder::contract_call_by_hash(
-        ACCOUNT_3_ADDR_USER_1,
-        client_api_proxy_hash,
-        (
-            String::from(VOTE_METHOD),
-            Key::Hash(ACCOUNT_2_ADDR_DAPP_2.value()),
-            U512::from(ACCOUNT_3_VOTE_AMOUNT),
-        ),
-    )
-    .build();
-
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(vote_request)
-        .expect_success()
-        .commit()
-        .finish();
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    // there should be a still only one validator.
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("a_"))
-            .count(),
-        2
-    );
-
-    // execute unvote
-    // unvote {ACCOUNT_2}_{ACCOUNT_1}_{ACCOUNT_2_UNDELEGATE_AMOUNT}
+    // unvote all from ACCOUNT_1 to DAPP_ADDR
     let unvote_request = ExecuteRequestBuilder::contract_call_by_hash(
-        ACCOUNT_3_ADDR_USER_1,
+        ACCOUNT_1_ADDR,
         client_api_proxy_hash,
-        (
-            String::from(UNVOTE_METHOD),
-            Key::Hash(ACCOUNT_1_ADDR_DAPP_1.value()),
-            None::<U512>,
-        ),
+        (String::from(UNVOTE_METHOD), DAPP_ADDR, None::<U512>),
     )
     .build();
 
@@ -573,17 +502,13 @@ fn should_invoke_successful_vote_and_unvote() {
         .commit()
         .finish();
 
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    // there should be still 2 delegations
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("a_"))
-            .count(),
-        1
+    // assert vote amount not exists
+    // assert vote {ACCOUNT_1, DAPP_ADDR, amount}
+    assert_vote_amount(
+        &pop_uref,
+        &ACCOUNT_1_ADDR,
+        &DAPP_ADDR,
+        U512::zero(),
+        &builder,
     );
 }
