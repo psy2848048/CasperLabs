@@ -5,7 +5,7 @@ use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
         utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder,
-        DEFAULT_ACCOUNTS, DEFAULT_PAYMENT,
+        DEFAULT_ACCOUNTS, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
@@ -327,6 +327,106 @@ fn should_run_successful_bond_and_unbond() {
 
     // #21 assert default_account's bond amount.
     assert_bond_amount(&pos, &DEFAULT_ACCOUNT_ADDR, U512::zero(), &builder);
+}
+
+#[ignore]
+#[test]
+fn should_fail_to_unbond_before_action_withdrawed() {
+    const CONTRACT_POS_DELEGATION: &str = "pos_delegation.wasm";
+    const METHOD_BOND: &str = "bond";
+    const METHOD_UNBOND: &str = "unbond";
+    const METHOD_DELEGATE: &str = "delegate";
+    const METHOD_VOTE: &str = "vote";
+
+    const BOND_AMOUNT: u64 = 50_000;
+    const DELEGATE_AMOUNT: u64 = 30_000;
+    const VOTE_AMOUNT: u64 = 40_000;
+    const UNBOND_AMOUNT: u64 = 10_001;
+
+    const DAPP_ADDR: Key = Key::Hash([11u8; 32]);
+
+    // #1 bond 50k
+    // #2 delegate 30k
+    // #3 vote 40k
+    // #4 unbond 10k and 1 -> Must fail
+    let bond_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(METHOD_BOND), U512::from(BOND_AMOUNT)),
+    )
+    .build();
+    let delegate_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(METHOD_DELEGATE),
+            DEFAULT_ACCOUNT_ADDR,
+            U512::from(DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+    let vote_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(METHOD_VOTE),
+            DAPP_ADDR,
+            U512::from(VOTE_AMOUNT),
+        ),
+    )
+    .build();
+    let unbond_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(METHOD_UNBOND), Some(U512::from(UNBOND_AMOUNT))),
+    )
+    .build();
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&*DEFAULT_GENESIS_CONFIG)
+        .exec(bond_request)
+        .expect_success()
+        .commit()
+        .exec(delegate_request)
+        .expect_success()
+        .commit()
+        .exec(vote_request)
+        .expect_success()
+        .commit()
+        .exec(unbond_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    // Unbond is processed in the step but the step is currently not supporting to propagate the
+    // errors. Therefore, assert by checking that the states amount are not changed.
+
+    let default_account = builder
+        .get_account(DEFAULT_ACCOUNT_ADDR)
+        .expect("should get default_account");
+    let balance_before_step = builder.get_purse_balance(default_account.main_purse());
+
+    // The unbond request is executed in this step.
+    let _ = InMemoryWasmTestBuilder::from_result(result)
+        .step(StepRequestBuilder::default().build())
+        .finish();
+
+    let balance_after_step = builder.get_purse_balance(default_account.main_purse());
+    assert_eq!(balance_before_step, balance_after_step);
+
+    let pop_uref = builder.get_pos_contract_uref();
+    // check bond amount
+    assert_bond_amount(
+        &pop_uref,
+        &DEFAULT_ACCOUNT_ADDR,
+        U512::from(BOND_AMOUNT),
+        &builder,
+    );
+    // check the balance of bonding_purse
+    assert_eq!(
+        U512::from(BOND_AMOUNT),
+        get_pos_bonding_purse_balance(&builder)
+    );
 }
 
 #[ignore]

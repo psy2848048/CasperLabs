@@ -234,8 +234,6 @@ fn should_invoke_successful_bond_and_unbond() {
         bonding_result.builder(),
     );
 
-    // TODO: assert unbond failure before action withdrawed.
-
     // #3 ACCOUNT_1 unbond all with None
     let exec_request_unbonding = ExecuteRequestBuilder::contract_call_by_hash(
         ACCOUNT_1_ADDR,
