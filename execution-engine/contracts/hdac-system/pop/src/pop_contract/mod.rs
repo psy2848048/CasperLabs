@@ -115,7 +115,10 @@ impl ProofOfProfessionContract {
 
         store::write_delegations(&delegations);
 
-        self.step_unbond(current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)));
+        self.step_unbond(
+            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
+            &delegations,
+        );
 
         // TODO: separate to another function
         let _ = self.distribute(&delegations);
@@ -318,7 +321,8 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    fn step_unbond(&mut self, due: BlockTime) {
+    fn step_unbond(&mut self, due: BlockTime, delegations: &Delegations) {
+        // populate the mature requests
         let mut request_queue = store::read_unbond_requests();
         let requests = request_queue.pop_due(due);
         store::write_unbond_requests(request_queue);
@@ -331,7 +335,7 @@ impl ProofOfProfessionContract {
 
             // If the request is invalid, discard the request.
             // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-            if let Ok(payout) = stake::unbond(&requester, maybe_amount) {
+            if let Ok(payout) = stake::unbond(&requester, maybe_amount, delegations) {
                 if let Ok(pos_purse) = get_purse(uref_names::POS_BONDING_PURSE) {
                     let _ = system::transfer_from_purse_to_account(pos_purse, requester, payout);
                 }
