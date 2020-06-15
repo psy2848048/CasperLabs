@@ -9,8 +9,7 @@ use crate::store;
 pub fn vote(voter: &PublicKey, dapp: &Key, amount: U512) -> Result<()> {
     // validate amount
     if amount.is_zero() {
-        // TODO: change to Error::VoteTooSmall
-        return Err(Error::BondTooSmall);
+        return Err(Error::VoteTooSmall);
     }
 
     let bonding_amount = store::read_bonding_amount(voter);

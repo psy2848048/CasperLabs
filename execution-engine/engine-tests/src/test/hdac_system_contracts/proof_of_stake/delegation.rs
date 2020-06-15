@@ -544,7 +544,7 @@ fn should_fail_to_undelegate_more_than_delegation() {
 
 #[ignore]
 #[test]
-fn should_fail_to_delegate_to_unbonded_validator() {
+fn should_fail_to_delegate_to_not_self_delegated_validator() {
     const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
     const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
@@ -593,7 +593,7 @@ fn should_fail_to_delegate_to_unbonded_validator() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::NotDelegated => 27
+    // pos::Error::NotSelfDelegated => 27
     assert!(error_message.contains(&format!(
         "Revert({})",
         u32::from(ApiError::ProofOfStake(27))
@@ -744,10 +744,10 @@ fn should_fail_to_self_redelegate() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::SelfRedelegation => 29
+    // pos::Error::SelfRedelegation => 28
     assert!(error_message.contains(&format!(
         "Revert({})",
-        u32::from(ApiError::ProofOfStake(29))
+        u32::from(ApiError::ProofOfStake(28))
     )));
 }
 
@@ -841,9 +841,9 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::UndelegateTooLarge => 28
+    // pos::Error::UndelegateTooLarge => 29
     assert!(error_message.contains(&format!(
         "Revert({})",
-        u32::from(ApiError::ProofOfStake(28))
+        u32::from(ApiError::ProofOfStake(29))
     )));
 }

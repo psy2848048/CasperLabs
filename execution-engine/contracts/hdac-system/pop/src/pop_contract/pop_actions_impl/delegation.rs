@@ -107,7 +107,7 @@ impl Delegations {
         };
         // if request is not self-delegation and validator is not self-delegated, return error
         if *delegator != *validator && self.delegation(validator, validator).is_err() {
-            return Err(Error::NotDelegated);
+            return Err(Error::NotSelfDelegated);
         }
 
         // validate amount
@@ -115,8 +115,7 @@ impl Delegations {
             let bonding_amount = store::read_bonding_amount(delegator);
             let delegating_amount = self.delegating_amount(delegator);
             if amount > bonding_amount.saturating_sub(delegating_amount) {
-                // TODO: return Err(Error::TryToDelegateMoreThanStakes);
-                return Err(Error::UndelegateTooLarge);
+                return Err(Error::DelegateTooLarge);
             }
         }
 
@@ -146,7 +145,7 @@ impl Delegations {
         // update table
         let undelegate_amount = match maybe_amount {
             // undelegate all
-            None => self.table.remove(&key).ok_or(Error::NotDelegated)?,
+            None => self.table.remove(&key).ok_or(Error::DelegationsNotFound)?,
             Some(amount) => {
                 let delegation = self.table.get_mut(&key);
                 match delegation {
@@ -158,7 +157,7 @@ impl Delegations {
                         self.table.remove(&key).ok_or(Error::DelegationsNotFound)?
                     }
                     Some(_) => return Err(Error::UndelegateTooLarge),
-                    None => return Err(Error::NotDelegated),
+                    None => return Err(Error::DelegationsNotFound),
                 }
             }
         };
@@ -185,7 +184,7 @@ impl Delegations {
             };
             let undelegate_amount = match maybe_amount {
                 // undelegate all
-                None => self.table.remove(&key).ok_or(Error::NotDelegated)?,
+                None => self.table.remove(&key).ok_or(Error::DelegationsNotFound)?,
                 Some(amount) => {
                     let delegation = self.table.get_mut(&key);
                     match delegation {
@@ -197,7 +196,7 @@ impl Delegations {
                             self.table.remove(&key).ok_or(Error::DelegationsNotFound)?
                         }
                         Some(_) => return Err(Error::UndelegateTooLarge),
-                        None => return Err(Error::NotDelegated),
+                        None => return Err(Error::DelegationsNotFound),
                     }
                 }
             };

@@ -79,17 +79,17 @@ pub enum Error {
     SetRefundPurseCalledOutsidePayment,
 
     // ===== HDAC PoS errors =====
-    /// The given delegation relation(delgator-validator) does not exist.
-    NotDelegated, // = 27
-    /// Attempted to undelegate an amount which was too large.
-    UndelegateTooLarge, // = 28
+    /// The given validator is not self-delegated.
+    NotSelfDelegated, // = 27
     /// Attempted to self-redelegate.
-    SelfRedelegation, // = 29
+    SelfRedelegation, // = 28
+    /// Attempted to undelegate an amount which was too large.
+    UndelegateTooLarge, // = 29
+    /// Attempted to delegate an amount which was too large.
+    DelegateTooLarge, // = 30
 
     /// Internal error: delegations are unexpectedly empty.
-    DelegationsNotFound, // = 30
-    /// Internal error: attempted to use unsupported function.
-    NotSupportedFunc, // = 31
+    DelegationsNotFound, // = 31
     /// Internal error: failed to deserialize the delegation's key
     DelegationsKeyDeserializationFailed, // = 32
     /// Internal error: failed to deserialize the delegation's amount
