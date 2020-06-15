@@ -83,10 +83,10 @@ pub enum Error {
     NotSelfDelegated, // = 27
     /// Attempted to self-redelegate.
     SelfRedelegation, // = 28
-    /// Attempted to undelegate an amount which was too large.
-    UndelegateTooLarge, // = 29
     /// Attempted to delegate an amount which was too large.
-    DelegateTooLarge, // = 30
+    DelegateTooLarge, // = 29
+    /// Attempted to undelegate an amount which was too large.
+    UndelegateTooLarge, // = 30
 
     /// Internal error: delegations are unexpectedly empty.
     DelegationsNotFound, // = 31
@@ -101,12 +101,12 @@ pub enum Error {
     VoteKeyDeserializationFailed, // = 35
     /// Internal error: failed to deserialize the delegation's amount
     VotesDeserializationFailed, // = 36
-    /// Internal error: No vote record
-    NotVoted, // = 37
-    /// Attempted to unvote with too big number to occur overflow
-    UnvoteTooLarge, // = 38
+    /// Attempted to vote zero amount
+    VoteTooSmall, // = 37
     /// Attempted to vote too large number
-    VoteTooLarge, // = 39
+    VoteTooLarge, // = 38
+    /// Attempted to unvote with too big number to occur overflow
+    UnvoteTooLarge, // = 39
 
     /// Internal error: failed to deserialize the validator's key
     CommissionKeyDeserializationFailed, // = 40

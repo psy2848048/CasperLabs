@@ -841,9 +841,9 @@ fn should_fail_to_redelegate_more_than_own_shares() {
 
     let error_message = utils::get_error_message(response);
 
-    // pos::Error::UndelegateTooLarge => 29
+    // pos::Error::UndelegateTooLarge => 30
     assert!(error_message.contains(&format!(
         "Revert({})",
-        u32::from(ApiError::ProofOfStake(29))
+        u32::from(ApiError::ProofOfStake(30))
     )));
 }

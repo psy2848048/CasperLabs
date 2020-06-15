@@ -290,8 +290,9 @@ fn should_fail_to_vote_more_than_bonded() {
 
     let error_message = utils::get_error_message(response);
 
+    // pos::Error::VoteTooLarge => 38
     assert!(error_message.contains(&format!(
         "Revert({})",
-        u32::from(ApiError::ProofOfStake(39))
+        u32::from(ApiError::ProofOfStake(38))
     )));
 }
