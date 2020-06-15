@@ -21,7 +21,12 @@ pub struct DelegationKey {
     pub delegator: PublicKey,
     pub validator: PublicKey,
 }
-
+/*
+Retriving the validator list, delegating_amount of a delegator and
+delegated_amount of a validator impelementation is currently achieved by
+iterating a whole delegation map.
+They are fairly expensive operations so use them carefully.
+*/
 impl Delegations {
     pub fn new(table: BTreeMap<DelegationKey, U512>) -> Self {
         let total_amount = table.values().fold(U512::zero(), |acc, x| acc + x);
@@ -213,5 +218,41 @@ impl Delegations {
         }
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use alloc::collections::BTreeMap;
+
+    use types::{account::PublicKey, U512};
+
+    use super::{DelegationKey, Delegations};
+    use crate::constants::sys_params::MAX_VALIDATORS;
+
+    #[test]
+    fn test_validators() {
+        let mut table = BTreeMap::default();
+        for i in 1..=(MAX_VALIDATORS + 1) {
+            table.insert(
+                DelegationKey {
+                    delegator: PublicKey::ed25519_from([i as u8; 32]),
+                    validator: PublicKey::ed25519_from([i as u8; 32]),
+                },
+                U512::from(i),
+            );
+        }
+        let delegations = Delegations::new(table);
+        let validators = delegations.validators();
+
+        assert_eq!(validators.len(), MAX_VALIDATORS);
+        // the least element([1u8;32]) is truncated.
+        assert_eq!(
+            validators
+                .last()
+                .cloned()
+                .expect("validators shouldn't be empty"),
+            (PublicKey::ed25519_from([2u8; 32]), U512::from(2))
+        );
     }
 }
