@@ -70,8 +70,9 @@ impl ProofOfProfessionContract {
         {
             // populate the requests.
             let mut request_queue = store::read_undelegation_requests();
-            let requests = request_queue
-                .pop_due(current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY)));
+            let requests = request_queue.pop_due(
+                current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY_IN_SEC)),
+            );
             store::write_undelegation_requests(request_queue);
 
             for request in requests {
@@ -90,8 +91,9 @@ impl ProofOfProfessionContract {
         {
             // populate the requests.
             let mut request_queue = store::read_redelegation_requests();
-            let requests = request_queue
-                .pop_due(current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY)));
+            let requests = request_queue.pop_due(
+                current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY_IN_SEC)),
+            );
             store::write_redelegation_requests(request_queue);
 
             for request in requests {
@@ -116,7 +118,7 @@ impl ProofOfProfessionContract {
         store::write_delegations(&delegations);
 
         self.step_unbond(
-            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY)),
+            current.saturating_sub(BlockTime::new(sys_params::UNBONDING_DELAY_IN_SEC)),
             &delegations,
         );
 

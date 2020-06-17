@@ -27,8 +27,11 @@ pub(crate) mod sys_params {
     pub const SYSTEM_ACCOUNT: [u8; 32] = [0u8; 32];
     pub const MAX_VALIDATORS: usize = 100;
 
-    pub const UNBONDING_DELAY: u64 = 0;
-    pub const UNDELEGATING_DELAY: u64 = 0;
+    #[cfg(test)]
+    pub const UNBONDING_DELAY_IN_SEC: u64 = 0;
+    #[cfg(any(not(test), feature = "pop-delay-test"))]
+    pub const UNBONDING_DELAY_IN_SEC: u64 = 2 * 24 * 60 * 60;
+    pub const UNDELEGATING_DELAY_IN_SEC: u64 = 0;
 
     pub const BLOCK_PRODUCING_PER_SEC: i64 = 2_i64;
     pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce

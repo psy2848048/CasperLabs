@@ -128,6 +128,14 @@ build-contracts-enable-bonding-rs: \
 	$(SYSTEM_CONTRACTS_FEATURED) \
 	$(TEST_CONTRACTS)
 
+.PHONY: build-pop-delay-test-rs
+build-pop-delay-test-rs:
+	$(CARGO) build \
+			--package pop-install \
+	        --release $(filter-out --release, $(CARGO_FLAGS)) \
+	        --manifest-path "contracts/hdac-system/pop-install/Cargo.toml" --features "pop-delay-test" \
+	        --target wasm32-unknown-unknown
+
 .PHONY: build-example-contracts
 build-example-contracts: $(EXAMPLE_CONTRACTS)
 
@@ -164,6 +172,10 @@ test: test-rs test-as
 test-contracts-rs: build-contracts-rs
 	$(CARGO) test $(CARGO_FLAGS) -p casperlabs-engine-tests -- --ignored --nocapture
 	$(CARGO) test $(CARGO_FLAGS) --manifest-path "engine-tests/Cargo.toml" --features "use-system-contracts" -- --ignored --nocapture
+
+.PHONY: test-pop-delay-test-rs
+test-pop-delay-test-rs: build-pop-delay-test-rs
+	$(CARGO) test $(CARGO_FLAGS) delay_test --manifest-path "engine-tests/Cargo.toml" --features "use-system-contracts,pop-delay-test" -- --ignored --nocapture
 
 .PHONY: test-contracts-enable-bonding-rs
 test-contracts-enable-bonding-rs: build-contracts-enable-bonding-rs

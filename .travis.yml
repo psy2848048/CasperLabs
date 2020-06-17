@@ -10,12 +10,12 @@ jobs:
       os: linux
       dist: xenial
       script:
-        - make test-rs && make test-contracts-rs
+        - make test-rs && make test-contracts-rs && make test-pop-delay-test-rs
     - stage: unit test
       os: osx
       osx_image: xcode11.3
       script:
-        - make test-rs && make test-contracts-rs
+        - make test-rs && make test-contracts-rs && make test-pop-delay-test-rs
     - stage: lint
       os: linux
       dist: bionic

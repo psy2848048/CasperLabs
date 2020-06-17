@@ -12,6 +12,7 @@ test = false
 
 [features]
 std = ["contract/std", "types/std"]
+pop-delay-test = ["pop/pop-delay-test"]
 
 [dependencies]
 contract = { path = "../../../contract", package = "casperlabs-contract" }
