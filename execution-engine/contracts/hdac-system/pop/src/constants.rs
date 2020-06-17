@@ -1,9 +1,3 @@
-pub(crate) mod local_keys {
-    pub const UNDELEGATE_REQUEST_QUEUE: u8 = 1;
-    pub const REDELEGATE_REQUEST_QUEUE: u8 = 2;
-    pub const CLAIM_REQUESTS: u8 = 3;
-}
-
 pub(crate) mod uref_names {
     pub const POS_BONDING_PURSE: &str = "pos_bonding_purse";
     pub const POS_REWARD_PURSE: &str = "pos_rewards_purse";
@@ -13,6 +7,7 @@ pub(crate) mod uref_names {
 }
 
 pub(crate) mod methods {
+    pub const METHOD_INSTALL_GENESIS_STATES: &str = "install_genesis_states";
     pub const METHOD_BOND: &str = "bond";
     pub const METHOD_UNBOND: &str = "unbond";
     pub const METHOD_STEP: &str = "step";
@@ -29,7 +24,11 @@ pub(crate) mod methods {
 }
 
 pub(crate) mod sys_params {
+    pub const SYSTEM_ACCOUNT: [u8; 32] = [0u8; 32];
+    pub const MAX_VALIDATORS: usize = 100;
+
     pub const UNBONDING_DELAY: u64 = 0;
+    pub const UNDELEGATING_DELAY: u64 = 0;
 
     pub const BLOCK_PRODUCING_PER_SEC: i64 = 2_i64;
     pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce

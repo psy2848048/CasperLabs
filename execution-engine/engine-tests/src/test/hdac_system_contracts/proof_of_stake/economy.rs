@@ -1,4 +1,4 @@
-use num_traits::identities::Zero;
+use lazy_static::lazy_static;
 
 use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
@@ -9,151 +9,72 @@ use engine_test_support::{
 use types::{account::PublicKey, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
-const CONTRACT_TRANSFER_PURSE_TO_ACCOUNT: &str = "transfer_to_account_u512.wasm";
 
 const METHOD_CLAIM_COMMISSION: &str = "claim_commission";
 const METHOD_CLAIM_REWARD: &str = "claim_reward";
 const METHOD_DELEGATE: &str = "delegate";
+const METHOD_BOND: &str = "bond";
 
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
+lazy_static! {
+    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_000) * BIGSUN_TO_HDAC;
+}
 
 #[ignore]
 #[test]
 fn should_run_successful_step() {
-    const SYSTEM_ADDR: PublicKey = PublicKey::ed25519_from([0u8; 32]);
-    const ACCOUNT_1_ADDR_DAPP_1: PublicKey = PublicKey::ed25519_from([1u8; 32]);
-    const ACCOUNT_2_ADDR_DAPP_2: PublicKey = PublicKey::ed25519_from([2u8; 32]);
-    const ACCOUNT_3_ADDR_USER_1: PublicKey = PublicKey::ed25519_from([3u8; 32]);
-    const ACCOUNT_4_ADDR_USER_2: PublicKey = PublicKey::ed25519_from([4u8; 32]);
-    const ACCOUNT_5_ADDR_USER_3: PublicKey = PublicKey::ed25519_from([5u8; 32]);
+    const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
+    const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
     const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
-    const ACCOUNT_3_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
-    const SYSTEM_ACC_SUPPORT: u64 = 5u64 * BIGSUN_TO_HDAC;
+    const ACCOUNT_2_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
 
+    // Genesis accounts bond and self-delegate.
     let accounts = vec![
-        // System account initiates automatically
-        // Don't have to put in here
         GenesisAccount::new(
-            ACCOUNT_1_ADDR_DAPP_1,
+            ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
         GenesisAccount::new(
-            ACCOUNT_2_ADDR_DAPP_2,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_3_ADDR_USER_1,
+            ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
             Motes::new(GENESIS_VALIDATOR_STAKE.into()),
         ),
-        GenesisAccount::new(
-            ACCOUNT_4_ADDR_USER_2,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
-        GenesisAccount::new(
-            ACCOUNT_5_ADDR_USER_3,
-            Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::zero(),
-        ),
     ];
 
-    let state_infos = vec![
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-        format_args!(
-            "d_{}_{}_{}",
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            base16::encode_lower(&ACCOUNT_3_ADDR_USER_1.as_bytes()),
-            GENESIS_VALIDATOR_STAKE.to_string()
-        )
-        .to_string(),
-    ];
-
-    let mut builder = InMemoryWasmTestBuilder::default();
-    let result = builder
-        .run_genesis(&utils::create_genesis_config(accounts, state_infos))
-        .finish();
-
-    let pos_uref = builder.get_pos_contract_uref();
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    // there should be a genesis self-delegation
-    let lookup_key_delegation = format!(
-        "d_{}_{}_{}",
-        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-        base16::encode_lower(ACCOUNT_1_ADDR_DAPP_1.as_bytes()),
-        GENESIS_VALIDATOR_STAKE
-    );
-    assert!(pos_contract
-        .named_keys()
-        .contains_key(&lookup_key_delegation));
-
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(ACCOUNT_3_ADDR_USER_1.as_bytes()),
-        GENESIS_VALIDATOR_STAKE
-    );
-    assert!(pos_contract.named_keys().contains_key(&lookup_key));
-
-    println!("Here we are");
-    println!("0. send some tokens to system account");
-
-    let token_transfer_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_1_ADDR_DAPP_1,
-        CONTRACT_TRANSFER_PURSE_TO_ACCOUNT,
-        (SYSTEM_ADDR, U512::from(SYSTEM_ACC_SUPPORT)),
+    // ACCOUNT_2 bond additionally
+    let bond_request = ExecuteRequestBuilder::standard(
+        ACCOUNT_2_ADDR,
+        CONTRACT_POS_VOTE,
+        (
+            String::from(METHOD_BOND),
+            U512::from(GENESIS_VALIDATOR_STAKE),
+        ),
     )
     .build();
 
-    println!("Build Tx OK");
-
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder
-        .exec(token_transfer_request)
+        .run_genesis(&utils::create_genesis_config(accounts, Default::default()))
+        .exec(bond_request)
         .expect_success()
         .commit()
         .finish();
 
-    println!("Token sent!");
+    // #1 assert total_supply
+    let pos_contract = builder.get_pos_contract();
+    assert!(pos_contract
+        .named_keys()
+        .contains_key(&format!("t_{}", *GENESIS_TOTAL_SUPPLY)));
 
-    let system_account = builder
-        .get_account(SYSTEM_ADDR)
-        .expect("system account should exist");
-    let system_account_balance_actual = builder.get_purse_balance(system_account.main_purse());
-    println!("system account balance: {}", system_account_balance_actual);
-
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| { key.starts_with("t_") })
-            .count(),
-        1
-    );
-
-    // setup done. start distribute
-
-    println!("2. distribute");
+    // #2 distribute
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder.step(StepRequestBuilder::default().build()).finish();
 
-    println!("Exec OK");
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
+    // #3 assert commission and reward entries
+    // get updated contract context
+    let pos_contract = builder.get_pos_contract();
     assert_eq!(
         pos_contract
             .named_keys()
@@ -171,135 +92,73 @@ fn should_run_successful_step() {
         2
     );
 
-    // Delegate some amount and try distribute
-    println!("Delegate and try to step again");
-
+    // #4-1 ACCOUNT_2 delegates to ACCOUNT_1
+    // #4-2 Arouse commission distribution through step
+    // #4-3 ACCOUNT_1 claims commission
     let delegate_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_2_ADDR_DAPP_2,
+        ACCOUNT_2_ADDR,
         CONTRACT_POS_VOTE,
         (
             String::from(METHOD_DELEGATE),
-            ACCOUNT_1_ADDR_DAPP_1,
-            U512::from(ACCOUNT_3_DELEGATE_AMOUNT),
+            ACCOUNT_1_ADDR,
+            U512::from(ACCOUNT_2_DELEGATE_AMOUNT),
         ),
     )
     .build();
 
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
-        .exec(delegate_request)
-        .expect_success()
-        .commit()
-        .finish();
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    println!("**** Dummy output from here ****");
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("c_")
-            })
-            .count(),
-        2
-    );
-    println!("**** Dummy output ends here ****");
-
-    println!("Delegation done");
-    println!("Build Tx OK");
-
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder.step(StepRequestBuilder::default().build()).finish();
-
-    println!("Exec OK");
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    println!("**** Dummy output from here ****");
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("c_")
-            })
-            .count(),
-        2
-    );
-    println!("**** Dummy output ends here ****");
-
-    println!("3. Claim");
-
     let claim_commission_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_1_ADDR_DAPP_1,
+        ACCOUNT_1_ADDR,
         CONTRACT_POS_VOTE,
         (String::from(METHOD_CLAIM_COMMISSION),),
     )
     .build();
 
-    println!("Build Tx OK");
-
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
-        .exec(claim_commission_request)
+        .exec(delegate_request) // #4-1 ACCOUNT_2 to ACCOUNT_1
+        .expect_success()
+        .commit()
+        .step(StepRequestBuilder::default().build()) // #4-2 distribute
+        .exec(claim_commission_request) // #4-3 ACCOUNT_1 claims commission
         .expect_success()
         .commit()
         .finish();
 
-    println!("Exec OK");
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    println!("**** Dummy output from here ****");
+    // #5 assert commission states are diminished.
+    // get updated contract context
+    let pos_contract = builder.get_pos_contract();
     assert_eq!(
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("c_")
-            })
+            .filter(|(key, _)| { key.starts_with("c_") })
             .count(),
         1
     );
-    println!("**** Dummy output ends here ****");
 
-    let account1_dapp_1 = builder
-        .get_account(ACCOUNT_1_ADDR_DAPP_1)
-        .expect("system account should exist");
-    let system_account = builder
-        .get_account(SYSTEM_ADDR)
-        .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
-    let system_balance = builder.get_purse_balance(system_account.main_purse());
+    // #6 assert commission claim effect
+    // get ACCOUNT_1's balance before commission transfer.
+    let account_1 = builder
+        .get_account(ACCOUNT_1_ADDR)
+        .expect("account should exist");
+    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
 
-    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
-    println!(
-        "Initial: {}",
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
-    );
-    println!("System balance: {}", system_balance);
+    // System transfer commission amount to ACCOUNT_1
+    let mut builder = InMemoryWasmTestBuilder::from_result(result);
+    let result = builder.step(StepRequestBuilder::default().build()).finish();
 
-    println!("4. Reward");
+    // get ACCOUNT_1's balance after commission transfer.
+    let account_1_balance_after = builder.get_purse_balance(account_1.main_purse());
 
+    assert!(account_1_balance_before < account_1_balance_after);
+
+    // #7 ACCOUNT_1 claims reward.
     let reward_commission_request = ExecuteRequestBuilder::standard(
-        ACCOUNT_1_ADDR_DAPP_1,
+        ACCOUNT_1_ADDR,
         CONTRACT_POS_VOTE,
         (String::from(METHOD_CLAIM_REWARD),),
     )
     .build();
-
-    println!("Build Tx OK");
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
@@ -308,63 +167,31 @@ fn should_run_successful_step() {
         .commit()
         .finish();
 
-    println!("Exec OK");
-
-    let pos_contract = builder
-        .get_contract(pos_uref.remove_access_rights())
-        .expect("should have contract");
-
-    println!("**** Dummy output from here ****");
+    // #8 assert reward states are diminished.
+    // get updated contract context
+    let pos_contract = builder.get_pos_contract();
     assert_eq!(
         pos_contract
             .named_keys()
             .iter()
-            .filter(|(key, _)| {
-                println!("{}", key);
-                key.starts_with("r_")
-            })
+            .filter(|(key, _)| { key.starts_with("r_") })
             .count(),
-        2
+        1
     );
-    println!("**** Dummy output ends here ****");
 
-    let account1_dapp_1 = builder
-        .get_account(ACCOUNT_1_ADDR_DAPP_1)
-        .expect("system account should exist");
-    let system_account = builder
-        .get_account(SYSTEM_ADDR)
-        .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
-    let system_balance = builder.get_purse_balance(system_account.main_purse());
+    // #9 assert commission claim effect
+    // get ACCOUNT_1's balance before reward transfer.
+    let account_1 = builder
+        .get_account(ACCOUNT_1_ADDR)
+        .expect("account should exist");
+    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
 
-    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
-    println!(
-        "Initial: {}",
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
-    );
-    println!("System balance: {}", system_balance);
-
-    println!("5. Step again and check balance of the accounts");
-    println!("Build Tx OK");
-
+    // System transfer reward amount to ACCOUNT_1
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let _result = builder.step(StepRequestBuilder::default().build()).finish();
+    let _ = builder.step(StepRequestBuilder::default().build()).finish();
 
-    println!("Exec OK");
+    // get ACCOUNT_1's balance after reward transfer.
+    let account_1_balance_after = builder.get_purse_balance(account_1.main_purse());
 
-    let account1_dapp_1 = builder
-        .get_account(ACCOUNT_1_ADDR_DAPP_1)
-        .expect("system account should exist");
-    let system_account = builder
-        .get_account(SYSTEM_ADDR)
-        .expect("system account should exist");
-    let account1_dapp_1_balance_actual = builder.get_purse_balance(account1_dapp_1.main_purse());
-    let system_balance = builder.get_purse_balance(system_account.main_purse());
-
-    println!("Account 1 balance: {}", account1_dapp_1_balance_actual);
-    println!(
-        "Initial: {}",
-        U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE - SYSTEM_ACC_SUPPORT)
-    );
-    println!("System balance: {}", system_balance);
+    assert!(account_1_balance_before < account_1_balance_after);
 }

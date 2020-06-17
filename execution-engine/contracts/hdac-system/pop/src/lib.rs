@@ -3,16 +3,18 @@
 extern crate alloc;
 
 mod constants;
+mod duration_queue;
 mod math;
-mod pop_impl;
+mod pop_contract;
+mod store;
 
-use alloc::string::String;
+use alloc::{collections::BTreeMap, string::String};
 
 use contract::{contract_api::runtime, unwrap_or_revert::UnwrapOrRevert};
 use types::{account::PublicKey, ApiError, CLValue, Key, URef, U512};
 
 use constants::methods;
-use pop_impl::{Delegatable, ProofOfProfessionContract, Votable};
+use pop_contract::{Delegatable, ProofOfProfessionContract, Stakable, Votable};
 
 pub fn delegate() {
     let mut pop_contract = ProofOfProfessionContract;
@@ -22,9 +24,19 @@ pub fn delegate() {
         .unwrap_or_revert_with(ApiError::InvalidArgument);
 
     match method_name.as_str() {
+        // Type of this method:
+        // `fn install_genesis_states(genesis_validators: BTreeMap<PublicKey, U512>)`
+        methods::METHOD_INSTALL_GENESIS_STATES => {
+            let genesis_validators: BTreeMap<PublicKey, U512> = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            pop_contract
+                .install_genesis_states(genesis_validators)
+                .unwrap_or_revert();
+        }
         // Type of this method: `fn bond(amount: U512, purse: URef)`
         methods::METHOD_BOND => {
-            let validator = runtime::get_caller();
+            let caller = runtime::get_caller();
             let amount: U512 = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
@@ -32,18 +44,16 @@ pub fn delegate() {
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
-                .delegate(validator, validator, amount, source_uref)
+                .bond(caller, amount, source_uref)
                 .unwrap_or_revert();
         }
         // Type of this method: `fn unbond(amount: Option<U512>)`
         methods::METHOD_UNBOND => {
-            let validator = runtime::get_caller();
+            let caller = runtime::get_caller();
             let maybe_amount = runtime::get_arg(1)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            pop_contract
-                .undelegate(validator, validator, maybe_amount)
-                .unwrap_or_revert();
+            pop_contract.unbond(caller, maybe_amount).unwrap_or_revert();
         }
         // Type of this method: `fn step()`
         methods::METHOD_STEP => {
@@ -78,11 +88,11 @@ pub fn delegate() {
             let amount: U512 = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let source_uref: URef = runtime::get_arg(3)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            // let source_uref: URef = runtime::get_arg(3)
+            // .unwrap_or_revert_with(ApiError::MissingArgument)
+            // .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
-                .delegate(delegator, validator, amount, source_uref)
+                .delegate(delegator, validator, amount)
                 .unwrap_or_revert();
         }
         // Type of this method: `fn undelegate(validator: PublicKey, amount: Option<U512>)`
@@ -108,7 +118,7 @@ pub fn delegate() {
             let dest_validator: PublicKey = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            let shares: U512 = runtime::get_arg(3)
+            let shares: Option<U512> = runtime::get_arg(3)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract

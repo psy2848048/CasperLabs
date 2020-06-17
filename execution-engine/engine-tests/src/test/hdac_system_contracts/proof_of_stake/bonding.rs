@@ -1,13 +1,15 @@
+use std::convert::TryFrom;
+
 use engine_core::engine_state::genesis::{GenesisAccount, POS_BONDING_PURSE};
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{
         utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder,
-        DEFAULT_ACCOUNTS, DEFAULT_PAYMENT,
+        DEFAULT_ACCOUNTS, DEFAULT_GENESIS_CONFIG, DEFAULT_PAYMENT,
     },
     DEFAULT_ACCOUNT_ADDR, DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, ApiError, Key, URef, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, ApiError, CLValue, Key, URef, U512};
 
 const CONTRACT_POS_BONDING: &str = "pos_bonding.wasm";
 const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
@@ -41,10 +43,38 @@ fn get_pos_bonding_purse_balance(builder: &InMemoryWasmTestBuilder) -> U512 {
     builder.get_purse_balance(purse_id)
 }
 
+fn assert_bond_amount(
+    pop_uref: &URef,
+    address: &PublicKey,
+    amount: U512,
+    builder: &InMemoryWasmTestBuilder,
+) {
+    let key = {
+        let mut ret = Vec::with_capacity(1 + address.as_bytes().len());
+        ret.push(1u8);
+        ret.extend(address.as_bytes());
+        Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
+    };
+    let got: CLValue = builder
+        .query(None, key.clone(), &[])
+        .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+        .expect("should have local value.");
+    let got: U512 = got.into_t().unwrap();
+    assert_eq!(
+        got, amount,
+        "bond amount assertion failure for {:?}",
+        address
+    );
+}
+
 #[ignore]
 #[test]
 fn should_run_successful_bond_and_unbond() {
     let account_1_seed_amount = *DEFAULT_PAYMENT * 10 * 2;
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // genesis_validator[42; 32]:
+    // { balance: 100k, stake: 50k ,self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -56,15 +86,7 @@ fn should_run_successful_bond_and_unbond() {
         tmp
     };
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
-
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
 
     let mut builder = InMemoryWasmTestBuilder::default();
     let result = builder.run_genesis(&genesis_config).finish();
@@ -75,6 +97,7 @@ fn should_run_successful_bond_and_unbond() {
 
     let pos = builder.get_pos_contract_uref();
 
+    // #1 default_account bond 100k
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -89,24 +112,23 @@ fn should_run_successful_bond_and_unbond() {
         .commit()
         .finish();
 
-    let contract = builder
-        .get_contract(pos.remove_access_rights())
-        .expect("should have contract");
-
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(DEFAULT_ACCOUNT_ADDR.as_bytes()),
-        GENESIS_ACCOUNT_STAKE
+    // #2 assert default_account's bond amount
+    assert_bond_amount(
+        &pos,
+        &DEFAULT_ACCOUNT_ADDR,
+        GENESIS_ACCOUNT_STAKE.into(),
+        &builder,
     );
-    assert!(contract.named_keys().contains_key(&lookup_key));
 
-    // Gensis validator [42; 32] bonded 50k, and genesis account bonded 100k inside
-    // the test contract
+    // #3 assert bonding purse balance;
+    // default_account(GENESIS_ACCOUNT_STAKE(100k)) +
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k))
     assert_eq!(
         get_pos_bonding_purse_balance(&builder),
         U512::from(GENESIS_VALIDATOR_STAKE + GENESIS_ACCOUNT_STAKE)
     );
 
+    // #4 seed account_1 and bond ACCOUNT_1_STAKE(42k)
     let exec_request_2 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -128,7 +150,6 @@ fn should_run_successful_bond_and_unbond() {
     )
     .build();
 
-    // Create new account (from genesis funds) and bond with it
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
         .exec(exec_request_2)
@@ -145,30 +166,20 @@ fn should_run_successful_bond_and_unbond() {
 
     let pos = builder.get_pos_contract_uref();
 
-    // Verify that genesis account is in validator queue
-    let contract = builder
-        .get_contract(pos.remove_access_rights())
-        .expect("should have contract");
+    // #5 assert account_1's bond amount(42k)
+    assert_bond_amount(&pos, &ACCOUNT_1_ADDR, ACCOUNT_1_STAKE.into(), &builder);
 
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
-        ACCOUNT_1_STAKE
-    );
-    assert!(contract.named_keys().contains_key(&lookup_key));
-
-    // Gensis validator [42; 32] bonded 50k, and genesis account bonded 100k inside
-    // the test contract
+    // #6 assert bonding purse balance;
+    // default_account(GENESIS_ACCOUNT_STAKE(100k)) +
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k)) +
+    // account_1(ACCOUNT_1_STAKE(42k))
     let pos_bonding_purse_balance = get_pos_bonding_purse_balance(&builder);
     assert_eq!(
         pos_bonding_purse_balance,
         U512::from(GENESIS_VALIDATOR_STAKE + GENESIS_ACCOUNT_STAKE + ACCOUNT_1_STAKE)
     );
 
-    //
-    // Stage 2a - Account 1 unbonds by decreasing less than 50% (and is still in the
-    // queue)
-    //
+    // #7 account_1 unbond ACCOUNT_1_UNBOND_1(22k)
     let exec_request_4 = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR,
         CONTRACT_POS_BONDING,
@@ -189,40 +200,25 @@ fn should_run_successful_bond_and_unbond() {
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
 
+    // #8 assert account1's balance after unbond request.
     assert_eq!(
         account_1_bal_after,
         account_1_bal_before - *DEFAULT_PAYMENT + ACCOUNT_1_UNBOND_1,
     );
 
-    // POS bonding purse is decreased
+    // #9 assert bonding purse balance;
+    // default_account(GENESIS_ACCOUNT_STAKE(100k)) +
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k)) +
+    // account_1(42-22 = 20k)
     assert_eq!(
         get_pos_bonding_purse_balance(&builder),
         U512::from(GENESIS_VALIDATOR_STAKE + GENESIS_ACCOUNT_STAKE + ACCOUNT_1_UNBOND_2)
     );
 
-    let pos_contract = builder.get_pos_contract();
+    // #10 assert account_1's bond amount(42k-22k)
+    assert_bond_amount(&pos, &ACCOUNT_1_ADDR, ACCOUNT_1_UNBOND_2.into(), &builder);
 
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
-        ACCOUNT_1_STAKE
-    );
-    assert!(!pos_contract.named_keys().contains_key(&lookup_key));
-
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
-        ACCOUNT_1_UNBOND_2
-    );
-    // Account 1 is still tracked anymore in the bonding queue with different uref
-    // name
-    assert!(pos_contract.named_keys().contains_key(&lookup_key));
-
-    //
-    // Stage 2b - Genesis unbonds by decreasing less than 50% (and is still in the
-    // queue)
-    //
-    // Genesis account unbonds less than 50% of his stake
+    // #11 default_account unbond 45k.
     let exec_request_5 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -240,6 +236,7 @@ fn should_run_successful_bond_and_unbond() {
         .step(StepRequestBuilder::default().build())
         .finish();
 
+    // #12 assert default_account's balance after unbond
     assert_eq!(
         builder.get_purse_balance(default_account.main_purse()),
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE)
@@ -248,15 +245,16 @@ fn should_run_successful_bond_and_unbond() {
             - GENESIS_ACCOUNT_UNBOND_2,
     );
 
-    // POS bonding purse is further decreased
+    // #13 assert bonding purse balance;
+    // default_account(100k - 45k = 55k) +
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k)) +
+    // account_1(42-22 = 20k)
     assert_eq!(
         get_pos_bonding_purse_balance(&builder),
         U512::from(GENESIS_VALIDATOR_STAKE + GENESIS_ACCOUNT_UNBOND_2 + ACCOUNT_1_UNBOND_2)
     );
 
-    //
-    // Stage 3a - Fully unbond account1 with Some(TOTAL_AMOUNT)
-    //
+    // #14 unbond all account1 with Some(TOTAL_AMOUNT(20k))
     let account_1_bal_before = builder.get_purse_balance(account_1.main_purse());
 
     let exec_request_6 = ExecuteRequestBuilder::standard(
@@ -279,33 +277,24 @@ fn should_run_successful_bond_and_unbond() {
 
     let account_1_bal_after = builder.get_purse_balance(account_1.main_purse());
 
+    // #15 assert account1's balance
     assert_eq!(
         account_1_bal_after,
         account_1_bal_before - *DEFAULT_PAYMENT + ACCOUNT_1_UNBOND_2,
     );
 
-    // POS bonding purse contains now genesis validator (50k) + genesis account
-    // (55k)
+    // #16 assert bonding purse balance;
+    // default_account(100k - 45k = 55k) +
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k))
     assert_eq!(
         get_pos_bonding_purse_balance(&builder),
         U512::from(GENESIS_VALIDATOR_STAKE + GENESIS_ACCOUNT_UNBOND_2)
     );
 
-    let pos_contract = builder.get_pos_contract();
+    // #17 assert account_1 is not bonded anymore.
+    assert_bond_amount(&pos, &ACCOUNT_1_ADDR, U512::zero(), &builder);
 
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(ACCOUNT_1_ADDR.as_bytes()),
-        ACCOUNT_1_UNBOND_2
-    );
-    // Account 1 isn't tracked anymore in the bonding queue
-    assert!(!pos_contract.named_keys().contains_key(&lookup_key));
-
-    //
-    // Stage 3b - Fully unbond account1 with Some(TOTAL_AMOUNT)
-    //
-
-    // Genesis account unbonds less than 50% of his stake
+    // #18 unbond all default_account with None
     let exec_request_7 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -321,7 +310,7 @@ fn should_run_successful_bond_and_unbond() {
         .step(StepRequestBuilder::default().build())
         .finish();
 
-    // Back to original after funding account1's pursee
+    // #19 assert default_account's balance after unbond all
     assert_eq!(
         result
             .builder()
@@ -329,64 +318,124 @@ fn should_run_successful_bond_and_unbond() {
         U512::from(DEFAULT_ACCOUNT_INITIAL_BALANCE) - *DEFAULT_PAYMENT * 4 - account_1_seed_amount
     );
 
-    // Final balance after two full unbonds is the initial bond valuee
+    // #20 assert bonding purse balance;
+    // genesis_validator[42;32](GENESIS_VALIDATOR_STAKE(50k))
     assert_eq!(
         get_pos_bonding_purse_balance(&builder),
         U512::from(GENESIS_VALIDATOR_STAKE)
     );
 
-    let pos_contract = builder.get_pos_contract();
-    let lookup_key = format!(
-        "v_{}_{}",
-        base16::encode_lower(DEFAULT_ACCOUNT_ADDR.as_bytes()),
-        GENESIS_ACCOUNT_UNBOND_2
-    );
-    // Genesis is still tracked anymore in the bonding queue with different uref
-    // name
-    assert!(!pos_contract.named_keys().contains_key(&lookup_key));
+    // #21 assert default_account's bond amount.
+    assert_bond_amount(&pos, &DEFAULT_ACCOUNT_ADDR, U512::zero(), &builder);
+}
 
-    //
-    // Final checks on validator queue
-    //
+#[ignore]
+#[test]
+fn should_fail_to_unbond_before_action_withdrawed() {
+    const CONTRACT_POS_DELEGATION: &str = "pos_delegation.wasm";
+    const METHOD_BOND: &str = "bond";
+    const METHOD_UNBOND: &str = "unbond";
+    const METHOD_DELEGATE: &str = "delegate";
+    const METHOD_VOTE: &str = "vote";
 
-    // Account 1 is still tracked anymore in the bonding queue with any amount
-    // suffix
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with(&format!(
-                "v_{}",
-                base16::encode_lower(DEFAULT_ACCOUNT_ADDR.as_bytes())
-            )))
-            .count(),
-        0
+    const BOND_AMOUNT: u64 = 50_000;
+    const DELEGATE_AMOUNT: u64 = 30_000;
+    const VOTE_AMOUNT: u64 = 40_000;
+    const UNBOND_AMOUNT: u64 = 10_001;
+
+    const DAPP_ADDR: Key = Key::Hash([11u8; 32]);
+
+    // #1 bond 50k
+    // #2 delegate 30k
+    // #3 vote 40k
+    // #4 unbond 10k and 1 -> Must fail
+    let bond_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(METHOD_BOND), U512::from(BOND_AMOUNT)),
+    )
+    .build();
+    let delegate_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(METHOD_DELEGATE),
+            DEFAULT_ACCOUNT_ADDR,
+            U512::from(DELEGATE_AMOUNT),
+        ),
+    )
+    .build();
+    let vote_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (
+            String::from(METHOD_VOTE),
+            DAPP_ADDR,
+            U512::from(VOTE_AMOUNT),
+        ),
+    )
+    .build();
+    let unbond_request = ExecuteRequestBuilder::standard(
+        DEFAULT_ACCOUNT_ADDR,
+        CONTRACT_POS_DELEGATION,
+        (String::from(METHOD_UNBOND), Some(U512::from(UNBOND_AMOUNT))),
+    )
+    .build();
+    let mut builder = InMemoryWasmTestBuilder::default();
+    let result = builder
+        .run_genesis(&*DEFAULT_GENESIS_CONFIG)
+        .exec(bond_request)
+        .expect_success()
+        .commit()
+        .exec(delegate_request)
+        .expect_success()
+        .commit()
+        .exec(vote_request)
+        .expect_success()
+        .commit()
+        .exec(unbond_request)
+        .expect_success()
+        .commit()
+        .finish();
+
+    // Unbond is processed in the step but the step is currently not supporting to propagate the
+    // errors. Therefore, assert by checking that the states amount are not changed.
+
+    let default_account = builder
+        .get_account(DEFAULT_ACCOUNT_ADDR)
+        .expect("should get default_account");
+    let balance_before_step = builder.get_purse_balance(default_account.main_purse());
+
+    // The unbond request is executed in this step.
+    let _ = InMemoryWasmTestBuilder::from_result(result)
+        .step(StepRequestBuilder::default().build())
+        .finish();
+
+    let balance_after_step = builder.get_purse_balance(default_account.main_purse());
+    assert_eq!(balance_before_step, balance_after_step);
+
+    let pop_uref = builder.get_pos_contract_uref();
+    // check bond amount
+    assert_bond_amount(
+        &pop_uref,
+        &DEFAULT_ACCOUNT_ADDR,
+        U512::from(BOND_AMOUNT),
+        &builder,
     );
+    // check the balance of bonding_purse
     assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with(&format!(
-                "v_{}",
-                base16::encode_lower(ACCOUNT_1_ADDR.as_bytes())
-            )))
-            .count(),
-        0
-    );
-    // only genesis validator is still in the queue
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("v_"))
-            .count(),
-        1
+        U512::from(BOND_AMOUNT),
+        get_pos_bonding_purse_balance(&builder)
     );
 }
 
 #[ignore]
 #[test]
 fn should_fail_bonding_with_insufficient_funds() {
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // genesis_validator[42; 32]:
+    // { balance: 100k, self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -398,15 +447,7 @@ fn should_fail_bonding_with_insufficient_funds() {
         tmp
     };
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
-
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
 
     let exec_request_1 = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
@@ -450,6 +491,10 @@ fn should_fail_bonding_with_insufficient_funds() {
 #[ignore]
 #[test]
 fn should_fail_unbonding_validator_without_bonding_first() {
+    // default_account:
+    // {balance: DEFAULT_ACCOUNT_INITIAL_BALANCE, stake: 0}
+    // genesis_validator[42; 32]:
+    // { balance: 100k, stake: 50k, self_delegation: 50k }
     let accounts = {
         let mut tmp: Vec<GenesisAccount> = DEFAULT_ACCOUNTS.clone();
         let account = GenesisAccount::new(
@@ -461,16 +506,9 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         tmp
     };
 
-    let state_infos = vec![format_args!(
-        "d_{}_{}_{}",
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        base16::encode_lower(&PublicKey::ed25519_from([42; 32]).as_bytes()),
-        GENESIS_VALIDATOR_STAKE.to_string()
-    )
-    .to_string()];
+    let genesis_config = utils::create_genesis_config(accounts, Default::default());
 
-    let genesis_config = utils::create_genesis_config(accounts, state_infos);
-
+    // #1 default_account try to unbond 42 without bonding.
     let exec_request = ExecuteRequestBuilder::standard(
         DEFAULT_ACCOUNT_ADDR,
         CONTRACT_POS_BONDING,
@@ -492,9 +530,6 @@ fn should_fail_unbonding_validator_without_bonding_first() {
         .to_owned();
 
     let error_message = utils::get_error_message(response);
-    // pos::Error::NotDelegated => 27
-    assert!(error_message.contains(&format!(
-        "Revert({})",
-        u32::from(ApiError::ProofOfStake(27))
-    )));
+    // pos::Error::UnbondTooLarge => 7
+    assert!(error_message.contains(&format!("Revert({})", u32::from(ApiError::ProofOfStake(7)))));
 }
