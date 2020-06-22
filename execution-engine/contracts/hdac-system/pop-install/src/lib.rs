@@ -3,7 +3,6 @@
 extern crate alloc;
 
 use alloc::{collections::BTreeMap, string::String};
-use core::fmt::Write;
 
 use contract::{
     contract_api::{runtime, storage},
@@ -14,7 +13,6 @@ use types::{
     Key, URef, U512,
 };
 
-const PLACEHOLDER_KEY: Key = Key::Hash([0u8; 32]);
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
@@ -58,7 +56,8 @@ pub extern "C" fn call() {
         pop,
         (
             "install_genesis_states",
-            (genesis_validators /* , genesis_delegations */,),
+            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC), // total_mint_supply
+            genesis_validators,                                         /* , genesis_delegations */
         ),
     );
 
@@ -74,16 +73,6 @@ fn build_pop_named_keys(
 ) -> BTreeMap<String, Key> {
     let mint = ContractRef::URef(URef::new(mint_uref.addr(), AccessRights::READ));
     let mut named_keys = BTreeMap::<String, Key>::default();
-
-    // Insert total supply
-    let mut total_supply_uref = String::new();
-    total_supply_uref
-        .write_fmt(format_args!(
-            "t_{}",
-            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC)
-        ))
-        .unwrap();
-    named_keys.insert(total_supply_uref, PLACEHOLDER_KEY);
 
     let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
     let bonding_purse = mint_purse(&mint, total_bonds);

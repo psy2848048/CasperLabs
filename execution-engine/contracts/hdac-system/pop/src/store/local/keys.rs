@@ -1,5 +1,7 @@
 use alloc::vec::Vec;
 use types::{account::PublicKey, bytesrepr::ToBytes, Key};
+
+pub const TOTAL_MINT_SUPPLY: u8 = 0;
 pub const UNBOND_REQUEST_QUEUE: u8 = 1;
 pub const UNDELEGATE_REQUEST_QUEUE: u8 = 2;
 pub const REDELEGATE_REQUEST_QUEUE: u8 = 3;

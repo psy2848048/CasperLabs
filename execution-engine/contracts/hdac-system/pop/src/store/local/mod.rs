@@ -9,6 +9,16 @@ use super::requests::{ClaimRequest, RedelegateRequest, UnbondRequest, Undelegate
 
 use crate::duration_queue::DurationQueue;
 
+pub fn read_total_mint_supply() -> U512 {
+    storage::read_local(&keys::TOTAL_MINT_SUPPLY)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
+
+pub fn write_total_mint_supply(amount: U512) {
+    storage::write_local(keys::TOTAL_MINT_SUPPLY, amount);
+}
+
 pub fn read_unbond_requests() -> DurationQueue<UnbondRequest> {
     storage::read_local(&keys::UNBOND_REQUEST_QUEUE)
         .unwrap_or_default()

@@ -2,6 +2,9 @@ mod local;
 mod named_key;
 mod requests;
 
+// total mint supply
+pub use local::{read_total_mint_supply, write_total_mint_supply};
+
 // stake
 pub use local::{
     read_bonding_amount, read_unbond_requests, write_bonding_amount, write_unbond_requests,

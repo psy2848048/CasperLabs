@@ -1,12 +1,14 @@
 use lazy_static::lazy_static;
 
+use std::convert::TryFrom;
+
 use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, U512};
+use types::{account::PublicKey, CLValue, Key, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
@@ -63,10 +65,16 @@ fn should_run_successful_step() {
         .finish();
 
     // #1 assert total_supply
-    let pos_contract = builder.get_pos_contract();
-    assert!(pos_contract
-        .named_keys()
-        .contains_key(&format!("t_{}", *GENESIS_TOTAL_SUPPLY)));
+    {
+        let pop_uref = builder.get_pos_contract_uref();
+        let key = Key::local(pop_uref.addr(), &[0u8; 1]);
+        let got: CLValue = builder
+            .query(None, key.clone(), &[])
+            .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+            .expect("should have local value.");
+        let got: U512 = got.into_t().unwrap();
+        assert_eq!(got, *GENESIS_TOTAL_SUPPLY);
+    }
 
     // #2 distribute
     let mut builder = InMemoryWasmTestBuilder::from_result(result);

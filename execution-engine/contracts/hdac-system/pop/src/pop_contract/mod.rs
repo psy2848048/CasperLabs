@@ -37,12 +37,17 @@ pub struct ProofOfProfessionContract;
 impl ProofOfProfessionContract {
     pub fn install_genesis_states(
         &mut self,
+        total_mint_supply: U512,
         genesis_validators: BTreeMap<PublicKey, U512>,
     ) -> Result<()> {
         if runtime::get_caller().value() != sys_params::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
+        // write the total mint supply state
+        store::write_total_mint_supply(total_mint_supply);
+
+        // write stake and delegation states
         let mut delegations = store::read_delegations()?;
 
         for (validator, amount) in &genesis_validators {
@@ -225,7 +230,7 @@ impl ProofOfProfessionContract {
     fn distribute(&mut self, delegations: &Delegations) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
-        let mut total_supply = ContractClaim::read_total_supply()?;
+        let mut total_supply = store::read_total_mint_supply();
 
         let mut commissions = ContractClaim::read_commission()?;
         let mut rewards = ContractClaim::read_reward()?;
@@ -235,24 +240,24 @@ impl ProofOfProfessionContract {
         //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
         //         * sys_params::BLOCK_PRODUCING_PER_SEC)
         //    -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply.0 * U512::from(5)
+        let inflation_pool_per_block = total_supply * U512::from(5)
             / U512::from(
                 100 * DAYS_OF_YEAR
                     * HOURS_OF_DAY
                     * SECONDS_OF_HOUR
                     * sys_params::BLOCK_PRODUCING_PER_SEC,
             );
-        total_supply.add(&inflation_pool_per_block);
+        total_supply += inflation_pool_per_block;
 
         // Check total supply meets max supply
-        if total_supply.0
+        if total_supply
             > U512::from(sys_params::MAX_SUPPLY) * U512::from(sys_params::BIGSUN_TO_HDAC)
         {
             // No inflation anymore
             return Ok(());
         }
 
-        ContractClaim::write_total_supply(&total_supply);
+        store::write_total_mint_supply(total_supply);
 
         /////////////////////////////////
         // Update validator's commission

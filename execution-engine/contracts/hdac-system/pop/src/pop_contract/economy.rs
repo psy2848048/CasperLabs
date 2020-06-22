@@ -14,10 +14,6 @@ use types::{
 
 pub struct ContractClaim;
 
-// TODO: How to inject the # of total supply in genesis block?
-// Seems to needed one more step in CLI to gather that
-//   as like collect-gentxs
-pub struct TotalSupply(pub U512);
 pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
@@ -44,42 +40,6 @@ pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount:
 }
 
 impl ContractClaim {
-    // prefix: "t"
-    // t_{total_supply}
-    pub fn read_total_supply() -> Result<TotalSupply> {
-        let mut total_supply = U512::from(0);
-        for (name, _) in runtime::list_named_keys() {
-            let mut split_name = name.split('_');
-            if Some("t") != split_name.next() {
-                continue;
-            }
-
-            total_supply = split_name
-                .next()
-                .and_then(|b| U512::from_dec_str(b).ok())
-                .ok_or(Error::TotalSupplyDeserializationFailed)?;
-
-            break;
-        }
-
-        Ok(TotalSupply(total_supply))
-    }
-
-    // prefix: "t"
-    // t_{total_supply}
-    pub fn write_total_supply(total_supply: &TotalSupply) {
-        for (name, _) in runtime::list_named_keys() {
-            if name.starts_with("t_") {
-                runtime::remove_key(&name);
-                break;
-            }
-        }
-        let mut uref = String::new();
-        uref.write_fmt(format_args!("t_{}", total_supply.0))
-            .expect("Writing to a string cannot fail");
-        runtime::put_key(&uref, Key::Hash([0; 32]));
-    }
-
     // prefix: "c"
     // c_{PublicKey}_{ClaimableBalance}
     pub fn read_commission() -> Result<Commissions> {
@@ -224,12 +184,6 @@ impl ContractClaim {
         for name in new_urefs {
             runtime::put_key(&name, Key::Hash([0; 32]));
         }
-    }
-}
-
-impl TotalSupply {
-    pub fn add(&mut self, amount: &U512) {
-        self.0 += *amount;
     }
 }
 

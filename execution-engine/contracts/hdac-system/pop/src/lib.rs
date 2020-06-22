@@ -27,11 +27,14 @@ pub fn delegate() {
         // Type of this method:
         // `fn install_genesis_states(genesis_validators: BTreeMap<PublicKey, U512>)`
         methods::METHOD_INSTALL_GENESIS_STATES => {
-            let genesis_validators: BTreeMap<PublicKey, U512> = runtime::get_arg(1)
+            let total_mint_supply: U512 = runtime::get_arg(1)
+                .unwrap_or_revert_with(ApiError::MissingArgument)
+                .unwrap_or_revert_with(ApiError::InvalidArgument);
+            let genesis_validators: BTreeMap<PublicKey, U512> = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
-                .install_genesis_states(genesis_validators)
+                .install_genesis_states(total_mint_supply, genesis_validators)
                 .unwrap_or_revert();
         }
         // Type of this method: `fn bond(amount: U512, purse: URef)`
