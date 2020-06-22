@@ -106,3 +106,27 @@ pub fn write_voted_amount(dapp: &Key, amount: U512) {
     let key = keys::voted_amount_key(dapp);
     storage::write_local(key, amount);
 }
+
+pub fn read_commission_amount(validator: &PublicKey) -> U512 {
+    let key = keys::commission_amount_key(validator);
+    storage::read_local(&key)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
+
+pub fn write_commission_amount(validator: &PublicKey, amount: U512) {
+    let key = keys::commission_amount_key(validator);
+    storage::write_local(key, amount);
+}
+
+pub fn read_reward_amount(user: &PublicKey) -> U512 {
+    let key = keys::reward_amount_key(user);
+    storage::read_local(&key)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
+
+pub fn write_reward_amount(user: &PublicKey, amount: U512) {
+    let key = keys::reward_amount_key(user);
+    storage::write_local(key, amount);
+}

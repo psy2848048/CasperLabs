@@ -137,18 +137,11 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let mut commissions = ContractClaim::read_commission()?;
-        let validator_commission = commissions
-            .0
-            .get(validator)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
-
-        commissions.claim_commission(validator, &validator_commission);
-        ContractClaim::write_commission(&commissions);
+        let commission_amount = store::read_commission_amount(validator);
+        store::write_commission_amount(validator, U512::zero());
 
         let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Commission(*validator, validator_commission));
+        claim_requests.push(ClaimRequest::Commission(*validator, commission_amount));
         store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -232,9 +225,6 @@ impl ProofOfProfessionContract {
         // 2. Do not mint in this phase.
         let mut total_supply = store::read_total_mint_supply();
 
-        let mut commissions = ContractClaim::read_commission()?;
-        let mut rewards = ContractClaim::read_reward()?;
-
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
         //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
@@ -287,9 +277,10 @@ impl ProofOfProfessionContract {
                 * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100));
-            commissions.insert_commission(validator, &unit_commission);
+
+            let current = store::read_commission_amount(validator);
+            store::write_commission_amount(validator, current + unit_commission);
         }
-        ContractClaim::write_commission(&commissions);
 
         /////////////////////////////////
         // Update user's reward
@@ -299,6 +290,7 @@ impl ProofOfProfessionContract {
         // 3. Derive each validator's reward portion and insert reward of each user
 
         // 1. Swipe delegation table, and derive user's portion of delegation
+        let mut rewards = ContractClaim::read_reward()?;
         for (
             DelegationKey {
                 delegator,

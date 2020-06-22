@@ -13,8 +13,6 @@ use types::{
 };
 
 pub struct ContractClaim;
-
-pub struct Commissions(pub BTreeMap<PublicKey, U512>);
 pub struct Rewards(pub BTreeMap<PublicKey, U512>);
 
 pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount: &U512) -> U512 {
@@ -40,79 +38,6 @@ pub fn pop_score_calculation(total_delegated: &U512, validator_delegated_amount:
 }
 
 impl ContractClaim {
-    // prefix: "c"
-    // c_{PublicKey}_{ClaimableBalance}
-    pub fn read_commission() -> Result<Commissions> {
-        let mut commissions = BTreeMap::new();
-        for (name, _) in runtime::list_named_keys() {
-            let mut split_name = name.split('_');
-            if Some("c") != split_name.next() {
-                continue;
-            }
-
-            let to_publickey = |hex_str: &str| -> Result<PublicKey> {
-                if hex_str.len() != 64 {
-                    return Err(Error::CommissionKeyDeserializationFailed);
-                }
-                let mut key_bytes = [0u8; 32];
-                let _bytes_written = base16::decode_slice(hex_str, &mut key_bytes)
-                    .map_err(|_| Error::CommissionKeyDeserializationFailed)?;
-                debug_assert!(_bytes_written == key_bytes.len());
-                Ok(PublicKey::ed25519_from(key_bytes))
-            };
-
-            let hex_key = split_name
-                .next()
-                .ok_or(Error::CommissionKeyDeserializationFailed)?;
-            let validator = to_publickey(hex_key)?;
-
-            let balance = split_name
-                .next()
-                .and_then(|b| U512::from_dec_str(b).ok())
-                .ok_or(Error::CommissionBalanceDeserializationFailed)?;
-
-            commissions.insert(validator, balance);
-        }
-
-        Ok(Commissions(commissions))
-    }
-
-    // prefix: "c"
-    // c_{PublicKey}_{ClaimableBalance}
-    pub fn write_commission(commissions: &Commissions) {
-        // Encode the stakes as a set of uref names.
-        let mut new_urefs: BTreeSet<String> = commissions
-            .0
-            .iter()
-            .map(|(pubkey, balance)| {
-                let to_hex_string = |address: PublicKey| -> String {
-                    let bytes = address.value();
-                    let mut ret = String::with_capacity(64);
-                    for byte in &bytes[..32] {
-                        write!(ret, "{:02x}", byte).expect("Writing to a string cannot fail");
-                    }
-                    ret
-                };
-
-                let validator = to_hex_string(*pubkey);
-                let mut uref = String::new();
-                uref.write_fmt(format_args!("c_{}_{}", validator, balance))
-                    .expect("Writing to a string cannot fail");
-                uref
-            })
-            .collect();
-
-        // Remove and add urefs to update the contract's known urefs accordingly.
-        for (name, _) in runtime::list_named_keys() {
-            if name.starts_with("c_") && !new_urefs.remove(&name) {
-                runtime::remove_key(&name);
-            }
-        }
-        for name in new_urefs {
-            runtime::put_key(&name, Key::Hash([0; 32]));
-        }
-    }
-
     // prefix: "r"
     // r_{PublicKey}_{ClaimableBalance}
     pub fn read_reward() -> Result<Rewards> {
@@ -183,32 +108,6 @@ impl ContractClaim {
         }
         for name in new_urefs {
             runtime::put_key(&name, Key::Hash([0; 32]));
-        }
-    }
-}
-
-impl Commissions {
-    pub fn insert_commission(&mut self, validator: &PublicKey, amount: &U512) {
-        self.0
-            .entry(*validator)
-            .and_modify(|x| *x += *amount)
-            .or_insert(*amount);
-    }
-
-    pub fn claim_commission(&mut self, validator: &PublicKey, amount: &U512) {
-        let claim = self.0.get_mut(validator);
-        match claim {
-            Some(claim) if *claim > *amount => {
-                *claim -= *amount;
-            }
-            Some(claim) if *claim == *amount => {
-                self.0
-                    .remove(validator)
-                    .ok_or(Error::CommissionClaimRecordNotFound)
-                    .unwrap_or_default();
-            }
-            Some(_) => runtime::revert(Error::CommissionClaimTooLarge),
-            None => runtime::revert(Error::NoCommission),
         }
     }
 }
