@@ -25,7 +25,7 @@ use crate::{
     store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
-use economy::{pop_score_calculation, ContractClaim};
+use economy::pop_score_calculation;
 use pop_actions_impl::stake;
 
 const DAYS_OF_YEAR: i64 = 365_i64;
@@ -150,17 +150,11 @@ impl ProofOfProfessionContract {
 
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
-        let mut rewards = ContractClaim::read_reward()?;
-        let user_reward = rewards
-            .0
-            .get(user)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
-        rewards.claim_rewards(user, &user_reward);
-        ContractClaim::write_reward(&rewards);
+        let reward_amount = store::read_reward_amount(user);
+        store::write_reward_amount(user, U512::zero());
 
         let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Reward(*user, user_reward));
+        claim_requests.push(ClaimRequest::Reward(*user, reward_amount));
         store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -290,7 +284,6 @@ impl ProofOfProfessionContract {
         // 3. Derive each validator's reward portion and insert reward of each user
 
         // 1. Swipe delegation table, and derive user's portion of delegation
-        let mut rewards = ContractClaim::read_reward()?;
         for (
             DelegationKey {
                 delegator,
@@ -313,9 +306,9 @@ impl ProofOfProfessionContract {
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
-            rewards.insert_rewards(delegator, &user_reward);
+            let current = store::read_reward_amount(delegator);
+            store::write_reward_amount(validator, current + user_reward);
         }
-        ContractClaim::write_reward(&rewards);
 
         Ok(())
     }
