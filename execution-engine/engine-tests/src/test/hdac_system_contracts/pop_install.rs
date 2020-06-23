@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use std::{collections::BTreeMap, convert::TryFrom};
 
 use engine_core::engine_state::EngineConfig;
@@ -24,6 +25,11 @@ const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
+
+const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
+lazy_static! {
+    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_000) * BIGSUN_TO_HDAC;
+}
 
 #[ignore]
 #[test]
@@ -127,6 +133,17 @@ fn should_run_pop_install_contract() {
     );
 
     // genesis states are correctly saved.
+    // assert total_supply
+    {
+        let key = Key::local(ret_value.addr(), &[0u8; 1]);
+        let got: CLValue = builder
+            .query(None, key.clone(), &[])
+            .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+            .expect("should have local value.");
+        let got: U512 = got.into_t().unwrap();
+        assert_eq!(got, *GENESIS_TOTAL_SUPPLY);
+    }
+
     for (validator, amount) in &genesis_validators {
         // check delegations
         let delegation_entry = format!(
