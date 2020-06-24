@@ -2,6 +2,9 @@ mod local;
 mod named_key;
 mod requests;
 
+// total mint supply
+pub use local::{read_total_mint_supply, write_total_mint_supply};
+
 // stake
 pub use local::{
     read_bonding_amount, read_unbond_requests, write_bonding_amount, write_unbond_requests,
@@ -21,5 +24,8 @@ pub use local::{
 };
 
 // claim
-pub use local::{read_claim_requests, write_claim_requests};
+pub use local::{
+    read_claim_requests, read_commission_amount, read_reward_amount, write_claim_requests,
+    write_commission_amount, write_reward_amount,
+};
 pub use requests::{ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest};

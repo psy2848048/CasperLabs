@@ -1,12 +1,14 @@
 use lazy_static::lazy_static;
 
+use std::convert::TryFrom;
+
 use engine_core::engine_state::genesis::GenesisAccount;
 use engine_shared::motes::Motes;
 use engine_test_support::{
     internal::{utils, ExecuteRequestBuilder, InMemoryWasmTestBuilder, StepRequestBuilder},
     DEFAULT_ACCOUNT_INITIAL_BALANCE,
 };
-use types::{account::PublicKey, U512};
+use types::{account::PublicKey, bytesrepr::ToBytes, CLValue, Key, U512};
 
 const CONTRACT_POS_VOTE: &str = "pos_delegation.wasm";
 
@@ -20,6 +22,38 @@ lazy_static! {
     static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_000) * BIGSUN_TO_HDAC;
 }
 
+fn query_commission_amount(builder: &InMemoryWasmTestBuilder, validator: &PublicKey) -> U512 {
+    let pop_uref = builder.get_pos_contract_uref();
+    let key = {
+        let mut ret = Vec::with_capacity(1 + validator.as_bytes().len());
+        ret.push(32u8);
+        ret.extend(validator.as_bytes());
+        Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
+    };
+    let got: CLValue = builder
+        .query(None, key.clone(), &[])
+        .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+        .expect("should have local value.");
+    let got: U512 = got.into_t().unwrap();
+    got
+}
+
+fn query_reward_amount(builder: &InMemoryWasmTestBuilder, delegator: &PublicKey) -> U512 {
+    let pop_uref = builder.get_pos_contract_uref();
+    let key = {
+        let mut ret = Vec::with_capacity(1 + delegator.as_bytes().len());
+        ret.push(33u8);
+        ret.extend(delegator.as_bytes());
+        Key::local(pop_uref.addr(), &ret.to_bytes().unwrap())
+    };
+    let got: CLValue = builder
+        .query(None, key.clone(), &[])
+        .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+        .expect("should have local value.");
+    let got: U512 = got.into_t().unwrap();
+    got
+}
+
 #[ignore]
 #[test]
 fn should_run_successful_step() {
@@ -29,7 +63,7 @@ fn should_run_successful_step() {
     const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
     const ACCOUNT_2_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
 
-    // Genesis accounts bond and self-delegate.
+    // ACCOUNT_1 and ACCOUNT_2 bond and self-delegate.
     let accounts = vec![
         GenesisAccount::new(
             ACCOUNT_1_ADDR,
@@ -63,34 +97,26 @@ fn should_run_successful_step() {
         .finish();
 
     // #1 assert total_supply
-    let pos_contract = builder.get_pos_contract();
-    assert!(pos_contract
-        .named_keys()
-        .contains_key(&format!("t_{}", *GENESIS_TOTAL_SUPPLY)));
+    {
+        let pop_uref = builder.get_pos_contract_uref();
+        let key = Key::local(pop_uref.addr(), &[0u8; 1]);
+        let got: CLValue = builder
+            .query(None, key.clone(), &[])
+            .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+            .expect("should have local value.");
+        let got: U512 = got.into_t().unwrap();
+        assert_eq!(got, *GENESIS_TOTAL_SUPPLY);
+    }
 
     // #2 distribute
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder.step(StepRequestBuilder::default().build()).finish();
 
-    // #3 assert commission and reward entries
-    // get updated contract context
-    let pos_contract = builder.get_pos_contract();
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| { key.starts_with("c_") })
-            .count(),
-        2
-    );
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| key.starts_with("r_"))
-            .count(),
-        2
-    );
+    // #3 assert commission and reward table
+    assert!(query_commission_amount(&builder, &ACCOUNT_1_ADDR) > U512::zero()); // ACCOUNT_1's commission
+    assert!(query_commission_amount(&builder, &ACCOUNT_2_ADDR) > U512::zero()); // ACCOUNT_2's commission
+    assert!(query_reward_amount(&builder, &ACCOUNT_1_ADDR) > U512::zero()); // ACCOUNT_1's reward
+    assert!(query_reward_amount(&builder, &ACCOUNT_2_ADDR) > U512::zero()); // ACCOUNT_2's reward
 
     // #4-1 ACCOUNT_2 delegates to ACCOUNT_1
     // #4-2 Arouse commission distribution through step
@@ -124,17 +150,8 @@ fn should_run_successful_step() {
         .commit()
         .finish();
 
-    // #5 assert commission states are diminished.
-    // get updated contract context
-    let pos_contract = builder.get_pos_contract();
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| { key.starts_with("c_") })
-            .count(),
-        1
-    );
+    // #5 assert ACCOUNT_1's commission is withdrawed.
+    assert!(query_commission_amount(&builder, &ACCOUNT_1_ADDR) == U512::zero());
 
     // #6 assert commission claim effect
     // get ACCOUNT_1's balance before commission transfer.
@@ -153,7 +170,7 @@ fn should_run_successful_step() {
     assert!(account_1_balance_before < account_1_balance_after);
 
     // #7 ACCOUNT_1 claims reward.
-    let reward_commission_request = ExecuteRequestBuilder::standard(
+    let claim_reward_request = ExecuteRequestBuilder::standard(
         ACCOUNT_1_ADDR,
         CONTRACT_POS_VOTE,
         (String::from(METHOD_CLAIM_REWARD),),
@@ -162,24 +179,15 @@ fn should_run_successful_step() {
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
-        .exec(reward_commission_request)
+        .exec(claim_reward_request)
         .expect_success()
         .commit()
         .finish();
 
-    // #8 assert reward states are diminished.
-    // get updated contract context
-    let pos_contract = builder.get_pos_contract();
-    assert_eq!(
-        pos_contract
-            .named_keys()
-            .iter()
-            .filter(|(key, _)| { key.starts_with("r_") })
-            .count(),
-        1
-    );
+    // #8 assert ACCOUNT_1's reward is withdrawed.
+    assert!(query_reward_amount(&builder, &ACCOUNT_1_ADDR) == U512::zero());
 
-    // #9 assert commission claim effect
+    // #9 assert reward claim effect
     // get ACCOUNT_1's balance before reward transfer.
     let account_1 = builder
         .get_account(ACCOUNT_1_ADDR)

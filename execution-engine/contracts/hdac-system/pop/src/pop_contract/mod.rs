@@ -25,7 +25,7 @@ use crate::{
     store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
-use economy::{pop_score_calculation, ContractClaim};
+use economy::pop_score_calculation;
 use pop_actions_impl::stake;
 
 const DAYS_OF_YEAR: i64 = 365_i64;
@@ -37,12 +37,17 @@ pub struct ProofOfProfessionContract;
 impl ProofOfProfessionContract {
     pub fn install_genesis_states(
         &mut self,
+        total_mint_supply: U512,
         genesis_validators: BTreeMap<PublicKey, U512>,
     ) -> Result<()> {
         if runtime::get_caller().value() != sys_params::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
+        // write the total mint supply state
+        store::write_total_mint_supply(total_mint_supply);
+
+        // write stake and delegation states
         let mut delegations = store::read_delegations()?;
 
         for (validator, amount) in &genesis_validators {
@@ -132,18 +137,11 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let mut commissions = ContractClaim::read_commission()?;
-        let validator_commission = commissions
-            .0
-            .get(validator)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
-
-        commissions.claim_commission(validator, &validator_commission);
-        ContractClaim::write_commission(&commissions);
+        let commission_amount = store::read_commission_amount(validator);
+        store::write_commission_amount(validator, U512::zero());
 
         let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Commission(*validator, validator_commission));
+        claim_requests.push(ClaimRequest::Commission(*validator, commission_amount));
         store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -152,17 +150,11 @@ impl ProofOfProfessionContract {
 
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
-        let mut rewards = ContractClaim::read_reward()?;
-        let user_reward = rewards
-            .0
-            .get(user)
-            .cloned()
-            .unwrap_or_revert_with(Error::RewardNotFound);
-        rewards.claim_rewards(user, &user_reward);
-        ContractClaim::write_reward(&rewards);
+        let reward_amount = store::read_reward_amount(user);
+        store::write_reward_amount(user, U512::zero());
 
         let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Reward(*user, user_reward));
+        claim_requests.push(ClaimRequest::Reward(*user, reward_amount));
         store::write_claim_requests(claim_requests);
 
         // Actual mint & transfer will be done at client-proxy
@@ -225,34 +217,31 @@ impl ProofOfProfessionContract {
     fn distribute(&mut self, delegations: &Delegations) -> Result<()> {
         // 1. Increase total supply
         // 2. Do not mint in this phase.
-        let mut total_supply = ContractClaim::read_total_supply()?;
-
-        let mut commissions = ContractClaim::read_commission()?;
-        let mut rewards = ContractClaim::read_reward()?;
+        let mut total_supply = store::read_total_mint_supply();
 
         // 1. Increase total supply
         //   U512::from(5) / U512::from(100) -> total inflation 5% per year
         //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
         //         * sys_params::BLOCK_PRODUCING_PER_SEC)
         //    -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply.0 * U512::from(5)
+        let inflation_pool_per_block = total_supply * U512::from(5)
             / U512::from(
                 100 * DAYS_OF_YEAR
                     * HOURS_OF_DAY
                     * SECONDS_OF_HOUR
                     * sys_params::BLOCK_PRODUCING_PER_SEC,
             );
-        total_supply.add(&inflation_pool_per_block);
+        total_supply += inflation_pool_per_block;
 
         // Check total supply meets max supply
-        if total_supply.0
+        if total_supply
             > U512::from(sys_params::MAX_SUPPLY) * U512::from(sys_params::BIGSUN_TO_HDAC)
         {
             // No inflation anymore
             return Ok(());
         }
 
-        ContractClaim::write_total_supply(&total_supply);
+        store::write_total_mint_supply(total_supply);
 
         /////////////////////////////////
         // Update validator's commission
@@ -282,9 +271,10 @@ impl ProofOfProfessionContract {
                 * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100));
-            commissions.insert_commission(validator, &unit_commission);
+
+            let current = store::read_commission_amount(validator);
+            store::write_commission_amount(validator, current + unit_commission);
         }
-        ContractClaim::write_commission(&commissions);
 
         /////////////////////////////////
         // Update user's reward
@@ -316,9 +306,9 @@ impl ProofOfProfessionContract {
                 * inflation_pool_per_block
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
-            rewards.insert_rewards(delegator, &user_reward);
+            let current = store::read_reward_amount(delegator);
+            store::write_reward_amount(validator, current + user_reward);
         }
-        ContractClaim::write_reward(&rewards);
 
         Ok(())
     }
