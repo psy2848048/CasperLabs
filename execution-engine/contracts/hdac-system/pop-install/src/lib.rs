@@ -24,8 +24,7 @@ const POP_FUNCTION_NAME: &str = "pop_ext";
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
-    _StateInformations = 2,
-    AvaliableAmount = 3,
+    AvaliableAmount = 2,
 }
 
 #[no_mangle]

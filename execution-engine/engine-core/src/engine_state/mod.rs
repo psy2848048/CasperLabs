@@ -259,7 +259,6 @@ where
                 .get_bonded_validators()
                 .map(|(k, v)| (k, v.value()))
                 .collect();
-            let state_infos: Vec<String> = genesis_config.state_infos().to_vec();
 
             let tracking_copy = Rc::clone(&tracking_copy);
             let address_generator = Rc::clone(&address_generator);
@@ -363,7 +362,7 @@ where
                     preprocessor.preprocess(proof_of_stake_installer_bytes)?;
                 let avaliable_amount: U512 = genesis_config.get_avaliable_amount();
                 let args = {
-                    let args = (mint_reference, bonded_validators, state_infos, avaliable_amount);
+                    let args = (mint_reference, bonded_validators, avaliable_amount);
                     ArgsParser::parse(args)
                         .expect("args should convert to `Vec<CLValue>`")
                         .into_bytes()
