@@ -46,7 +46,7 @@ pub enum Api {
     Unbond(Option<U512>),
     StandardPayment(U512),
     TransferToAccount(PublicKey, U512),
-    Step(),
+    Step(u64),
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, Option<U512>),
@@ -91,7 +91,12 @@ impl Api {
 
                 Api::TransferToAccount(public_key, transfer_amount)
             }
-            method_names::proxy::STEP => Api::Step(),
+            method_names::proxy::STEP => {
+                let height: u64 = runtime::get_arg(1)
+                    .unwrap_or_revert_with(ApiError::MissingArgument)
+                    .unwrap_or_revert_with(ApiError::InvalidArgument);
+                Api::Step(height)
+            },
             method_names::proxy::DELEGATE => {
                 let validator: PublicKey = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -174,9 +179,9 @@ impl Api {
             Self::TransferToAccount(public_key, amount) => {
                 system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
             }
-            Self::Step() => {
+            Self::Step(height) => {
                 let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(pos_ref, (method_names::pos::STEP,))
+                runtime::call_contract(pos_ref, (method_names::pos::STEP, *height))
             }
             Self::Delegate(validator, amount) => {
                 let pos_ref = system::get_proof_of_stake();
