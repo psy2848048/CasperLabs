@@ -200,6 +200,13 @@ impl GenesisConfig {
         self.accounts.push(account);
     }
 
+    pub fn get_avaliable_amount(&self) -> U512 {
+        self.accounts()
+            .iter()
+            .map(|genesis_account| genesis_account.balance().value())
+            .fold(U512::zero(), |x, y| x + y)
+    }
+
     pub fn state_infos(&self) -> &[String] {
         self.state_infos.as_slice()
     }

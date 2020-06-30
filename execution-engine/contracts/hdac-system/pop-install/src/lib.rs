@@ -19,12 +19,13 @@ const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
 const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 const POP_FUNCTION_NAME: &str = "pop_ext";
-const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 #[repr(u32)]
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
+    _StateInformations = 2,
+    AvaliableAmount = 3,
 }
 
 #[no_mangle]
@@ -44,7 +45,12 @@ pub extern "C" fn call() {
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
 
-    let named_keys = build_pop_named_keys(mint_uref, &genesis_validators);
+    let available_amount: U512 = runtime::get_arg(Args::AvaliableAmount as u32)
+        .unwrap_or_revert_with(ApiError::MissingArgument)
+        .unwrap_or_revert_with(ApiError::InvalidArgument);
+
+    let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
+    let named_keys = build_pop_named_keys(mint_uref, total_bonds);
 
     let pop_uref: URef = storage::store_function(POP_FUNCTION_NAME, named_keys)
         .into_uref()
@@ -56,8 +62,8 @@ pub extern "C" fn call() {
         pop,
         (
             "install_genesis_states",
-            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC), // total_mint_supply
-            genesis_validators,                                         /* , genesis_delegations */
+            available_amount + total_bonds, // total_minted_supply
+            genesis_validators /* , genesis_delegations */
         ),
     );
 
@@ -69,12 +75,11 @@ pub extern "C" fn call() {
 
 fn build_pop_named_keys(
     mint_uref: URef,
-    genesis_validators: &BTreeMap<PublicKey, U512>,
+    total_bonds: U512,
 ) -> BTreeMap<String, Key> {
     let mint = ContractRef::URef(URef::new(mint_uref.addr(), AccessRights::READ));
     let mut named_keys = BTreeMap::<String, Key>::default();
 
-    let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
     let rewards_purse = mint_purse(&mint, U512::zero());
