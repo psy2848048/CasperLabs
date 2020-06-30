@@ -19,7 +19,7 @@ const METHOD_BOND: &str = "bond";
 
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 lazy_static! {
-    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_000) * BIGSUN_TO_HDAC;
+    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(30) * BIGSUN_TO_HDAC;
 }
 
 fn query_commission_amount(builder: &InMemoryWasmTestBuilder, validator: &PublicKey) -> U512 {

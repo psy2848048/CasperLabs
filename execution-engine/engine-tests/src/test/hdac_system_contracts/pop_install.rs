@@ -22,10 +22,11 @@ const EXPECTED_KNOWN_KEYS_LEN: usize = (N_VALIDATORS as usize) * 2 + 5;
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
+const POS_PREMINT_PURSE: &str = "pos_premint_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
-const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 
+const MAX_SUPPLY: u64 = 2_800_000_000_u64;
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 lazy_static! {
     static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_000) * BIGSUN_TO_HDAC;
@@ -65,7 +66,7 @@ fn should_run_pop_install_contract() {
         POS_INSTALL_CONTRACT,
         DEFAULT_BLOCK_TIME,
         DEPLOY_HASH_2,
-        (mint_uref, genesis_validators.clone()),
+        (mint_uref, genesis_validators.clone(), *GENESIS_TOTAL_SUPPLY),
         vec![mint_uref],
     )
     .expect("should run successfully");
@@ -105,12 +106,13 @@ fn should_run_pop_install_contract() {
     let rewards_purse_balance = builder.get_purse_balance(rewards_purse);
     assert_eq!(rewards_purse_balance, U512::zero());
 
-    // commission purse has correct balance
-    let commission_purse = get_purse(named_keys, POS_COMMISSION_PURSE)
-        .expect("should find rewards purse in named_keys");
+    // premint purse has correct balance
+    let premint_purse =
+        get_purse(named_keys, POS_PREMINT_PURSE).expect("should find premint purse in named_keys");
 
-    let commission_purse_balance = builder.get_purse_balance(commission_purse);
-    assert_eq!(commission_purse_balance, U512::zero());
+    let premint_purse_balance = builder.get_purse_balance(premint_purse);
+    assert_eq!(premint_purse_balance,
+        (U512::from(MAX_SUPPLY) * BIGSUN_TO_HDAC) - (*GENESIS_TOTAL_SUPPLY + total_bond));
 
     // community purse has correct balance
     let community_purse = get_purse(named_keys, POS_COMMUNITY_PURSE)
@@ -141,6 +143,7 @@ fn should_run_pop_install_contract() {
             .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
             .expect("should have local value.");
         let got: U512 = got.into_t().unwrap();
+        let got = got - total_bond;
         assert_eq!(got, *GENESIS_TOTAL_SUPPLY);
     }
 

@@ -53,7 +53,7 @@ pub extern "C" fn call() {
 
     let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
     let premint_amount = (U512::from(MAX_SUPPLY) * U512::from(BIGSUN_TO_HDAC))
-        - (available_amount - total_bonds);
+        - (available_amount + total_bonds);
     let named_keys = build_pop_named_keys(mint_uref, total_bonds, premint_amount);
 
     let pop_uref: URef = storage::store_function(POP_FUNCTION_NAME, named_keys)
