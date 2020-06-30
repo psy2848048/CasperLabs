@@ -175,41 +175,20 @@ impl ProofOfProfessionContract {
 
         let payment_purse =
             get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
-        let total = match system::get_balance(payment_purse) {
+        let reward_amount = match system::get_balance(payment_purse) {
             Some(balance) => balance,
             None => return Err(Error::PaymentPurseBalanceNotFound),
         };
-        if total < amount_spent {
+        if reward_amount < amount_spent {
             return Err(Error::InsufficientPaymentForAmountSpent);
         }
 
         // In the fare system, the fee is taken by the validator.
         let reward_purse =
             get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
-        let commission_purse =
-            get_purse(uref_names::POS_COMMISSION_PURSE).map_err(PurseLookupError::commission)?;
-
-        let reward_amount =
-            total * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE / U512::from(100);
-        let commission_amount = total
-            * (U512::from(100) - sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
-            / U512::from(100);
-
-        if total != (reward_amount + commission_amount) {
-            let remain_amount = total - reward_amount - commission_amount;
-
-            let communtiy_purse =
-                get_purse(uref_names::POS_COMMUNITY_PURSE).map_err(PurseLookupError::communtiy)?;
-
-            system::transfer_from_purse_to_purse(payment_purse, communtiy_purse, remain_amount)
-                .map_err(|_| Error::FailedTransferToCommunityPurse)?;
-        }
 
         system::transfer_from_purse_to_purse(payment_purse, reward_purse, reward_amount)
             .map_err(|_| Error::FailedTransferToRewardsPurse)?;
-
-        system::transfer_from_purse_to_purse(payment_purse, commission_purse, commission_amount)
-            .map_err(|_| Error::FailedTransferToCommissionPurse)?;
 
         Ok(())
     }
