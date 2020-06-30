@@ -34,7 +34,7 @@ pub(crate) mod sys_params {
     pub const UNDELEGATING_DELAY_IN_SEC: u64 = 0;
 
     pub const BLOCK_PRODUCING_PER_SEC: i64 = 2_i64;
-    pub const MAX_SUPPLY: u64 = 999_999_999_999_u64; // TODO: Should change the value before mainnet launce
+    pub const MAX_SUPPLY: u64 = 2_800_000_000_u64;
     pub const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
     pub const VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE: i64 = 30_i64;
 }
