@@ -59,6 +59,16 @@ pub fn write_claim_requests(list: Vec<ClaimRequest>) {
     storage::write_local(keys::CLAIM_REQUESTS, list);
 }
 
+pub fn read_last_distributed_block() -> u64 {
+    storage::read_local(&keys::LAST_DISTRIBUTED_BLOCK_HEIGHT)
+        .unwrap_or_default()
+        .unwrap_or_default()
+}
+
+pub fn write_last_distributed_block(height: u64) {
+    storage::write_local(keys::LAST_DISTRIBUTED_BLOCK_HEIGHT, height);
+}
+
 pub fn read_bonding_amount(user: &PublicKey) -> U512 {
     let key = keys::bonding_amount_key(user);
     storage::read_local(&key)

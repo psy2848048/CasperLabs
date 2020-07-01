@@ -47,6 +47,11 @@ impl ProofOfProfessionContract {
         // write the total mint supply state
         store::write_total_mint_supply(total_mint_supply);
 
+        // initiate block height
+        store::write_last_distributed_block(0u64);
+        // TODO remove below line
+        let _ = store::read_last_distributed_block();
+
         // write stake and delegation states
         let mut delegations = store::read_delegations()?;
 

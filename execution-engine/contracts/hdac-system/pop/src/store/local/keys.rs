@@ -6,6 +6,7 @@ pub const UNBOND_REQUEST_QUEUE: u8 = 1;
 pub const UNDELEGATE_REQUEST_QUEUE: u8 = 2;
 pub const REDELEGATE_REQUEST_QUEUE: u8 = 3;
 pub const CLAIM_REQUESTS: u8 = 4;
+pub const LAST_DISTRIBUTED_BLOCK_HEIGHT: u8 = 5;
 
 // a single vote: (ACTION_PREFIX_VOTING + voter_pubkey + dapp_addr, amount)
 const ACTION_PREFIX_STAKE: u8 = 1;
