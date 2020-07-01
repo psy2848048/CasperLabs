@@ -147,6 +147,17 @@ fn should_run_pop_install_contract() {
         assert_eq!(got, *GENESIS_TOTAL_SUPPLY);
     }
 
+    // assert last_distributed_block
+    {
+        let key = Key::local(ret_value.addr(), &[5u8; 1]);
+        let got: CLValue = builder
+            .query(None, key.clone(), &[])
+            .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
+            .expect("should have local value.");
+        let got: u64 = got.into_t().unwrap();
+        assert_eq!(got, 0u64);
+    }
+
     for (validator, amount) in &genesis_validators {
         // check delegations
         let delegation_entry = format!(
