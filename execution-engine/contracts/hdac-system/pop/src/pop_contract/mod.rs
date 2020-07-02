@@ -204,16 +204,15 @@ impl ProofOfProfessionContract {
         let mut total_supply = store::read_total_mint_supply();
 
         // 1. Increase total supply
-        //   U512::from(5) / U512::from(100) -> total inflation 5% per year
+        //   U512::from(488) / U512::from(10000) -> total inflation 5% per year
         //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
-        //         * sys_params::BLOCK_PRODUCING_PER_SEC)
+        //         / sys_params::BLOCK_PRODUCING_SEC)
         //    -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply * U512::from(5)
-            / U512::from(
-                100 * DAYS_OF_YEAR
+        let inflation_pool_per_block = total_supply * U512::from(sys_params::INFLATION_RATE)
+            / U512::from(10000 / sys_params::BLOCK_PRODUCING_SEC
+                    * DAYS_OF_YEAR
                     * HOURS_OF_DAY
-                    * SECONDS_OF_HOUR
-                    * sys_params::BLOCK_PRODUCING_PER_SEC,
+                    * SECONDS_OF_HOUR,
             );
         total_supply += inflation_pool_per_block;
 
