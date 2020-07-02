@@ -1,11 +1,9 @@
 mod keys;
 
-use alloc::vec::Vec;
-
 use contract::contract_api::storage;
 use types::{account::PublicKey, Key, U512};
 
-use super::requests::{ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest};
+use super::requests::{RedelegateRequest, UnbondRequest, UndelegateRequest};
 
 use crate::duration_queue::DurationQueue;
 
@@ -47,16 +45,6 @@ pub fn read_redelegation_requests() -> DurationQueue<RedelegateRequest> {
 
 pub fn write_redelegation_requests(queue: DurationQueue<RedelegateRequest>) {
     storage::write_local(keys::REDELEGATE_REQUEST_QUEUE, queue);
-}
-
-pub fn read_claim_requests() -> Vec<ClaimRequest> {
-    storage::read_local(&keys::CLAIM_REQUESTS)
-        .unwrap_or_default()
-        .unwrap_or_default()
-}
-
-pub fn write_claim_requests(list: Vec<ClaimRequest>) {
-    storage::write_local(keys::CLAIM_REQUESTS, list);
 }
 
 pub fn read_last_distributed_block() -> u64 {

@@ -8,13 +8,11 @@ pub use pop_actions_impl::{DelegationKey, Delegations};
 use alloc::collections::BTreeMap;
 use contract::{
     contract_api::{runtime, system},
-    unwrap_or_revert::UnwrapOrRevert,
 };
 
 use types::{
     account::PublicKey,
     system_contract_errors::{
-        mint,
         pos::{Error, PurseLookupError, Result},
     },
     AccessRights, BlockTime, Key, TransferResult, URef, U512,
@@ -22,7 +20,7 @@ use types::{
 
 use crate::{
     constants::{sys_params, uref_names},
-    store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
+    store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 use economy::pop_score_calculation;
@@ -134,7 +132,7 @@ impl ProofOfProfessionContract {
 
         // TODO: separate to another function
         let _ = self.distribute(&delegations);
-        let _ = self.step_claim();
+        //let _ = self.step_claim();
 
         Ok(())
     }
@@ -142,27 +140,32 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let commission_amount = store::read_commission_amount(validator);
-        store::write_commission_amount(validator, U512::zero());
-
-        let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Commission(*validator, commission_amount));
-        store::write_claim_requests(claim_requests);
-
-        // Actual mint & transfer will be done at client-proxy
+        if let Ok(premint_purse) = get_purse(uref_names::POS_PREMINT_PURSE) {
+            let commission_amount = store::read_commission_amount(validator);
+            let transfer_res: TransferResult =
+                system::transfer_from_purse_to_account(
+                    premint_purse, *validator, commission_amount);
+            if let Err(err) = transfer_res {
+                runtime::revert(err);
+            }
+            store::write_commission_amount(validator, U512::zero());
+        }
         Ok(())
     }
 
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
-        let reward_amount = store::read_reward_amount(user);
-        store::write_reward_amount(user, U512::zero());
-
-        let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Reward(*user, reward_amount));
-        store::write_claim_requests(claim_requests);
-
-        // Actual mint & transfer will be done at client-proxy
+        // Processing commission claim table
+        if let Ok(premint_purse) = get_purse(uref_names::POS_PREMINT_PURSE) {
+            let reward_amount = store::read_reward_amount(user);
+            let transfer_res: TransferResult =
+                system::transfer_from_purse_to_account(
+                    premint_purse, *user, reward_amount);
+            if let Err(err) = transfer_res {
+                runtime::revert(err);
+            }
+            store::write_reward_amount(user, U512::zero());
+        }
         Ok(())
     }
 
@@ -316,34 +319,6 @@ impl ProofOfProfessionContract {
                 }
             }
         }
-    }
-
-    fn step_claim(&mut self) -> Result<()> {
-        let claim_requests = store::read_claim_requests();
-
-        for request in claim_requests.iter() {
-            let (pubkey, amount) = match request {
-                ClaimRequest::Commission(pubkey, amount) | ClaimRequest::Reward(pubkey, amount) => {
-                    (*pubkey, *amount)
-                }
-            };
-
-            let mint_contract = system::get_mint();
-            let minted_purse_res: core::result::Result<URef, mint::Error> =
-                runtime::call_contract(mint_contract.clone(), ("mint", amount));
-            let minted_purse = minted_purse_res.unwrap_or_revert();
-
-            let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(minted_purse, pubkey, amount);
-
-            if let Err(err) = transfer_res {
-                runtime::revert(err);
-            }
-        }
-
-        // write an empty list.
-        store::write_claim_requests(Default::default());
-        Ok(())
     }
 }
 
