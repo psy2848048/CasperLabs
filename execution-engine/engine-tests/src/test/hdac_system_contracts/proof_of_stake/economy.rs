@@ -19,7 +19,8 @@ const METHOD_BOND: &str = "bond";
 
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 lazy_static! {
-    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(30) * BIGSUN_TO_HDAC;
+    static ref GENESIS_TOTAL_SUPPLY: U512 = U512::from(2_000_000_020) * BIGSUN_TO_HDAC;
+    static ref GENESIS_VALIDATOR_STAKE: U512 = U512::from(1_000_000_000) * BIGSUN_TO_HDAC;
 }
 
 fn query_commission_amount(builder: &InMemoryWasmTestBuilder, validator: &PublicKey) -> U512 {
@@ -60,7 +61,6 @@ fn should_run_successful_step() {
     const ACCOUNT_1_ADDR: PublicKey = PublicKey::ed25519_from([1u8; 32]);
     const ACCOUNT_2_ADDR: PublicKey = PublicKey::ed25519_from([2u8; 32]);
 
-    const GENESIS_VALIDATOR_STAKE: u64 = 5u64 * BIGSUN_TO_HDAC;
     const ACCOUNT_2_DELEGATE_AMOUNT: u64 = BIGSUN_TO_HDAC;
 
     // ACCOUNT_1 and ACCOUNT_2 bond and self-delegate.
@@ -68,12 +68,12 @@ fn should_run_successful_step() {
         GenesisAccount::new(
             ACCOUNT_1_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+            Motes::new(*GENESIS_VALIDATOR_STAKE),
         ),
         GenesisAccount::new(
             ACCOUNT_2_ADDR,
             Motes::new(DEFAULT_ACCOUNT_INITIAL_BALANCE.into()),
-            Motes::new(GENESIS_VALIDATOR_STAKE.into()),
+            Motes::new(*GENESIS_VALIDATOR_STAKE),
         ),
     ];
 
@@ -83,7 +83,7 @@ fn should_run_successful_step() {
         CONTRACT_POS_VOTE,
         (
             String::from(METHOD_BOND),
-            U512::from(GENESIS_VALIDATOR_STAKE),
+            U512::from(BIGSUN_TO_HDAC),
         ),
     )
     .build();
@@ -139,6 +139,12 @@ fn should_run_successful_step() {
     )
     .build();
 
+    // get ACCOUNT_1's balance before commission transfer.
+    let account_1 = builder
+        .get_account(ACCOUNT_1_ADDR)
+        .expect("account should exist");
+    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
+
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
         .exec(delegate_request) // #4-1 ACCOUNT_2 to ACCOUNT_1
@@ -154,16 +160,6 @@ fn should_run_successful_step() {
     assert!(query_commission_amount(&builder, &ACCOUNT_1_ADDR) == U512::zero());
 
     // #6 assert commission claim effect
-    // get ACCOUNT_1's balance before commission transfer.
-    let account_1 = builder
-        .get_account(ACCOUNT_1_ADDR)
-        .expect("account should exist");
-    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
-
-    // System transfer commission amount to ACCOUNT_1
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder.step(StepRequestBuilder::default().build()).finish();
-
     // get ACCOUNT_1's balance after commission transfer.
     let account_1_balance_after = builder.get_purse_balance(account_1.main_purse());
 
@@ -177,6 +173,12 @@ fn should_run_successful_step() {
     )
     .build();
 
+    // get ACCOUNT_1's balance before reward transfer.
+    let account_1 = builder
+        .get_account(ACCOUNT_1_ADDR)
+        .expect("account should exist");
+    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
+
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
     let result = builder
         .exec(claim_reward_request)
@@ -188,16 +190,6 @@ fn should_run_successful_step() {
     assert!(query_reward_amount(&builder, &ACCOUNT_1_ADDR) == U512::zero());
 
     // #9 assert reward claim effect
-    // get ACCOUNT_1's balance before reward transfer.
-    let account_1 = builder
-        .get_account(ACCOUNT_1_ADDR)
-        .expect("account should exist");
-    let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
-
-    // System transfer reward amount to ACCOUNT_1
-    let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let _ = builder.step(StepRequestBuilder::default().build()).finish();
-
     // get ACCOUNT_1's balance after reward transfer.
     let account_1_balance_after = builder.get_purse_balance(account_1.main_purse());
 

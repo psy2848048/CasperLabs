@@ -149,7 +149,7 @@ fn should_run_pop_install_contract() {
 
     // assert last_distributed_block
     {
-        let key = Key::local(ret_value.addr(), &[5u8; 1]);
+        let key = Key::local(ret_value.addr(), &[4u8; 1]);
         let got: CLValue = builder
             .query(None, key.clone(), &[])
             .and_then(|v| CLValue::try_from(v).map_err(|error| format!("{:?}", error)))
