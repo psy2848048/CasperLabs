@@ -15,7 +15,7 @@ use types::{
     system_contract_errors::{
         pos::{Error, PurseLookupError, Result},
     },
-    AccessRights, BlockTime, Key, TransferResult, URef, U512,
+    AccessRights, BlockTime, Key, URef, U512,
 };
 
 use crate::{
@@ -140,32 +140,26 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        if let Ok(premint_purse) = get_purse(uref_names::POS_PREMINT_PURSE) {
-            let commission_amount = store::read_commission_amount(validator);
-            let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(
-                    premint_purse, *validator, commission_amount);
-            if let Err(err) = transfer_res {
-                runtime::revert(err);
-            }
-            store::write_commission_amount(validator, U512::zero());
-        }
+        let premint_purse = get_purse(uref_names::POS_PREMINT_PURSE)
+                                .map_err(PurseLookupError::premint)?;
+        let commission_amount = store::read_commission_amount(validator);
+        system::transfer_from_purse_to_account(
+            premint_purse, *validator, commission_amount)
+            .map_err(|_| Error::FailedTransferFromPremintPurse)?;
+        store::write_commission_amount(validator, U512::zero());
         Ok(())
     }
 
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        if let Ok(premint_purse) = get_purse(uref_names::POS_PREMINT_PURSE) {
-            let reward_amount = store::read_reward_amount(user);
-            let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(
-                    premint_purse, *user, reward_amount);
-            if let Err(err) = transfer_res {
-                runtime::revert(err);
-            }
-            store::write_reward_amount(user, U512::zero());
-        }
+        let premint_purse = get_purse(uref_names::POS_PREMINT_PURSE)
+                                .map_err(PurseLookupError::premint)?;
+        let reward_amount = store::read_reward_amount(user);
+        system::transfer_from_purse_to_account(
+            premint_purse, *user, reward_amount)
+            .map_err(|_| Error::FailedTransferFromPremintPurse)?;
+        store::write_reward_amount(user, U512::zero());
         Ok(())
     }
 
