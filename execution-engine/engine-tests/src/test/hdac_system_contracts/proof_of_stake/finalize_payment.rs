@@ -119,8 +119,7 @@ fn finalize_payment_should_reward_to_specified_purse() {
         expected_reward_amount, rewards_post_balance
     );
 
-    let expected_community_amount =
-        community_pre_balance + *DEFAULT_PAYMENT - rewards_post_balance;
+    let expected_community_amount = community_pre_balance + *DEFAULT_PAYMENT - rewards_post_balance;
     assert_eq!(
         expected_community_amount, community_post_balance,
         "community purse should get paid; expected: {}, actual: {}",

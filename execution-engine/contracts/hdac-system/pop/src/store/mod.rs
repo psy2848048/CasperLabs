@@ -25,7 +25,7 @@ pub use local::{
 
 // claim
 pub use local::{
-    read_commission_amount, read_reward_amount, write_commission_amount, write_reward_amount,
-    read_last_distributed_block, write_last_distributed_block,
+    read_commission_amount, read_last_distributed_block, read_reward_amount,
+    write_commission_amount, write_last_distributed_block, write_reward_amount,
 };
 pub use requests::{ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest};

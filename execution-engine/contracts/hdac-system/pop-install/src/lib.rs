@@ -52,8 +52,8 @@ pub extern "C" fn call() {
         .unwrap_or_revert_with(ApiError::InvalidArgument);
 
     let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
-    let premint_amount = (U512::from(MAX_SUPPLY) * U512::from(BIGSUN_TO_HDAC))
-        - (available_amount + total_bonds);
+    let premint_amount =
+        (U512::from(MAX_SUPPLY) * U512::from(BIGSUN_TO_HDAC)) - (available_amount + total_bonds);
     let named_keys = build_pop_named_keys(mint_uref, total_bonds, premint_amount);
 
     let pop_uref: URef = storage::store_function(POP_FUNCTION_NAME, named_keys)
@@ -67,7 +67,7 @@ pub extern "C" fn call() {
         (
             "install_genesis_states",
             available_amount + total_bonds, // total_minted_supply
-            genesis_validators /* , genesis_delegations */
+            genesis_validators,             /* , genesis_delegations */
         ),
     );
 

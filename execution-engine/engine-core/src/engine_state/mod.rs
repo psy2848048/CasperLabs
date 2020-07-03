@@ -1663,7 +1663,7 @@ where
         let state = Rc::clone(&tracking_copy);
         let system_contract_cache = SystemContractCache::clone(&self.system_contract_cache);
         let executor = Executor::new(self.config);
-        let args = ArgsParser::parse(("step", step_request.block_height,))
+        let args = ArgsParser::parse(("step", step_request.block_height))
             .expect("args should convert to `Vec<CLValue>`")
             .into_bytes()
             .expect("args should serialize");

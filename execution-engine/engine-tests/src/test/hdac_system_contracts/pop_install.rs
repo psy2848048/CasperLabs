@@ -111,8 +111,10 @@ fn should_run_pop_install_contract() {
         get_purse(named_keys, POS_PREMINT_PURSE).expect("should find premint purse in named_keys");
 
     let premint_purse_balance = builder.get_purse_balance(premint_purse);
-    assert_eq!(premint_purse_balance,
-        (U512::from(MAX_SUPPLY) * BIGSUN_TO_HDAC) - (*GENESIS_TOTAL_SUPPLY + total_bond));
+    assert_eq!(
+        premint_purse_balance,
+        (U512::from(MAX_SUPPLY) * BIGSUN_TO_HDAC) - (*GENESIS_TOTAL_SUPPLY + total_bond)
+    );
 
     // community purse has correct balance
     let community_purse = get_purse(named_keys, POS_COMMUNITY_PURSE)

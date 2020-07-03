@@ -81,10 +81,7 @@ fn should_run_successful_step() {
     let bond_request = ExecuteRequestBuilder::standard(
         ACCOUNT_2_ADDR,
         CONTRACT_POS_VOTE,
-        (
-            String::from(METHOD_BOND),
-            U512::from(BIGSUN_TO_HDAC),
-        ),
+        (String::from(METHOD_BOND), U512::from(BIGSUN_TO_HDAC)),
     )
     .build();
 

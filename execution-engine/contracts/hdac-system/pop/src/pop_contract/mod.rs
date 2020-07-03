@@ -6,15 +6,11 @@ pub use pop_actions::{Delegatable, Stakable, Votable};
 pub use pop_actions_impl::{DelegationKey, Delegations};
 
 use alloc::collections::BTreeMap;
-use contract::{
-    contract_api::{runtime, system},
-};
+use contract::contract_api::{runtime, system};
 
 use types::{
     account::PublicKey,
-    system_contract_errors::{
-        pos::{Error, PurseLookupError, Result},
-    },
+    system_contract_errors::pos::{Error, PurseLookupError, Result},
     AccessRights, BlockTime, Key, URef, U512,
 };
 
@@ -140,11 +136,10 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let premint_purse = get_purse(uref_names::POS_PREMINT_PURSE)
-                                .map_err(PurseLookupError::premint)?;
+        let premint_purse =
+            get_purse(uref_names::POS_PREMINT_PURSE).map_err(PurseLookupError::premint)?;
         let commission_amount = store::read_commission_amount(validator);
-        system::transfer_from_purse_to_account(
-            premint_purse, *validator, commission_amount)
+        system::transfer_from_purse_to_account(premint_purse, *validator, commission_amount)
             .map_err(|_| Error::FailedTransferFromPremintPurse)?;
         store::write_commission_amount(validator, U512::zero());
         Ok(())
@@ -153,11 +148,10 @@ impl ProofOfProfessionContract {
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
         // Processing commission claim table
-        let premint_purse = get_purse(uref_names::POS_PREMINT_PURSE)
-                                .map_err(PurseLookupError::premint)?;
+        let premint_purse =
+            get_purse(uref_names::POS_PREMINT_PURSE).map_err(PurseLookupError::premint)?;
         let reward_amount = store::read_reward_amount(user);
-        system::transfer_from_purse_to_account(
-            premint_purse, *user, reward_amount)
+        system::transfer_from_purse_to_account(premint_purse, *user, reward_amount)
             .map_err(|_| Error::FailedTransferFromPremintPurse)?;
         store::write_reward_amount(user, U512::zero());
         Ok(())
@@ -206,7 +200,8 @@ impl ProofOfProfessionContract {
         //         / sys_params::BLOCK_PRODUCING_SEC)
         //    -> divider for deriving inflation per block
         let inflation_pool_per_block = total_supply * U512::from(sys_params::INFLATION_RATE)
-            / U512::from(10000 / sys_params::BLOCK_PRODUCING_SEC
+            / U512::from(
+                10000 / sys_params::BLOCK_PRODUCING_SEC
                     * DAYS_OF_YEAR
                     * HOURS_OF_DAY
                     * SECONDS_OF_HOUR,
