@@ -180,7 +180,7 @@ fn should_run_successful_step() {
     let account_1_balance_before = builder.get_purse_balance(account_1.main_purse());
 
     let mut builder = InMemoryWasmTestBuilder::from_result(result);
-    let result = builder
+    let _ = builder
         .exec(claim_reward_request)
         .expect_success()
         .commit()
