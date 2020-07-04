@@ -282,7 +282,7 @@ impl ProofOfProfessionContract {
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
             let current = store::read_reward_amount(delegator);
-            store::write_reward_amount(validator, current + user_reward);
+            store::write_reward_amount(delegator, current + user_reward);
         }
 
         Ok(())
