@@ -259,7 +259,6 @@ where
                 .get_bonded_validators()
                 .map(|(k, v)| (k, v.value()))
                 .collect();
-            let state_infos: Vec<String> = genesis_config.state_infos().to_vec();
 
             let tracking_copy = Rc::clone(&tracking_copy);
             let address_generator = Rc::clone(&address_generator);
@@ -361,8 +360,9 @@ where
                     genesis_config.proof_of_stake_installer_bytes();
                 let proof_of_stake_installer_module =
                     preprocessor.preprocess(proof_of_stake_installer_bytes)?;
+                let avaliable_amount: U512 = genesis_config.get_avaliable_amount();
                 let args = {
-                    let args = (mint_reference, bonded_validators, state_infos);
+                    let args = (mint_reference, bonded_validators, avaliable_amount);
                     ArgsParser::parse(args)
                         .expect("args should convert to `Vec<CLValue>`")
                         .into_bytes()
@@ -1608,12 +1608,14 @@ where
         let deploy_hash = {
             let parent_state_hash: &[u8] = &step_request.parent_state_hash.value();
             let blocktime: &[u8] = &step_request.block_time.to_le_bytes();
+            let blockheight: &[u8] = &step_request.block_height.to_le_bytes();
             let protocol_version: &[u8] = &step_request.protocol_version.into_bytes()?;
 
             let bytes: Vec<u8> = {
                 let mut ret = Vec::new();
                 ret.extend_from_slice(parent_state_hash);
                 ret.extend_from_slice(blocktime);
+                ret.extend_from_slice(blockheight);
                 ret.extend_from_slice(protocol_version);
                 ret
             };
@@ -1661,7 +1663,7 @@ where
         let state = Rc::clone(&tracking_copy);
         let system_contract_cache = SystemContractCache::clone(&self.system_contract_cache);
         let executor = Executor::new(self.config);
-        let args = ArgsParser::parse(("step",))
+        let args = ArgsParser::parse(("step", step_request.block_height))
             .expect("args should convert to `Vec<CLValue>`")
             .into_bytes()
             .expect("args should serialize");

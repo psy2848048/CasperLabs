@@ -9,6 +9,7 @@ use crate::engine_state::execution_effect::ExecutionEffect;
 pub struct StepRequest {
     pub parent_state_hash: Blake2bHash,
     pub block_time: u64,
+    pub block_height: u64,
     pub protocol_version: ProtocolVersion,
 }
 
@@ -16,11 +17,13 @@ impl StepRequest {
     pub fn new(
         parent_state_hash: Blake2bHash,
         block_time: u64,
+        block_height: u64,
         protocol_version: ProtocolVersion,
     ) -> Self {
         Self {
             parent_state_hash,
             block_time,
+            block_height,
             protocol_version,
         }
     }
@@ -31,6 +34,7 @@ impl Default for StepRequest {
         Self {
             parent_state_hash: [0u8; 32].into(),
             block_time: 0,
+            block_height: 0,
             protocol_version: Default::default(),
         }
     }

@@ -6,23 +6,17 @@ pub use pop_actions::{Delegatable, Stakable, Votable};
 pub use pop_actions_impl::{DelegationKey, Delegations};
 
 use alloc::collections::BTreeMap;
-use contract::{
-    contract_api::{runtime, system},
-    unwrap_or_revert::UnwrapOrRevert,
-};
+use contract::contract_api::{runtime, system};
 
 use types::{
     account::PublicKey,
-    system_contract_errors::{
-        mint,
-        pos::{Error, PurseLookupError, Result},
-    },
-    AccessRights, BlockTime, Key, TransferResult, URef, U512,
+    system_contract_errors::pos::{Error, PurseLookupError, Result},
+    AccessRights, BlockTime, Key, URef, U512,
 };
 
 use crate::{
     constants::{sys_params, uref_names},
-    store::{self, ClaimRequest, RedelegateRequest, UnbondRequest, UndelegateRequest},
+    store::{self, RedelegateRequest, UnbondRequest, UndelegateRequest},
 };
 
 use economy::pop_score_calculation;
@@ -47,6 +41,11 @@ impl ProofOfProfessionContract {
         // write the total mint supply state
         store::write_total_mint_supply(total_mint_supply);
 
+        // initiate block height
+        store::write_last_distributed_block(0u64);
+        // TODO remove below line
+        let _ = store::read_last_distributed_block();
+
         // write stake and delegation states
         let mut delegations = store::read_delegations()?;
 
@@ -60,7 +59,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn step(&mut self) -> Result<()> {
+    pub fn step(&mut self, _height: u64) -> Result<()> {
         let caller = runtime::get_caller();
 
         if caller.value() != sys_params::SYSTEM_ACCOUNT {
@@ -129,7 +128,7 @@ impl ProofOfProfessionContract {
 
         // TODO: separate to another function
         let _ = self.distribute(&delegations);
-        let _ = self.step_claim();
+        //let _ = self.step_claim();
 
         Ok(())
     }
@@ -137,27 +136,24 @@ impl ProofOfProfessionContract {
     // For validator
     pub fn claim_commission(&mut self, validator: &PublicKey) -> Result<()> {
         // Processing commission claim table
+        let premint_purse =
+            get_purse(uref_names::POS_PREMINT_PURSE).map_err(PurseLookupError::premint)?;
         let commission_amount = store::read_commission_amount(validator);
+        system::transfer_from_purse_to_account(premint_purse, *validator, commission_amount)
+            .map_err(|_| Error::FailedTransferFromPremintPurse)?;
         store::write_commission_amount(validator, U512::zero());
-
-        let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Commission(*validator, commission_amount));
-        store::write_claim_requests(claim_requests);
-
-        // Actual mint & transfer will be done at client-proxy
         Ok(())
     }
 
     // For user
     pub fn claim_reward(&mut self, user: &PublicKey) -> Result<()> {
+        // Processing commission claim table
+        let premint_purse =
+            get_purse(uref_names::POS_PREMINT_PURSE).map_err(PurseLookupError::premint)?;
         let reward_amount = store::read_reward_amount(user);
+        system::transfer_from_purse_to_account(premint_purse, *user, reward_amount)
+            .map_err(|_| Error::FailedTransferFromPremintPurse)?;
         store::write_reward_amount(user, U512::zero());
-
-        let mut claim_requests = store::read_claim_requests();
-        claim_requests.push(ClaimRequest::Reward(*user, reward_amount));
-        store::write_claim_requests(claim_requests);
-
-        // Actual mint & transfer will be done at client-proxy
         Ok(())
     }
 
@@ -175,41 +171,20 @@ impl ProofOfProfessionContract {
 
         let payment_purse =
             get_purse(uref_names::POS_PAYMENT_PURSE).map_err(PurseLookupError::payment)?;
-        let total = match system::get_balance(payment_purse) {
+        let reward_amount = match system::get_balance(payment_purse) {
             Some(balance) => balance,
             None => return Err(Error::PaymentPurseBalanceNotFound),
         };
-        if total < amount_spent {
+        if reward_amount < amount_spent {
             return Err(Error::InsufficientPaymentForAmountSpent);
         }
 
         // In the fare system, the fee is taken by the validator.
         let reward_purse =
             get_purse(uref_names::POS_REWARD_PURSE).map_err(PurseLookupError::rewards)?;
-        let commission_purse =
-            get_purse(uref_names::POS_COMMISSION_PURSE).map_err(PurseLookupError::commission)?;
-
-        let reward_amount =
-            total * sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE / U512::from(100);
-        let commission_amount = total
-            * (U512::from(100) - sys_params::VALIDATOR_COMMISSION_RATE_IN_PERCENTAGE)
-            / U512::from(100);
-
-        if total != (reward_amount + commission_amount) {
-            let remain_amount = total - reward_amount - commission_amount;
-
-            let communtiy_purse =
-                get_purse(uref_names::POS_COMMUNITY_PURSE).map_err(PurseLookupError::communtiy)?;
-
-            system::transfer_from_purse_to_purse(payment_purse, communtiy_purse, remain_amount)
-                .map_err(|_| Error::FailedTransferToCommunityPurse)?;
-        }
 
         system::transfer_from_purse_to_purse(payment_purse, reward_purse, reward_amount)
             .map_err(|_| Error::FailedTransferToRewardsPurse)?;
-
-        system::transfer_from_purse_to_purse(payment_purse, commission_purse, commission_amount)
-            .map_err(|_| Error::FailedTransferToCommissionPurse)?;
 
         Ok(())
     }
@@ -220,16 +195,16 @@ impl ProofOfProfessionContract {
         let mut total_supply = store::read_total_mint_supply();
 
         // 1. Increase total supply
-        //   U512::from(5) / U512::from(100) -> total inflation 5% per year
+        //   U512::from(488) / U512::from(10000) -> total inflation 5% per year
         //   U512::from(DAYS_OF_YEAR * HOURS_OF_DAY * SECONDS_OF_HOUR
-        //         * sys_params::BLOCK_PRODUCING_PER_SEC)
+        //         / sys_params::BLOCK_PRODUCING_SEC)
         //    -> divider for deriving inflation per block
-        let inflation_pool_per_block = total_supply * U512::from(5)
+        let inflation_pool_per_block = total_supply * U512::from(sys_params::INFLATION_RATE)
             / U512::from(
-                100 * DAYS_OF_YEAR
+                10000 / sys_params::BLOCK_PRODUCING_SEC
+                    * DAYS_OF_YEAR
                     * HOURS_OF_DAY
-                    * SECONDS_OF_HOUR
-                    * sys_params::BLOCK_PRODUCING_PER_SEC,
+                    * SECONDS_OF_HOUR,
             );
         total_supply += inflation_pool_per_block;
 
@@ -307,7 +282,7 @@ impl ProofOfProfessionContract {
                 / (total_pop_score * U512::from(100) * total_delegation_per_validator);
 
             let current = store::read_reward_amount(delegator);
-            store::write_reward_amount(validator, current + user_reward);
+            store::write_reward_amount(delegator, current + user_reward);
         }
 
         Ok(())
@@ -333,34 +308,6 @@ impl ProofOfProfessionContract {
                 }
             }
         }
-    }
-
-    fn step_claim(&mut self) -> Result<()> {
-        let claim_requests = store::read_claim_requests();
-
-        for request in claim_requests.iter() {
-            let (pubkey, amount) = match request {
-                ClaimRequest::Commission(pubkey, amount) | ClaimRequest::Reward(pubkey, amount) => {
-                    (*pubkey, *amount)
-                }
-            };
-
-            let mint_contract = system::get_mint();
-            let minted_purse_res: core::result::Result<URef, mint::Error> =
-                runtime::call_contract(mint_contract.clone(), ("mint", amount));
-            let minted_purse = minted_purse_res.unwrap_or_revert();
-
-            let transfer_res: TransferResult =
-                system::transfer_from_purse_to_account(minted_purse, pubkey, amount);
-
-            if let Err(err) = transfer_res {
-                runtime::revert(err);
-            }
-        }
-
-        // write an empty list.
-        store::write_claim_requests(Default::default());
-        Ok(())
     }
 }
 

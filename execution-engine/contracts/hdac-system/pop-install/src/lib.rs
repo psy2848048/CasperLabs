@@ -15,16 +15,19 @@ use types::{
 
 const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
+const POS_PREMINT_PURSE: &str = "pos_premint_purse";
 const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
-const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 const POP_FUNCTION_NAME: &str = "pop_ext";
+
+const MAX_SUPPLY: u64 = 2_800_000_000_u64;
 const BIGSUN_TO_HDAC: u64 = 1_000_000_000_000_000_000_u64;
 
 #[repr(u32)]
 enum Args {
     MintURef = 0,
     GenesisValidators = 1,
+    AvaliableAmount = 2,
 }
 
 #[no_mangle]
@@ -44,7 +47,14 @@ pub extern "C" fn call() {
             .unwrap_or_revert_with(ApiError::MissingArgument)
             .unwrap_or_revert_with(ApiError::InvalidArgument);
 
-    let named_keys = build_pop_named_keys(mint_uref, &genesis_validators);
+    let available_amount: U512 = runtime::get_arg(Args::AvaliableAmount as u32)
+        .unwrap_or_revert_with(ApiError::MissingArgument)
+        .unwrap_or_revert_with(ApiError::InvalidArgument);
+
+    let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
+    let premint_amount =
+        (U512::from(MAX_SUPPLY) * U512::from(BIGSUN_TO_HDAC)) - (available_amount + total_bonds);
+    let named_keys = build_pop_named_keys(mint_uref, total_bonds, premint_amount);
 
     let pop_uref: URef = storage::store_function(POP_FUNCTION_NAME, named_keys)
         .into_uref()
@@ -56,8 +66,8 @@ pub extern "C" fn call() {
         pop,
         (
             "install_genesis_states",
-            U512::from(2_000_000_000_u64) * U512::from(BIGSUN_TO_HDAC), // total_mint_supply
-            genesis_validators,                                         /* , genesis_delegations */
+            available_amount + total_bonds, // total_minted_supply
+            genesis_validators,             /* , genesis_delegations */
         ),
     );
 
@@ -69,24 +79,24 @@ pub extern "C" fn call() {
 
 fn build_pop_named_keys(
     mint_uref: URef,
-    genesis_validators: &BTreeMap<PublicKey, U512>,
+    total_bonds: U512,
+    premint_amount: U512,
 ) -> BTreeMap<String, Key> {
     let mint = ContractRef::URef(URef::new(mint_uref.addr(), AccessRights::READ));
     let mut named_keys = BTreeMap::<String, Key>::default();
 
-    let total_bonds = genesis_validators.values().fold(U512::zero(), |x, y| x + y);
     let bonding_purse = mint_purse(&mint, total_bonds);
     let payment_purse = mint_purse(&mint, U512::zero());
+    let premint_purse = mint_purse(&mint, premint_amount);
     let rewards_purse = mint_purse(&mint, U512::zero());
-    let commission_purse = mint_purse(&mint, U512::zero());
     let community_purse = mint_purse(&mint, U512::zero());
 
     // Include PoP purses in its named_keys
     [
         (POS_BONDING_PURSE, bonding_purse),
         (POS_PAYMENT_PURSE, payment_purse),
+        (POS_PREMINT_PURSE, premint_purse),
         (POS_REWARDS_PURSE, rewards_purse),
-        (POS_COMMISSION_PURSE, commission_purse),
         (POS_COMMUNITY_PURSE, community_purse),
     ]
     .iter()

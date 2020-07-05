@@ -17,6 +17,7 @@ pub const PLACEHOLDER_KEY: Key = Key::Hash([0u8; 32]);
 pub const POS_BONDING_PURSE: &str = "pos_bonding_purse";
 pub const POS_PAYMENT_PURSE: &str = "pos_payment_purse";
 pub const POS_REWARDS_PURSE: &str = "pos_rewards_purse";
+// TODO: Are these strings below necessary?
 pub const POS_COMMISSION_PURSE: &str = "pos_commission_purse";
 pub const POS_COMMUNITY_PURSE: &str = "pos_community_purse";
 
@@ -198,6 +199,13 @@ impl GenesisConfig {
 
     pub fn push_account(&mut self, account: GenesisAccount) {
         self.accounts.push(account);
+    }
+
+    pub fn get_avaliable_amount(&self) -> U512 {
+        self.accounts()
+            .iter()
+            .map(|genesis_account| genesis_account.balance().value())
+            .fold(U512::zero(), |x, y| x + y)
     }
 
     pub fn state_infos(&self) -> &[String] {

@@ -28,11 +28,14 @@ impl TryFrom<ipc::StepRequest> for StepRequest {
 
         let block_time = request.get_block_time();
 
+        let block_height = request.get_block_height();
+
         let protocol_version = request.take_protocol_version().into();
 
         Ok(StepRequest::new(
             parent_state_hash,
             block_time,
+            block_height,
             protocol_version,
         ))
     }
@@ -43,6 +46,7 @@ impl From<StepRequest> for ipc::StepRequest {
         let mut result = ipc::StepRequest::new();
         result.set_parent_state_hash(req.parent_state_hash.to_vec());
         result.set_block_time(req.block_time);
+        result.set_block_height(req.block_height);
         result.set_protocol_version(req.protocol_version.into());
         result
     }

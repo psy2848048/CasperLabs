@@ -113,7 +113,7 @@ pub enum Error {
     /// Internal error: failed to deserialize the validator's balance
     CommissionBalanceDeserializationFailed, // = 41
     /// Internal error: failed to issue a new purse for commission
-    CommissionPurseNotFound, // = 42
+    PremintPurseNotFound, // = 42
     /// Internal error: no commission record
     CommissionNotFound, // = 43
     /// No claim record of commission
@@ -147,7 +147,7 @@ pub enum Error {
     /// Internal error: Invalid state information
     InvalidStateInformation, // = 58
     /// Internal error: the PoS contract's commission purse key was the wrong type.
-    CommissionPurseKeyUnexpectedType, // 59
+    PremintPurseKeyUnexpectedType, // 59
     /// Internal error: failed to issue a new purse for community
     CommunityPurseNotFound, // 60
     /// Internal error: the PoS contract's community purse key was the wrong type.
@@ -158,6 +158,8 @@ pub enum Error {
     /// Internal error: while finalizing payment, failed to pay the validators (the transfer from
     /// the PoP contract's payment purse to community purse failed).
     FailedTransferToCommunityPurse, //63
+    /// Internal error: while claim, failed to transfer from premint purse to account.
+    FailedTransferFromPremintPurse, //64
 }
 
 impl CLTyped for Error {
@@ -211,10 +213,10 @@ impl PurseLookupError {
         }
     }
 
-    pub fn commission(err: PurseLookupError) -> Error {
+    pub fn premint(err: PurseLookupError) -> Error {
         match err {
-            PurseLookupError::KeyNotFound => Error::CommissionPurseNotFound,
-            PurseLookupError::KeyUnexpectedType => Error::CommissionPurseKeyUnexpectedType,
+            PurseLookupError::KeyNotFound => Error::PremintPurseNotFound,
+            PurseLookupError::KeyUnexpectedType => Error::PremintPurseKeyUnexpectedType,
         }
     }
 

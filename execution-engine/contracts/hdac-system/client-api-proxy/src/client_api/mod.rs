@@ -15,7 +15,6 @@ mod method_names {
         use super::pos;
         pub const BOND: &str = pos::BOND;
         pub const UNBOND: &str = pos::UNBOND;
-        pub const STEP: &str = pos::STEP;
         pub const STANDARD_PAYMENT: &str = "standard_payment";
         pub const TRANSFER_TO_ACCOUNT: &str = "transfer_to_account";
         pub const DELEGATE: &str = pos::DELEGATE;
@@ -29,7 +28,6 @@ mod method_names {
     pub mod pos {
         pub const BOND: &str = "bond";
         pub const UNBOND: &str = "unbond";
-        pub const STEP: &str = "step";
         pub const GET_PAYMENT_PURSE: &str = "get_payment_purse";
         pub const DELEGATE: &str = "delegate";
         pub const UNDELEGATE: &str = "undelegate";
@@ -46,7 +44,6 @@ pub enum Api {
     Unbond(Option<U512>),
     StandardPayment(U512),
     TransferToAccount(PublicKey, U512),
-    Step(),
     Delegate(PublicKey, U512),
     Undelegate(PublicKey, Option<U512>),
     Redelegate(PublicKey, PublicKey, Option<U512>),
@@ -91,7 +88,6 @@ impl Api {
 
                 Api::TransferToAccount(public_key, transfer_amount)
             }
-            method_names::proxy::STEP => Api::Step(),
             method_names::proxy::DELEGATE => {
                 let validator: PublicKey = runtime::get_arg(1)
                     .unwrap_or_revert_with(ApiError::MissingArgument)
@@ -173,10 +169,6 @@ impl Api {
             }
             Self::TransferToAccount(public_key, amount) => {
                 system::transfer_to_account(*public_key, *amount).unwrap_or_revert();
-            }
-            Self::Step() => {
-                let pos_ref = system::get_proof_of_stake();
-                runtime::call_contract(pos_ref, (method_names::pos::STEP,))
             }
             Self::Delegate(validator, amount) => {
                 let pos_ref = system::get_proof_of_stake();
