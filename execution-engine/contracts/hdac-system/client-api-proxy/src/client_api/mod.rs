@@ -173,21 +173,7 @@ impl Api {
             Self::Delegate(validator, amount) => {
                 let pos_ref = system::get_proof_of_stake();
 
-                let source_purse = account::get_main_purse();
-                let bonding_purse = system::create_purse();
-
-                system::transfer_from_purse_to_purse(source_purse, bonding_purse, *amount)
-                    .unwrap_or_revert();
-
-                runtime::call_contract(
-                    pos_ref,
-                    (
-                        method_names::pos::DELEGATE,
-                        *validator,
-                        *amount,
-                        bonding_purse,
-                    ),
-                )
+                runtime::call_contract(pos_ref, (method_names::pos::DELEGATE, *validator, *amount))
             }
             Self::Undelegate(validator, amount) => {
                 let pos_ref = system::get_proof_of_stake();

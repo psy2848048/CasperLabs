@@ -94,9 +94,6 @@ pub fn delegate() {
             let amount: U512 = runtime::get_arg(2)
                 .unwrap_or_revert_with(ApiError::MissingArgument)
                 .unwrap_or_revert_with(ApiError::InvalidArgument);
-            // let source_uref: URef = runtime::get_arg(3)
-            // .unwrap_or_revert_with(ApiError::MissingArgument)
-            // .unwrap_or_revert_with(ApiError::InvalidArgument);
             pop_contract
                 .delegate(delegator, validator, amount)
                 .unwrap_or_revert();
