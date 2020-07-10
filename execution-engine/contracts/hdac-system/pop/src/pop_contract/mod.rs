@@ -59,7 +59,7 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
-    pub fn step(&mut self, _height: u64) -> Result<()> {
+    pub fn step(&mut self) -> Result<()> {
         let caller = runtime::get_caller();
 
         if caller.value() != sys_params::SYSTEM_ACCOUNT {
