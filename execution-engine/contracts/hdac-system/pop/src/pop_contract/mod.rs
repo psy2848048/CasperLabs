@@ -60,65 +60,18 @@ impl ProofOfProfessionContract {
     }
 
     pub fn step(&mut self) -> Result<()> {
-        let caller = runtime::get_caller();
-
-        if caller.value() != sys_params::SYSTEM_ACCOUNT {
+        if runtime::get_caller().value() != sys_params::SYSTEM_ACCOUNT {
             return Err(Error::SystemFunctionCalledByUserAccount);
         }
 
         // The order of below functions matters.
         let current = runtime::get_blocktime();
+
         let mut delegations = store::read_delegations()?;
-
-        // step mature undelegate requests
-        {
-            // populate the requests.
-            let mut request_queue = store::read_undelegation_requests();
-            let requests = request_queue.pop_due(
-                current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY_IN_SEC)),
-            );
-            store::write_undelegation_requests(request_queue);
-
-            for request in requests {
-                let UndelegateRequest {
-                    delegator,
-                    validator,
-                    maybe_amount,
-                } = request.item;
-                // If the request is invalid, discard the request.
-                // TODO: Error is ignored currently, but should propagate to endpoint in the future.
-                let _ = delegations.undelegate(&delegator, &validator, maybe_amount);
-            }
-        }
-
-        // step the mature redelegate requests
-        {
-            // populate the requests.
-            let mut request_queue = store::read_redelegation_requests();
-            let requests = request_queue.pop_due(
-                current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY_IN_SEC)),
-            );
-            store::write_redelegation_requests(request_queue);
-
-            for request in requests {
-                let RedelegateRequest {
-                    delegator,
-                    src_validator,
-                    dest_validator,
-                    maybe_amount,
-                } = request.item;
-
-                // If the request is invalid, discard the request.
-                // TODO: Error is currently ignored, but should propagate to endpoint in the future.
-                let _ = delegations.redelegate(
-                    &delegator,
-                    &src_validator,
-                    &dest_validator,
-                    maybe_amount,
-                );
-            }
-        }
-
+        self.step_delegations(
+            current.saturating_sub(BlockTime::new(sys_params::UNDELEGATING_DELAY_IN_SEC)),
+            &mut delegations,
+        );
         store::write_delegations(&delegations);
 
         self.step_unbond(
@@ -288,6 +241,54 @@ impl ProofOfProfessionContract {
         Ok(())
     }
 
+    fn step_delegations(&mut self, due: BlockTime, delegations: &mut Delegations) {
+        // step mature undelegate requests
+        {
+            // populate the requests.
+            let mut request_queue = store::read_undelegation_requests();
+            let requests = request_queue.pop_due(due);
+            store::write_undelegation_requests(request_queue);
+
+            for request in requests {
+                let UndelegateRequest {
+                    delegator,
+                    validator,
+                    maybe_amount,
+                } = request.item;
+                // If the request is invalid, discard the request.
+                // TODO: Error is ignored currently, but should propagate to endpoint in the future.
+                let _ = delegations.undelegate(&delegator, &validator, maybe_amount);
+            }
+        }
+
+        // step the mature redelegate requests
+        {
+            // populate the requests.
+            let mut request_queue = store::read_redelegation_requests();
+            let requests = request_queue.pop_due(due);
+            store::write_redelegation_requests(request_queue);
+
+            for request in requests {
+                let RedelegateRequest {
+                    delegator,
+                    src_validator,
+                    dest_validator,
+                    maybe_amount,
+                } = request.item;
+
+                // If the request is invalid, discard the request.
+                // TODO: Error is currently ignored, but should propagate to endpoint in the future.
+                let _ = delegations.redelegate(
+                    &delegator,
+                    &src_validator,
+                    &dest_validator,
+                    maybe_amount,
+                );
+            }
+        }
+    }
+
+    // TODO: accumulate the results
     fn step_unbond(&mut self, due: BlockTime, delegations: &Delegations) {
         // populate the mature requests
         let mut request_queue = store::read_unbond_requests();
