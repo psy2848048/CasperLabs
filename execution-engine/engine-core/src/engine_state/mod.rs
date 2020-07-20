@@ -360,9 +360,9 @@ where
                     genesis_config.proof_of_stake_installer_bytes();
                 let proof_of_stake_installer_module =
                     preprocessor.preprocess(proof_of_stake_installer_bytes)?;
-                let avaliable_amount: U512 = genesis_config.get_avaliable_amount();
+                let total_genesis_balances: U512 = genesis_config.get_total_genesis_balances();
                 let args = {
-                    let args = (mint_reference, bonded_validators, avaliable_amount);
+                    let args = (mint_reference, bonded_validators, total_genesis_balances);
                     ArgsParser::parse(args)
                         .expect("args should convert to `Vec<CLValue>`")
                         .into_bytes()

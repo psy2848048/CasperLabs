@@ -201,7 +201,7 @@ impl GenesisConfig {
         self.accounts.push(account);
     }
 
-    pub fn get_avaliable_amount(&self) -> U512 {
+    pub fn get_total_genesis_balances(&self) -> U512 {
         self.accounts()
             .iter()
             .map(|genesis_account| genesis_account.balance().value())
