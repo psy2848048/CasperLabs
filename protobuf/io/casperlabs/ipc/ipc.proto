@@ -450,8 +450,7 @@ message UnbondPayoutResponse {
 message StepRequest {
     bytes parent_state_hash = 1;
     uint64 block_time = 2;
-    uint64 block_height = 3;
-    io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 4;
+    io.casperlabs.casper.consensus.state.ProtocolVersion protocol_version = 3;
 }
 
 message StepResult {

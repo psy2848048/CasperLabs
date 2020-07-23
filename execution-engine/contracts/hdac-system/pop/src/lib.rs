@@ -61,10 +61,7 @@ pub fn delegate() {
         // Type of this method: `fn step()`
         methods::METHOD_STEP => {
             // This is called by the system in every block.
-            let height: u64 = runtime::get_arg(1)
-                .unwrap_or_revert_with(ApiError::MissingArgument)
-                .unwrap_or_revert_with(ApiError::InvalidArgument);
-            pop_contract.step(height).unwrap_or_revert();
+            pop_contract.step().unwrap_or_revert();
         }
         // Type of this method: `fn get_payment_purse() -> URef`
         methods::METHOD_GET_PAYMENT_PURSE => {
