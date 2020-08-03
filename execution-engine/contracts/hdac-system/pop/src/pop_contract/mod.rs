@@ -247,7 +247,9 @@ impl ProofOfProfessionContract {
             // populate the requests.
             let mut request_queue = store::read_undelegation_requests();
             let requests = request_queue.pop_due(due);
-            store::write_undelegation_requests(request_queue);
+            if !requests.is_empty() {
+                store::write_undelegation_requests(request_queue);
+            }
 
             for request in requests {
                 let UndelegateRequest {
@@ -266,7 +268,9 @@ impl ProofOfProfessionContract {
             // populate the requests.
             let mut request_queue = store::read_redelegation_requests();
             let requests = request_queue.pop_due(due);
-            store::write_redelegation_requests(request_queue);
+            if !requests.is_empty() {
+                store::write_redelegation_requests(request_queue);
+            }
 
             for request in requests {
                 let RedelegateRequest {
@@ -293,7 +297,9 @@ impl ProofOfProfessionContract {
         // populate the mature requests
         let mut request_queue = store::read_unbond_requests();
         let requests = request_queue.pop_due(due);
-        store::write_unbond_requests(request_queue);
+        if !requests.is_empty() {
+            store::write_unbond_requests(request_queue);
+        }
 
         for request in requests {
             let UnbondRequest {
